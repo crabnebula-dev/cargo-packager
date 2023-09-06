@@ -52,8 +52,11 @@ pub enum Error {
     #[error(transparent)]
     Semver(#[from] semver::Error),
     /// Non-numeric build metadata in app version.
-    #[error("optional build metadata in app version must be numeric-only")]
-    NonNumericBuildMetadata,
+    #[error("optional build metadata in app version must be numeric-only {}", .0.unwrap_or_default())]
+    NonNumericBuildMetadata(Option<String>),
+    /// Invalid app version when building [crate::PackageFormat::Msi]
+    #[error("invalid app version: {0}")]
+    InvalidAppVersion(String),
     /// Handlebars template error.
     #[error(transparent)]
     HandleBarsError(#[from] handlebars::RenderError),
