@@ -36,8 +36,6 @@ mod dmg;
 mod error;
 #[cfg(target_os = "macos")]
 mod ios;
-#[cfg(windows)]
-mod msi;
 mod nsis;
 #[cfg(any(
     target_os = "linux",
@@ -49,6 +47,8 @@ mod nsis;
 mod rpm;
 mod sign;
 pub mod util;
+#[cfg(windows)]
+mod wix;
 
 use std::{path::PathBuf, process::Command};
 
@@ -92,7 +92,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
     let mut packages = Vec::new();
 
     let formats = config
-        .format
+        .formats
         .clone()
         .unwrap_or_else(|| PackageFormat::all().to_vec());
 
@@ -161,7 +161,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             #[cfg(target_os = "macos")]
             PackageFormat::Ios => ios::package(config),
             #[cfg(target_os = "windows")]
-            PackageFormat::Msi => msi::package(config),
+            PackageFormat::Wix => wix::package(config),
             PackageFormat::Nsis => nsis::package(config),
             #[cfg(any(
                 target_os = "linux",

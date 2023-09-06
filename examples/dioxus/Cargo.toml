@@ -5,7 +5,6 @@ edition = "2021"
 
 [package.metadata.packager]
 before-packaging-command = "dx build --platform desktop --release"
-format = ["nsis"]
 product-name = "Dioxus example"
 identifier = "com.dioxus.example"
 

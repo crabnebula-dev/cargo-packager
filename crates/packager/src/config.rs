@@ -8,15 +8,13 @@ pub(crate) struct Resource {
     pub target: PathBuf,
 }
 
-pub(crate) trait ConfigExtInternal {
-    fn resources(&self) -> Option<Vec<Resource>>;
-}
-
 pub trait ConfigExt {
     /// Returns the windows specific configuration
     fn windows(&self) -> Option<&WindowsConfig>;
     /// Returns the nsis specific configuration
     fn nsis(&self) -> Option<&NsisConfig>;
+    /// Returns the wix specific configuration
+    fn wix(&self) -> Option<&WixConfig>;
     /// Returns the architecture for the binary being packaged (e.g. "arm", "x86" or "x86_64").
     fn target_arch(&self) -> crate::Result<&str>;
     /// Returns the path to the specified binary.
@@ -34,6 +32,10 @@ impl ConfigExt for Config {
 
     fn nsis(&self) -> Option<&NsisConfig> {
         self.nsis.as_ref()
+    }
+
+    fn wix(&self) -> Option<&WixConfig> {
+        self.wix.as_ref()
     }
 
     fn target_arch(&self) -> crate::Result<&str> {
@@ -68,6 +70,11 @@ impl ConfigExt for Config {
             .clone()
             .unwrap_or_else(|| identifier.split('.').nth(1).unwrap_or(identifier).into())
     }
+}
+
+pub(crate) trait ConfigExtInternal {
+    fn resources(&self) -> Option<Vec<Resource>>;
+    fn find_ico(&self) -> Option<PathBuf>;
 }
 
 impl ConfigExtInternal for Config {
@@ -110,5 +117,21 @@ impl ConfigExtInternal for Config {
             }
             out
         })
+    }
+
+    fn find_ico(&self) -> Option<PathBuf> {
+        self.icons
+            .as_ref()
+            .and_then(|icons| {
+                icons
+                    .iter()
+                    .find(|i| PathBuf::from(i).extension().and_then(|s| s.to_str()) == Some("ico"))
+                    .or_else(|| {
+                        icons.iter().find(|i| {
+                            PathBuf::from(i).extension().and_then(|s| s.to_str()) == Some("png")
+                        })
+                    })
+            })
+            .map(PathBuf::from)
     }
 }

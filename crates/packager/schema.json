@@ -46,7 +46,7 @@
         }
       ]
     },
-    "format": {
+    "formats": {
       "description": "The package types we're creating.\n\nif not present, we'll use the PackageType list for the target OS.",
       "type": [
         "array",
@@ -363,10 +363,10 @@
           ]
         },
         {
-          "description": "The Microsoft Software Installer (.msi).",
+          "description": "The Microsoft Software Installer (.msi) through WiX Toolset.",
           "type": "string",
           "enum": [
-            "msi"
+            "wix"
           ]
         },
         {
@@ -621,7 +621,7 @@
       "additionalProperties": false
     },
     "WixConfig": {
-      "description": "Settings specific to the WiX implementation.",
+      "description": "The wix format configuration",
       "type": "object",
       "properties": {
         "languages": {
@@ -766,7 +766,7 @@
       "additionalProperties": false
     },
     "NsisConfig": {
-      "description": "Settings specific to the NSIS implementation.",
+      "description": "The NSIS format configuration.",
       "type": "object",
       "properties": {
         "template": {

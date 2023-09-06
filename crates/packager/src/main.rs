@@ -4,7 +4,7 @@ use cargo_packager::{
     config::{Binary, Config},
     package, util, Result,
 };
-use cargo_packager_config::LogLevel;
+use cargo_packager_config::{LogLevel, PackageFormat};
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser};
 use env_logger::fmt::Color;
 use log::{log_enabled, Level};
@@ -18,17 +18,20 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
     let mut configs = Vec::new();
     for package in metadata.workspace_packages() {
         // skip if this package was not specified in the explicit packages to build
-        if !cli
+        if cli
             .packages
             .as_ref()
-            .map(|packages| packages.contains(&package.name))
-            .unwrap_or(true)
+            .map(|packages| !packages.contains(&package.name))
+            .unwrap_or(false)
         {
             continue;
         }
 
         if let Some(config) = package.metadata.get("packager") {
             let mut config: Config = serde_json::from_value(config.to_owned())?;
+            if let Some(formats) = &cli.formats {
+                config.formats.replace(formats.clone());
+            }
             if config.product_name.is_empty() {
                 config.product_name = package.name.clone();
             }
@@ -56,11 +59,9 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
             }
             if config.log_level.is_none() {
                 config.log_level.replace(match cli.verbose {
-                    0 => LogLevel::Error,
-                    1 => LogLevel::Warn,
-                    2 => LogLevel::Info,
-                    3 => LogLevel::Debug,
-                    4.. => LogLevel::Trace,
+                    0 => LogLevel::Info,
+                    1 => LogLevel::Debug,
+                    2.. => LogLevel::Trace,
                 });
             }
             if config.license_file.is_none() {
@@ -116,14 +117,16 @@ fn try_run(cli: Cli) -> Result<()> {
 
     // print information when finished
     let len = packages.len();
-    let pluralised = if len == 1 { "package" } else { "packages" };
-    let mut printable_paths = String::new();
-    for p in packages {
-        for path in &p.paths {
-            writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
+    if len >= 1 {
+        let pluralised = if len == 1 { "package" } else { "packages" };
+        let mut printable_paths = String::new();
+        for p in packages {
+            for path in &p.paths {
+                writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
+            }
         }
+        log::info!(action = "Finished"; "{} {} at:\n{}", len, pluralised, printable_paths);
     }
-    log::info!(action = "Finished"; "{} {} at:\n{}", len, pluralised, printable_paths);
 
     Ok(())
 }
@@ -168,6 +171,9 @@ pub(crate) struct Cli {
     /// Specify the manifest path to use for reading the configuration.
     #[clap(long)]
     manifest_path: Option<String>,
+    /// Specify the package fromats to build.
+    #[clap(long, value_enum)]
+    formats: Option<Vec<PackageFormat>>,
 }
 
 fn main() {

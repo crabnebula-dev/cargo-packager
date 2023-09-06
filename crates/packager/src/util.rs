@@ -1,8 +1,10 @@
+use cargo_packager_config::LogLevel;
 use sha2::Digest;
 use std::{
     fs::File,
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
+    process::Output,
 };
 
 use zip::ZipArchive;
@@ -66,7 +68,7 @@ pub fn target_triple() -> crate::Result<String> {
     Ok(format!("{arch}-{os}"))
 }
 
-pub fn download(url: &str) -> crate::Result<Vec<u8>> {
+pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
     log::info!(action = "Downloading"; "{}", url);
     let response = ureq::get(url).call()?;
     let mut bytes = Vec::new();
@@ -74,14 +76,14 @@ pub fn download(url: &str) -> crate::Result<Vec<u8>> {
     Ok(bytes)
 }
 
-pub enum HashAlgorithm {
+pub(crate) enum HashAlgorithm {
     #[cfg(target_os = "windows")]
     Sha256,
     Sha1,
 }
 
 /// Function used to download a file and checks SHA256 to verify the download.
-pub fn download_and_verify(
+pub(crate) fn download_and_verify(
     file: &str,
     url: &str,
     hash: &str,
@@ -118,7 +120,7 @@ fn verify(data: &Vec<u8>, hash: &str, mut hasher: impl Digest) -> crate::Result<
 }
 
 /// Extracts the zips from memory into a useable path.
-pub fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
+pub(crate) fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
     let cursor = Cursor::new(data);
 
     let mut zipa = ZipArchive::new(cursor)?;
@@ -150,14 +152,14 @@ pub fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-pub enum Bitness {
+pub(crate) enum Bitness {
     X86_32,
     X86_64,
     Unknown,
 }
 
 #[cfg(windows)]
-pub fn os_bitness() -> crate::Result<Bitness> {
+pub(crate) fn os_bitness() -> crate::Result<Bitness> {
     use windows_sys::Win32::System::{
         Diagnostics::Debug::{PROCESSOR_ARCHITECTURE_AMD64, PROCESSOR_ARCHITECTURE_INTEL},
         SystemInformation::{GetNativeSystemInfo, SYSTEM_INFO},
@@ -173,4 +175,22 @@ pub fn os_bitness() -> crate::Result<Bitness> {
             _ => Bitness::Unknown,
         },
     )
+}
+
+pub(crate) fn log_if_needed(log_level: LogLevel, output: Output) {
+    if output.status.success() && !output.stdout.is_empty() && log_level >= LogLevel::Debug {
+        log::debug!(action = "stdout"; "{}", String::from_utf8_lossy(&output.stdout))
+    } else if !output.status.success() && log_level >= LogLevel::Error {
+        let action = if !output.stderr.is_empty() {
+            "stderr"
+        } else {
+            "stdout"
+        };
+        let output = if !output.stderr.is_empty() {
+            &output.stderr
+        } else {
+            &output.stdout
+        };
+        log::error!(action = action; "{}", String::from_utf8_lossy(output))
+    }
 }

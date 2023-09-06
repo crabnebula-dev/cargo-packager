@@ -63,10 +63,27 @@ pub enum Error {
     /// Nsis error
     #[error("error running makensis.exe: {0}")]
     NsisFailed(String),
+    /// Nsis error
+    #[error("error running {0}: {0}")]
+    WixFailed(String, String),
+    /// Failed to get parent directory of a path
     #[error("Failed to get parent directory of a path")]
     ParentDirNotFound,
     #[error("{0} `{1}` failed with exit code {2}")]
     HookCommandFailure(String, String, i32),
+    /// Regex error.
+    #[cfg(windows)]
+    #[error(transparent)]
+    RegexError(#[from] regex::Error),
+    /// Glob pattern error.
+    #[error(transparent)]
+    GlobPatternError(#[from] glob::PatternError),
+    /// Glob error.
+    #[error(transparent)]
+    Glob(#[from] glob::GlobError),
+    /// Unsupported WiX language
+    #[error("Language {0} not found. It must be one of {1}")]
+    UnsupportedWixLanguage(String, String),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
