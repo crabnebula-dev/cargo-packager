@@ -132,7 +132,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
-            let binary_path = cwd.join(&src);
+            let binary_path = cwd.join(src);
             let dest_filename = PathBuf::from(src)
                 .file_name()
                 .expect("failed to extract external binary filename")
@@ -411,7 +411,6 @@ fn clear_env_for_wix(cmd: &mut Command) {
 /// Runs the Candle.exe executable for Wix. Candle parses the wxs file and generates the code for building the installer.
 fn run_candle(
     config: &Config,
-    main_binary: &crate::config::Binary,
     arch: &str,
     wix_toolset_path: &Path,
     cwd: &Path,
@@ -419,6 +418,11 @@ fn run_candle(
     extensions: Vec<PathBuf>,
     log_level: LogLevel,
 ) -> crate::Result<()> {
+    let main_binary = config
+        .binaries
+        .iter()
+        .find(|bin| bin.main)
+        .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
     let mut args = vec![
         "-arch".to_string(),
         arch.to_string(),
@@ -747,7 +751,6 @@ fn build_wix_app_installer(
         }
         run_candle(
             config,
-            main_binary,
             arch,
             wix_toolset_path,
             &output_path,

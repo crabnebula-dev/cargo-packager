@@ -70,7 +70,7 @@ pub fn target_triple() -> crate::Result<String> {
 
 pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
     log::info!(action = "Downloading"; "{}", url);
-    let response = ureq::get(url).call()?;
+    let response = ureq::get(url).call().map_err(Box::new)?;
     let mut bytes = Vec::new();
     response.into_reader().read_to_end(&mut bytes)?;
     Ok(bytes)

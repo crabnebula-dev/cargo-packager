@@ -73,7 +73,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
-            let binary_path = dunce::canonicalize(cwd.join(&src))?;
+            let binary_path = dunce::canonicalize(cwd.join(src))?;
             let dest_filename = binary_path
                 .file_name()
                 .expect("failed to extract external binary filename")

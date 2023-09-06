@@ -33,7 +33,7 @@ pub enum Error {
     ZipError(#[from] zip::result::ZipError),
     /// Zip error.
     #[error(transparent)]
-    DownloadError(#[from] ureq::Error),
+    DownloadError(#[from] Box<ureq::Error>),
     /// Unsupported OS bitness.
     #[error("unsupported OS bitness")]
     UnsupportedBitness,

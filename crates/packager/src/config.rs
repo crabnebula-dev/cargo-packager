@@ -89,7 +89,7 @@ impl ConfigExtInternal for Config {
                             src.ok().and_then(|src| {
                                 use relative_path::PathExt;
                                 let src =
-                                    dunce::canonicalize(&src).expect("failed to canonicalize path");
+                                    dunce::canonicalize(src).expect("failed to canonicalize path");
                                 let target = src.relative_to(&cwd);
                                 target.ok().map(|target| Resource {
                                     src,
@@ -101,10 +101,10 @@ impl ConfigExtInternal for Config {
                 }
                 Resources::Map(m) => {
                     for (src, target) in m.iter() {
-                        out.extend(glob::glob(&src).unwrap().filter_map(|src| {
+                        out.extend(glob::glob(src).unwrap().filter_map(|src| {
                             src.ok().map(|src| {
                                 let src =
-                                    dunce::canonicalize(&src).expect("failed to canonicalize path");
+                                    dunce::canonicalize(src).expect("failed to canonicalize path");
                                 let target = PathBuf::from(target).join(
                                     src.file_name()
                                         .expect("Failed to get filename of a resource file"),
