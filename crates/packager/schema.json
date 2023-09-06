@@ -1,0 +1,908 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Config",
+  "description": "The packaging config.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "The JSON schema for the config.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "logLevel": {
+      "description": "The log level.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/LogLevel"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "format": {
+      "description": "The package types we're creating.\n\nif not present, we'll use the PackageType list for the target OS.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/PackageFormat"
+      }
+    },
+    "outDir": {
+      "description": "the directory where the packages will be placed.",
+      "default": "",
+      "type": "string"
+    },
+    "targetTriple": {
+      "description": "The target triple.",
+      "default": "",
+      "type": "string"
+    },
+    "productName": {
+      "description": "the package's product name, for example \"My Awesome App\".",
+      "default": "",
+      "type": "string"
+    },
+    "version": {
+      "description": "the package's version.",
+      "default": "",
+      "type": "string"
+    },
+    "description": {
+      "description": "the package's description.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "longDescription": {
+      "description": "the app's long description.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "homepage": {
+      "description": "the package's homepage.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "authors": {
+      "description": "the package's authors.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "identifier": {
+      "description": "the app's identifier.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publisher": {
+      "description": "The app's publisher. Defaults to the second element in the identifier string. Currently maps to the Manufacturer property of the Windows Installer.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "licenseFile": {
+      "description": "A path to the license file.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "copyright": {
+      "description": "the app's copyright.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "category": {
+      "description": "the app's category.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AppCategory"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "icons": {
+      "description": "the app's icon list.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "binaries": {
+      "description": "the binaries to package.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Binary"
+      }
+    },
+    "defaultRun": {
+      "description": "the default binary to run.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fileAssociations": {
+      "description": "the file associations",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/FileAssociation"
+      }
+    },
+    "resources": {
+      "description": "The app's resources to package.\n\nCan be either be a list of files/folder or a map of src file/folder and target file/folder.\n\nsupports glob patterns.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Resources"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "externalBinaries": {
+      "description": "External binaries to add to the package.\n\nNote that each binary name should have the target platform's target triple appended, as well as `.exe` for Windows. For example, if you're packaging a sidecar called `sqlite3`, the packager expects a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux, and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.\n\nRun `tauri build --help` for more info on targets.\n\nIf you are building a universal binary for MacOS, the packager expects your external binary to also be universal, and named after the target triple, e.g. `sqlite3-universal-apple-darwin`. See <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "signing": {
+      "description": "Signing configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SigningConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "deb": {
+      "description": "Platform-specific configurations. Debian-specific settings.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DebianConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "wix": {
+      "description": "WiX configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WixConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nsis": {
+      "description": "Nsis configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/NsisConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "macos": {
+      "description": "MacOS-specific settings.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/MacOsConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "windows": {
+      "description": "Windows-specific settings.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WindowsConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "LogLevel": {
+      "description": "An enum representing the available verbosity levels of the logger.",
+      "oneOf": [
+        {
+          "description": "The \"error\" level.\n\nDesignates very serious errors.",
+          "type": "string",
+          "enum": [
+            "error"
+          ]
+        },
+        {
+          "description": "The \"warn\" level.\n\nDesignates hazardous situations.",
+          "type": "string",
+          "enum": [
+            "warn"
+          ]
+        },
+        {
+          "description": "The \"info\" level.\n\nDesignates useful information.",
+          "type": "string",
+          "enum": [
+            "info"
+          ]
+        },
+        {
+          "description": "The \"debug\" level.\n\nDesignates lower priority information.",
+          "type": "string",
+          "enum": [
+            "debug"
+          ]
+        },
+        {
+          "description": "The \"trace\" level.\n\nDesignates very low priority, often extremely verbose, information.",
+          "type": "string",
+          "enum": [
+            "trace"
+          ]
+        }
+      ]
+    },
+    "PackageFormat": {
+      "description": "The type of the package we're bundling.",
+      "oneOf": [
+        {
+          "description": "The macOS application bundle (.app).",
+          "type": "string",
+          "enum": [
+            "app"
+          ]
+        },
+        {
+          "description": "The macOS DMG package (.dmg).",
+          "type": "string",
+          "enum": [
+            "dmg"
+          ]
+        },
+        {
+          "description": "The iOS app bundle.",
+          "type": "string",
+          "enum": [
+            "ios"
+          ]
+        },
+        {
+          "description": "The Microsoft Software Installer (.msi).",
+          "type": "string",
+          "enum": [
+            "msi"
+          ]
+        },
+        {
+          "description": "The NSIS installer (.exe).",
+          "type": "string",
+          "enum": [
+            "nsis"
+          ]
+        },
+        {
+          "description": "The Linux Debian package (.deb).",
+          "type": "string",
+          "enum": [
+            "deb"
+          ]
+        },
+        {
+          "description": "The Linux RPM package (.rpm).",
+          "type": "string",
+          "enum": [
+            "rpm"
+          ]
+        },
+        {
+          "description": "The Linux AppImage package (.AppImage).",
+          "type": "string",
+          "enum": [
+            "appimage"
+          ]
+        }
+      ]
+    },
+    "AppCategory": {
+      "description": "The possible app categories. Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.",
+      "type": "string",
+      "enum": [
+        "business",
+        "developerTool",
+        "education",
+        "entertainment",
+        "finance",
+        "game",
+        "actionGame",
+        "adventureGame",
+        "arcadeGame",
+        "boardGame",
+        "cardGame",
+        "casinoGame",
+        "diceGame",
+        "educationalGame",
+        "familyGame",
+        "kidsGame",
+        "musicGame",
+        "puzzleGame",
+        "racingGame",
+        "rolePlayingGame",
+        "simulationGame",
+        "sportsGame",
+        "strategyGame",
+        "triviaGame",
+        "wordGame",
+        "graphicsAndDesign",
+        "healthcareAndFitness",
+        "lifestyle",
+        "medical",
+        "music",
+        "news",
+        "photography",
+        "productivity",
+        "reference",
+        "socialNetworking",
+        "sports",
+        "travel",
+        "utility",
+        "video",
+        "weather"
+      ]
+    },
+    "Binary": {
+      "description": "A binary to package within the final package.",
+      "type": "object",
+      "required": [
+        "name",
+        "path"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name as given in the Cargo.toml",
+          "type": "string"
+        },
+        "path": {
+          "description": "Path to the main source file of the binary.",
+          "type": "string"
+        },
+        "main": {
+          "description": "Whether this is the main binary or not",
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FileAssociation": {
+      "description": "A file association configuration.",
+      "type": "object",
+      "required": [
+        "ext"
+      ],
+      "properties": {
+        "ext": {
+          "description": "File extensions to associate with this app. e.g. 'png'",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "The name. Maps to `CFBundleTypeName` on macOS. Default to ext[0]",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "The association description. **Windows-only**. It is displayed on the `Type` column on Windows Explorer.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "description": "The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.",
+          "default": "editor",
+          "allOf": [
+            {
+              "$ref": "#/definitions/BundleTypeRole"
+            }
+          ]
+        },
+        "mimeType": {
+          "description": "The mime-type e.g. 'image/png' or 'text/plain'. Linux-only.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "BundleTypeRole": {
+      "description": "*macOS-only**. Corresponds to CFBundleTypeRole",
+      "oneOf": [
+        {
+          "description": "CFBundleTypeRole.Editor. Files can be read and edited.",
+          "type": "string",
+          "enum": [
+            "editor"
+          ]
+        },
+        {
+          "description": "CFBundleTypeRole.Viewer. Files can be read.",
+          "type": "string",
+          "enum": [
+            "viewer"
+          ]
+        },
+        {
+          "description": "CFBundleTypeRole.Shell",
+          "type": "string",
+          "enum": [
+            "shell"
+          ]
+        },
+        {
+          "description": "CFBundleTypeRole.QLGenerator",
+          "type": "string",
+          "enum": [
+            "qLGenerator"
+          ]
+        },
+        {
+          "description": "CFBundleTypeRole.None",
+          "type": "string",
+          "enum": [
+            "none"
+          ]
+        }
+      ]
+    },
+    "Resources": {
+      "description": "A list or a map of resources.",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "SigningConfig": {
+      "description": "The app sigining configuration.",
+      "type": "object",
+      "required": [
+        "pubkey"
+      ],
+      "properties": {
+        "pubkey": {
+          "description": "Signature public key.",
+          "type": "string"
+        }
+      }
+    },
+    "DebianConfig": {
+      "description": "The Linux debian configuration.",
+      "type": "object",
+      "properties": {
+        "depends": {
+          "description": "the list of debian dependencies.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "description": "List of custom files to add to the deb package. Maps the path on the debian package to the path of the file to include (relative to the current working directory).",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "desktopTemplate": {
+          "description": "Path to a custom desktop file Handlebars template.\n\nAvailable variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.\n\nDefault file contents: ```text ```",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "WixConfig": {
+      "description": "Settings specific to the WiX implementation.",
+      "type": "object",
+      "properties": {
+        "languages": {
+          "description": "The app languages to build. See <https://docs.microsoft.com/en-us/windows/win32/msi/localizing-the-error-and-actiontext-tables>.",
+          "default": [
+            [
+              "en-US",
+              {
+                "localePath": null
+              }
+            ]
+          ],
+          "allOf": [
+            {
+              "$ref": "#/definitions/WixLanguages"
+            }
+          ]
+        },
+        "template": {
+          "description": "By default, the packager uses an internal template. This option allows you to define your own wix file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fragmentPaths": {
+          "description": "A list of paths to .wxs files with WiX fragments to use.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "componentGroupRefs": {
+          "description": "The ComponentGroup element ids you want to reference from the fragments.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "componentRefs": {
+          "description": "The Component element ids you want to reference from the fragments.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "featureGroupRefs": {
+          "description": "The FeatureGroup element ids you want to reference from the fragments.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "featureRefs": {
+          "description": "The Feature element ids you want to reference from the fragments.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "mergeRefs": {
+          "description": "The Merge element ids you want to reference from the fragments.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "enableElevatedUpdateTask": {
+          "description": "Create an elevated update task within Windows Task Scheduler.",
+          "default": false,
+          "type": "boolean"
+        },
+        "bannerPath": {
+          "description": "Path to a bitmap file to use as the installation user interface banner. This bitmap will appear at the top of all but the first page of the installer.\n\nThe required dimensions are 493px × 58px.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dialogImagePath": {
+          "description": "Path to a bitmap file to use on the installation user interface dialogs. It is used on the welcome and completion dialogs. The required dimensions are 493px × 312px.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fipsCompliant": {
+          "description": "Enables FIPS compliant algorithms.",
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "WixLanguages": {
+      "description": "The languages to build using WiX.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/definitions/WixLanguageConfig"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
+    },
+    "WixLanguageConfig": {
+      "description": "Configuration for a target language for the WiX build.",
+      "type": "object",
+      "properties": {
+        "localePath": {
+          "description": "The path to a locale (`.wxl`) file. See <https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/build_a_localized_version.html>.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "NsisConfig": {
+      "description": "Settings specific to the NSIS implementation.",
+      "type": "object",
+      "properties": {
+        "template": {
+          "description": "A custom .nsi template to use.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "headerImage": {
+          "description": "The path to a bitmap file to display on the header of installers pages.\n\nThe recommended dimensions are 150px x 57px.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sidebarImage": {
+          "description": "The path to a bitmap file for the Welcome page and the Finish page.\n\nThe recommended dimensions are 164px x 314px.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installerIcon": {
+          "description": "The path to an icon file used as the installer icon.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installMode": {
+          "description": "Whether the installation will be for all users or just the current user.",
+          "default": "currentUser",
+          "allOf": [
+            {
+              "$ref": "#/definitions/NSISInstallerMode"
+            }
+          ]
+        },
+        "languages": {
+          "description": "A list of installer languages. By default the OS language is used. If the OS language is not in the list of languages, the first language will be used. To allow the user to select the language, set `display_language_selector` to `true`.\n\nSee <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "customLanguageFiles": {
+          "description": "An key-value pair where the key is the language and the value is the path to a custom `.nsi` file that holds the translated text for tauri's custom messages.\n\nSee <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.\n\n**Note**: the key must be a valid NSIS language and it must be added to [`NsisConfig`]languages array,",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "displayLanguageSelector": {
+          "description": "Whether to display a language selector dialog before the installer and uninstaller windows are rendered or not. By default the OS language is selected, with a fallback to the first language in the `languages` array.",
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "NSISInstallerMode": {
+      "description": "Install Modes for the NSIS installer.",
+      "oneOf": [
+        {
+          "description": "Default mode for the installer.\n\nInstall the app by default in a directory that doesn't require Administrator access.\n\nInstaller metadata will be saved under the `HKCU` registry path.",
+          "type": "string",
+          "enum": [
+            "currentUser"
+          ]
+        },
+        {
+          "description": "Install the app by default in the `Program Files` folder directory requires Administrator access for the installation.\n\nInstaller metadata will be saved under the `HKLM` registry path.",
+          "type": "string",
+          "enum": [
+            "perMachine"
+          ]
+        },
+        {
+          "description": "Combines both modes and allows the user to choose at install time whether to install for the current user or per machine. Note that this mode will require Administrator access even if the user wants to install it for the current user only.\n\nInstaller metadata will be saved under the `HKLM` or `HKCU` registry path based on the user's choice.",
+          "type": "string",
+          "enum": [
+            "both"
+          ]
+        }
+      ]
+    },
+    "MacOsConfig": {
+      "description": "The macOS configuration.",
+      "type": "object",
+      "properties": {
+        "frameworks": {
+          "description": "MacOS frameworks that need to be packaged with the app.\n\nEach string can either be the name of a framework (without the `.framework` extension, e.g. `\"SDL2\"`), in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`), or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:\n\n- arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)\n\n- embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath \"@executable_path/../Frameworks\" path/to/binary` after compiling)",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "minimumSystemVersion": {
+          "description": "A version string indicating the minimum MacOS version that the packaged app supports (e.g. `\"10.11\"`). If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exceptionDomain": {
+          "description": "The exception domain to use on the macOS .app package.\n\nThis allows communication to the outside world e.g. a web server you're shipping.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signingIdentity": {
+          "description": "Code signing identity.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "providerShortName": {
+          "description": "Provider short name for notarization.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entitlements": {
+          "description": "Path to the entitlements.plist file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "infoPlistPath": {
+          "description": "Path to the Info.plist file for the package.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "WindowsConfig": {
+      "description": "The Windows configuration.",
+      "type": "object",
+      "properties": {
+        "digestAlgorithm": {
+          "description": "The file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "certificateThumbprint": {
+          "description": "The SHA1 hash of the signing certificate.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timestampUrl": {
+          "description": "Server to use during timestamping.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tsp": {
+          "description": "Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.",
+          "default": false,
+          "type": "boolean"
+        },
+        "allowDowngrades": {
+          "description": "Validates a second app installation, blocking the user from installing an older version if set to `false`.\n\nFor instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.\n\nThe default value of this flag is `true`.",
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

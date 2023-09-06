@@ -1,0 +1,613 @@
+use std::{collections::HashMap, path::PathBuf};
+
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+/// The type of the package we're bundling.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
+#[non_exhaustive]
+#[serde(rename_all = "lowercase")]
+pub enum PackageFormat {
+    /// The macOS application bundle (.app).
+    App,
+    /// The macOS DMG package (.dmg).
+    Dmg,
+    /// The iOS app bundle.
+    Ios,
+    /// The Microsoft Software Installer (.msi).
+    Msi,
+    /// The NSIS installer (.exe).
+    Nsis,
+    /// The Linux Debian package (.deb).
+    Deb,
+    /// The Linux RPM package (.rpm).
+    Rpm,
+    /// The Linux AppImage package (.AppImage).
+    AppImage,
+}
+
+impl PackageFormat {
+    /// Maps a short name to a [PackageFormat].
+    /// Possible values are "deb", "ios", "msi", "app", "rpm", "appimage", "dmg".
+    pub fn from_short_name(name: &str) -> Option<PackageFormat> {
+        // Other types we may eventually want to support: apk.
+        match name {
+            "app" => Some(PackageFormat::App),
+            "dmg" => Some(PackageFormat::Dmg),
+            "ios" => Some(PackageFormat::Ios),
+            "msi" => Some(PackageFormat::Msi),
+            "nsis" => Some(PackageFormat::Nsis),
+            "deb" => Some(PackageFormat::Deb),
+            "rpm" => Some(PackageFormat::Rpm),
+            "appimage" => Some(PackageFormat::AppImage),
+            _ => None,
+        }
+    }
+
+    /// Gets the short name of this [PackageFormat].
+    pub fn short_name(&self) -> &'static str {
+        match *self {
+            PackageFormat::App => "app",
+            PackageFormat::Dmg => "dmg",
+            PackageFormat::Ios => "ios",
+            PackageFormat::Msi => "msi",
+            PackageFormat::Nsis => "nsis",
+            PackageFormat::Deb => "deb",
+            PackageFormat::Rpm => "rpm",
+            PackageFormat::AppImage => "appimage",
+        }
+    }
+
+    /// Gets the list of the possible package types on the current OS.
+    pub fn all() -> &'static [PackageFormat] {
+        ALL_PACKAGE_TYPES
+    }
+}
+
+const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
+    #[cfg(target_os = "macos")]
+    PackageFormat::App,
+    #[cfg(target_os = "macos")]
+    PackageFormat::Dmg,
+    #[cfg(target_os = "macos")]
+    PackageFormat::Ios,
+    #[cfg(target_os = "windows")]
+    PackageFormat::Msi,
+    #[cfg(target_os = "windows")]
+    PackageFormat::Nsis,
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    PackageFormat::Deb,
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    PackageFormat::Rpm,
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    PackageFormat::AppImage,
+];
+
+// TODO: Right now, these categories correspond to LSApplicationCategoryType
+// values for OS X.  There are also some additional GNOME registered categories
+// that don't fit these; we should add those here too.
+/// The possible app categories.
+/// Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub enum AppCategory {
+    Business,
+    DeveloperTool,
+    Education,
+    Entertainment,
+    Finance,
+    Game,
+    ActionGame,
+    AdventureGame,
+    ArcadeGame,
+    BoardGame,
+    CardGame,
+    CasinoGame,
+    DiceGame,
+    EducationalGame,
+    FamilyGame,
+    KidsGame,
+    MusicGame,
+    PuzzleGame,
+    RacingGame,
+    RolePlayingGame,
+    SimulationGame,
+    SportsGame,
+    StrategyGame,
+    TriviaGame,
+    WordGame,
+    GraphicsAndDesign,
+    HealthcareAndFitness,
+    Lifestyle,
+    Medical,
+    Music,
+    News,
+    Photography,
+    Productivity,
+    Reference,
+    SocialNetworking,
+    Sports,
+    Travel,
+    Utility,
+    Video,
+    Weather,
+}
+
+/// **macOS-only**. Corresponds to CFBundleTypeRole
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum BundleTypeRole {
+    /// CFBundleTypeRole.Editor. Files can be read and edited.
+    Editor,
+    /// CFBundleTypeRole.Viewer. Files can be read.
+    Viewer,
+    /// CFBundleTypeRole.Shell
+    Shell,
+    /// CFBundleTypeRole.QLGenerator
+    QLGenerator,
+    /// CFBundleTypeRole.None
+    None,
+}
+
+impl Default for BundleTypeRole {
+    fn default() -> Self {
+        Self::Editor
+    }
+}
+
+/// A file association configuration.
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileAssociation {
+    /// File extensions to associate with this app. e.g. 'png'
+    pub ext: Vec<String>,
+    /// The name. Maps to `CFBundleTypeName` on macOS. Default to ext[0]
+    pub name: Option<String>,
+    /// The association description. **Windows-only**. It is displayed on the `Type` column on Windows Explorer.
+    pub description: Option<String>,
+    /// The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    #[serde(default)]
+    pub role: BundleTypeRole,
+    /// The mime-type e.g. 'image/png' or 'text/plain'. Linux-only.
+    #[serde(alias = "mime-type", alias = "mime_type")]
+    pub mime_type: Option<String>,
+}
+
+/// The Linux debian configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DebianConfig {
+    /// the list of debian dependencies.
+    pub depends: Option<Vec<String>>,
+    /// List of custom files to add to the deb package.
+    /// Maps the path on the debian package to the path of the file to include (relative to the current working directory).
+    pub files: Option<HashMap<PathBuf, PathBuf>>,
+    /// Path to a custom desktop file Handlebars template.
+    ///
+    /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
+    ///
+    /// Default file contents:
+    /// ```text
+    #[doc = include_str!("../../packager/src/deb/main.desktop")]
+    /// ```
+    #[serde(alias = "desktop-template", alias = "desktop_template")]
+    pub desktop_template: Option<PathBuf>,
+}
+
+/// The macOS configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MacOsConfig {
+    /// MacOS frameworks that need to be packaged with the app.
+    ///
+    /// Each string can either be the name of a framework (without the `.framework` extension, e.g. `"SDL2"`),
+    /// in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`),
+    /// or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle
+    /// (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:
+    ///
+    /// - arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)
+    ///
+    /// - embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
+    pub frameworks: Option<Vec<String>>,
+    /// A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`).
+    /// If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.
+    #[serde(alias = "minimum-system-version", alias = "minimum_system_version")]
+    pub minimum_system_version: Option<String>,
+    /// The exception domain to use on the macOS .app package.
+    ///
+    /// This allows communication to the outside world e.g. a web server you're shipping.
+    #[serde(alias = "exception-domain", alias = "exception_domain")]
+    pub exception_domain: Option<String>,
+    /// Code signing identity.
+    #[serde(alias = "signing-identity", alias = "signing_identity")]
+    pub signing_identity: Option<String>,
+    /// Provider short name for notarization.
+    #[serde(alias = "provider-short-name", alias = "provider_short_name")]
+    pub provider_short_name: Option<String>,
+    /// Path to the entitlements.plist file.
+    pub entitlements: Option<String>,
+    /// Path to the Info.plist file for the package.
+    #[serde(alias = "info-plist-path", alias = "info_plist_path")]
+    pub info_plist_path: Option<PathBuf>,
+}
+
+/// Configuration for a target language for the WiX build.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WixLanguageConfig {
+    /// The path to a locale (`.wxl`) file. See <https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/build_a_localized_version.html>.
+    #[serde(alias = "locale-Path", alias = "locale_Path")]
+    pub locale_path: Option<PathBuf>,
+}
+
+/// The languages to build using WiX.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+pub struct WixLanguages(pub Vec<(String, WixLanguageConfig)>);
+
+impl Default for WixLanguages {
+    fn default() -> Self {
+        Self(vec![("en-US".into(), Default::default())])
+    }
+}
+
+/// Settings specific to the WiX implementation.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WixConfig {
+    /// The app languages to build. See <https://docs.microsoft.com/en-us/windows/win32/msi/localizing-the-error-and-actiontext-tables>.
+    #[serde(default)]
+    pub languages: WixLanguages,
+    /// By default, the packager uses an internal template.
+    /// This option allows you to define your own wix file.
+    pub template: Option<PathBuf>,
+    /// A list of paths to .wxs files with WiX fragments to use.
+    #[serde(alias = "fragment-paths", alias = "fragment_paths")]
+    pub fragment_paths: Option<Vec<PathBuf>>,
+    /// The ComponentGroup element ids you want to reference from the fragments.
+    #[serde(alias = "component-group-refs", alias = "component_group_refs")]
+    pub component_group_refs: Option<Vec<String>>,
+    /// The Component element ids you want to reference from the fragments.
+    #[serde(alias = "component-refs", alias = "component_refs")]
+    pub component_refs: Option<Vec<String>>,
+    /// The FeatureGroup element ids you want to reference from the fragments.
+    #[serde(alias = "feature-group-refs", alias = "feature_group_refs")]
+    pub feature_group_refs: Option<Vec<String>>,
+    /// The Feature element ids you want to reference from the fragments.
+    #[serde(alias = "feature-refs", alias = "feature_refs")]
+    pub feature_refs: Option<Vec<String>>,
+    /// The Merge element ids you want to reference from the fragments.
+    #[serde(alias = "merge-refs", alias = "merge_refs")]
+    pub merge_refs: Option<Vec<String>>,
+    // TODO: find an agnostic way to introduce this option
+    // /// Disables the Webview2 runtime installation after app install. Will be removed in v2, use [`WindowsSettings::webview_install_mode`] instead.
+    // pub skip_webview_install: bool,
+    /// Create an elevated update task within Windows Task Scheduler.
+    #[serde(
+        default,
+        alias = "enable-elevated-update-task",
+        alias = "enable_elevated_update_task"
+    )]
+    pub enable_elevated_update_task: bool,
+    /// Path to a bitmap file to use as the installation user interface banner.
+    /// This bitmap will appear at the top of all but the first page of the installer.
+    ///
+    /// The required dimensions are 493px × 58px.
+    #[serde(alias = "banner-path", alias = "banner_path")]
+    pub banner_path: Option<PathBuf>,
+    /// Path to a bitmap file to use on the installation user interface dialogs.
+    /// It is used on the welcome and completion dialogs.
+    /// The required dimensions are 493px × 312px.
+    #[serde(alias = "dialog-image-path", alias = "dialog_image_path")]
+    pub dialog_image_path: Option<PathBuf>,
+    /// Enables FIPS compliant algorithms.
+    #[serde(default, alias = "fips-compliant", alias = "fips_compliant")]
+    pub fips_compliant: bool,
+}
+
+/// Install Modes for the NSIS installer.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum NSISInstallerMode {
+    /// Default mode for the installer.
+    ///
+    /// Install the app by default in a directory that doesn't require Administrator access.
+    ///
+    /// Installer metadata will be saved under the `HKCU` registry path.
+    CurrentUser,
+    /// Install the app by default in the `Program Files` folder directory requires Administrator
+    /// access for the installation.
+    ///
+    /// Installer metadata will be saved under the `HKLM` registry path.
+    PerMachine,
+    /// Combines both modes and allows the user to choose at install time
+    /// whether to install for the current user or per machine. Note that this mode
+    /// will require Administrator access even if the user wants to install it for the current user only.
+    ///
+    /// Installer metadata will be saved under the `HKLM` or `HKCU` registry path based on the user's choice.
+    Both,
+}
+
+impl Default for NSISInstallerMode {
+    fn default() -> Self {
+        Self::CurrentUser
+    }
+}
+
+/// Settings specific to the NSIS implementation.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NsisConfig {
+    /// A custom .nsi template to use.
+    pub template: Option<PathBuf>,
+    /// The path to a bitmap file to display on the header of installers pages.
+    ///
+    /// The recommended dimensions are 150px x 57px.
+    #[serde(alias = "header-image", alias = "header_image")]
+    pub header_image: Option<PathBuf>,
+    /// The path to a bitmap file for the Welcome page and the Finish page.
+    ///
+    /// The recommended dimensions are 164px x 314px.
+    #[serde(alias = "sidebar-image", alias = "sidebar_image")]
+    pub sidebar_image: Option<PathBuf>,
+    /// The path to an icon file used as the installer icon.
+    #[serde(alias = "installer-icon", alias = "installer_icon")]
+    pub installer_icon: Option<PathBuf>,
+    /// Whether the installation will be for all users or just the current user.
+    #[serde(default, alias = "installer-mode", alias = "installer_mode")]
+    pub install_mode: NSISInstallerMode,
+    /// A list of installer languages.
+    /// By default the OS language is used. If the OS language is not in the list of languages, the first language will be used.
+    /// To allow the user to select the language, set `display_language_selector` to `true`.
+    ///
+    /// See <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.
+    pub languages: Option<Vec<String>>,
+    /// An key-value pair where the key is the language and the
+    /// value is the path to a custom `.nsi` file that holds the translated text for tauri's custom messages.
+    ///
+    /// See <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.
+    ///
+    /// **Note**: the key must be a valid NSIS language and it must be added to [`NsisConfig`]languages array,
+    #[serde(alias = "custom-language-file", alias = "custom_language_file")]
+    pub custom_language_files: Option<HashMap<String, PathBuf>>,
+    /// Whether to display a language selector dialog before the installer and uninstaller windows are rendered or not.
+    /// By default the OS language is selected, with a fallback to the first language in the `languages` array.
+    #[serde(
+        default,
+        alias = "display-language-selector",
+        alias = "display_language_selector"
+    )]
+    pub display_language_selector: bool,
+}
+
+/// The Windows configuration.
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WindowsConfig {
+    /// The file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.
+    #[serde(alias = "digest-algorithim", alias = "digest_algorithim")]
+    pub digest_algorithm: Option<String>,
+    /// The SHA1 hash of the signing certificate.
+    #[serde(alias = "certificate-thumbprint", alias = "certificate_thumbprint")]
+    pub certificate_thumbprint: Option<String>,
+    /// Server to use during timestamping.
+    #[serde(alias = "timestamp-url", alias = "timestamp_url")]
+    pub timestamp_url: Option<String>,
+    /// Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may
+    /// use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
+    #[serde(default)]
+    pub tsp: bool,
+    // TODO find an agnostic way to specify custom logic to install webview2
+    // /// The installation mode for the Webview2 runtime.
+    // pub webview_install_mode: WebviewInstallMode,
+    // /// Path to the webview fixed runtime to use.
+    // ///
+    // /// Overwrites [`Self::webview_install_mode`] if set.
+    // ///
+    // /// Will be removed in v2, use [`Self::webview_install_mode`] instead.
+    // pub webview_fixed_runtime_path: Option<PathBuf>,
+    /// Validates a second app installation, blocking the user from installing an older version if set to `false`.
+    ///
+    /// For instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.
+    ///
+    /// The default value of this flag is `true`.
+    #[serde(
+        default = "default_true",
+        alias = "allow-downgrades",
+        alias = "allow_downgrades"
+    )]
+    pub allow_downgrades: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl Default for WindowsConfig {
+    fn default() -> Self {
+        Self {
+            digest_algorithm: None,
+            certificate_thumbprint: None,
+            timestamp_url: None,
+            tsp: false,
+            allow_downgrades: true,
+        }
+    }
+}
+
+/// The app sigining configuration.
+#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
+pub struct SigningConfig {
+    /// Signature public key.
+    pub pubkey: String,
+}
+
+/// An enum representing the available verbosity levels of the logger.
+#[derive(Deserialize, Serialize)]
+#[repr(usize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum LogLevel {
+    /// The "error" level.
+    ///
+    /// Designates very serious errors.
+    Error = 1,
+    /// The "warn" level.
+    ///
+    /// Designates hazardous situations.
+    Warn,
+    /// The "info" level.
+    ///
+    /// Designates useful information.
+    Info,
+    /// The "debug" level.
+    ///
+    /// Designates lower priority information.
+    Debug,
+    /// The "trace" level.
+    ///
+    /// Designates very low priority, often extremely verbose, information.
+    Trace,
+}
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        Self::Info
+    }
+}
+
+/// A binary to package within the final package.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Binary {
+    /// Name as given in the Cargo.toml
+    pub name: String,
+    /// Path to the main source file of the binary.
+    pub path: PathBuf,
+    /// Whether this is the main binary or not
+    #[serde(default)]
+    pub main: bool,
+}
+
+/// A list or a map of resources.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(untagged)]
+pub enum Resources {
+    List(Vec<String>),
+    Map(HashMap<String, String>),
+}
+
+/// The packaging config.
+#[derive(Deserialize, Serialize, Default, Debug, Clone, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Config {
+    /// The JSON schema for the config.
+    #[serde(rename = "$schema")]
+    pub schema: Option<String>,
+    /// The log level.
+    #[serde(alias = "log-level", alias = "log_level")]
+    pub log_level: Option<LogLevel>,
+    /// The package types we're creating.
+    ///
+    /// if not present, we'll use the PackageType list for the target OS.
+    pub format: Option<Vec<PackageFormat>>,
+    /// the directory where the packages will be placed.
+    #[serde(default, alias = "out-dir", alias = "out_dir")]
+    pub out_dir: PathBuf,
+    /// The target triple.
+    #[serde(default, alias = "target-triple", alias = "target_triple")]
+    pub target_triple: String,
+    /// the package's product name, for example "My Awesome App".
+    #[serde(default, alias = "product-name", alias = "product_name")]
+    pub product_name: String,
+    /// the package's version.
+    #[serde(default)]
+    pub version: String,
+    /// the package's description.
+    pub description: Option<String>,
+    /// the app's long description.
+    #[serde(alias = "long-description", alias = "long_description")]
+    pub long_description: Option<String>,
+    /// the package's homepage.
+    pub homepage: Option<String>,
+    /// the package's authors.
+    #[serde(default)]
+    pub authors: Vec<String>,
+    /// the app's identifier.
+    pub identifier: Option<String>,
+    /// The app's publisher. Defaults to the second element in the identifier string.
+    /// Currently maps to the Manufacturer property of the Windows Installer.
+    pub publisher: Option<String>,
+    /// A path to the license file.
+    #[serde(alias = "license-file", alias = "license_file")]
+    pub license_file: Option<PathBuf>,
+    /// the app's copyright.
+    pub copyright: Option<String>,
+    /// the app's category.
+    pub category: Option<AppCategory>,
+    /// the app's icon list.
+    pub icons: Option<Vec<String>>,
+    /// the binaries to package.
+    #[serde(default)]
+    pub binaries: Vec<Binary>,
+    /// the default binary to run.
+    #[serde(alias = "default-run", alias = "default_run")]
+    pub default_run: Option<String>,
+    /// the file associations
+    #[serde(alias = "file-associations", alias = "file_associations")]
+    pub file_associations: Option<Vec<FileAssociation>>,
+    /// The app's resources to package.
+    ///
+    /// Can be either be a list of files/folder or a map of src file/folder and target file/folder.
+    ///
+    /// supports glob patterns.
+    pub resources: Option<Resources>,
+    /// External binaries to add to the package.
+    ///
+    /// Note that each binary name should have the target platform's target triple appended,
+    /// as well as `.exe` for Windows.
+    /// For example, if you're packaging a sidecar called `sqlite3`, the packager expects
+    /// a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux,
+    /// and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.
+    ///
+    /// Run `tauri build --help` for more info on targets.
+    ///
+    /// If you are building a universal binary for MacOS, the packager expects
+    /// your external binary to also be universal, and named after the target triple,
+    /// e.g. `sqlite3-universal-apple-darwin`. See
+    /// <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>
+    #[serde(alias = "external-binaries", alias = "external_binaries")]
+    pub external_binaries: Option<Vec<String>>,
+    /// Signing configuration.
+    pub signing: Option<SigningConfig>,
+    /// Platform-specific configurations.
+    /// Debian-specific settings.
+    pub deb: Option<DebianConfig>,
+    /// WiX configuration.
+    pub wix: Option<WixConfig>,
+    /// Nsis configuration.
+    pub nsis: Option<NsisConfig>,
+    /// MacOS-specific settings.
+    pub macos: Option<MacOsConfig>,
+    /// Windows-specific settings.
+    pub windows: Option<WindowsConfig>,
+}
