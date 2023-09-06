@@ -5,6 +5,11 @@ description = "Rust executable packager and bundler."
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 
+
+[features]
+default = ["cli"]
+cli = ["env_logger", "clap"]
+
 [build-dependencies]
 cargo-packager-config.workspace = true
 serde_json.workspace = true
@@ -18,8 +23,8 @@ serde.workspace = true
 serde_json.workspace = true
 dunce.workspace = true
 cargo_metadata = "0.17"
-env_logger = "0.9"
-clap = { version = "4.0", features = ["derive"] }
+env_logger = { version = "0.9", optional = true }
+clap = { version = "4.0", features = ["derive"], optional = true }
 dirs = "5.0"
 ureq = "2.7"
 hex = "0.4"

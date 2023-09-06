@@ -12,7 +12,19 @@
       ]
     },
     "beforePackagingCommand": {
-      "description": "Specify a command to run before starting to package an application.",
+      "description": "Specify a command to run before starting to package an application.\n\nThis runs only once.",
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HookCommand"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "beforeEachPackageCommand": {
+      "description": "Specify a command to run before packaging each format for an application.\n\nThis will run multiple times depending on the formats specifed.",
       "default": null,
       "anyOf": [
         {

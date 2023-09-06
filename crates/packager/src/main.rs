@@ -56,9 +56,11 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
             }
             if config.log_level.is_none() {
                 config.log_level.replace(match cli.verbose {
-                    0 => LogLevel::Info,
-                    1 => LogLevel::Debug,
-                    2.. => LogLevel::Trace,
+                    0 => LogLevel::Error,
+                    1 => LogLevel::Warn,
+                    2 => LogLevel::Info,
+                    3 => LogLevel::Debug,
+                    4.. => LogLevel::Trace,
                 });
             }
             if config.license_file.is_none() {

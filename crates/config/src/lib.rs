@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -24,6 +24,12 @@ pub enum PackageFormat {
     Rpm,
     /// The Linux AppImage package (.AppImage).
     AppImage,
+}
+
+impl Display for PackageFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.short_name())
+    }
 }
 
 impl PackageFormat {
@@ -539,12 +545,23 @@ pub struct Config {
     #[serde(rename = "$schema")]
     pub schema: Option<String>,
     /// Specify a command to run before starting to package an application.
+    ///
+    /// This runs only once.
     #[serde(
         default,
         alias = "before-packaging-command",
         alias = "before_packaging_command"
     )]
     pub before_packaging_command: Option<HookCommand>,
+    /// Specify a command to run before packaging each format for an application.
+    ///
+    /// This will run multiple times depending on the formats specifed.
+    #[serde(
+        default,
+        alias = "before-each-package-command",
+        alias = "before_each_package_command"
+    )]
+    pub before_each_package_command: Option<HookCommand>,
     /// The log level.
     #[serde(alias = "log-level", alias = "log_level")]
     pub log_level: Option<LogLevel>,
