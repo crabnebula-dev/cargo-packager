@@ -8,7 +8,6 @@ use handlebars::{to_json, Handlebars};
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal, LogLevel, NSISInstallerMode},
-    sign::ConfigSignExt,
     util::{self, download, download_and_verify, extract_zip, HashAlgorithm},
 };
 
@@ -167,14 +166,17 @@ fn build_nsis_app_installer(
     );
 
     #[cfg(target_os = "windows")]
-    if config.can_sign() {
-        data.insert(
-            "uninstaller_sign_cmd",
-            to_json(format!(
-                "{:?}",
-                crate::sign::sign_command("%1", &config.sign_params())?.0
-            )),
-        );
+    {
+        use crate::sign::ConfigSignExt;
+        if config.can_sign() {
+            data.insert(
+                "uninstaller_sign_cmd",
+                to_json(format!(
+                    "{:?}",
+                    crate::sign::sign_command("%1", &config.sign_params())?.0
+                )),
+            );
+        }
     }
 
     if let Some(license) = &config.license_file {
@@ -512,7 +514,7 @@ fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
                 version.major, version.minor, version.patch, version.build
             ));
         } else {
-            return Err(crate::Error::NonNumericBuildMetadata);
+            return Err(crate::Error::NonNumericBuildMetadata(None));
         }
     }
 
