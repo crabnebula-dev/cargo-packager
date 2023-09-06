@@ -62,6 +62,8 @@ pub enum Error {
     NsisFailed(String),
     #[error("Failed to get parent directory of a path")]
     ParentDirNotFound,
+    #[error("{0} `{1}` failed with exit code {2}")]
+    HookCommandFailure(String, String, i32),
 }
 
 /// Convenient type alias of Result type for cargo-packager.

@@ -11,6 +11,18 @@
         "null"
       ]
     },
+    "beforePackagingCommand": {
+      "description": "Specify a command to run before starting to package an application.",
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HookCommand"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "logLevel": {
       "description": "The log level.",
       "anyOf": [
@@ -245,6 +257,35 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "HookCommand": {
+      "description": "Describes a shell command to be executed when a CLI hook is triggered.",
+      "anyOf": [
+        {
+          "description": "Run the given script with the default options.",
+          "type": "string"
+        },
+        {
+          "description": "Run the given script with custom options.",
+          "type": "object",
+          "required": [
+            "script"
+          ],
+          "properties": {
+            "script": {
+              "description": "The script to execute.",
+              "type": "string"
+            },
+            "dir": {
+              "description": "The working directory.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
+    },
     "LogLevel": {
       "description": "An enum representing the available verbosity levels of the logger.",
       "oneOf": [

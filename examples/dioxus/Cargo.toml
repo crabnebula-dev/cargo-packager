@@ -4,9 +4,10 @@ version = "0.0.0"
 edition = "2021"
 
 [package.metadata.packager]
+before-packaging-command = "dx build --platform desktop --release"
 format = ["nsis"]
 product-name = "Dioxus example"
-resources = { "src/*.rs" = "assets" }
+identifier = "com.dioxus.example"
 
 [dependencies]
 dioxus = "0.4"

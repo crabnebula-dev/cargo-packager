@@ -9,10 +9,24 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser};
 use env_logger::fmt::Color;
 use log::{log_enabled, Level};
 
-fn load_configs_from_cwd(profile: &str, verbose: u8) -> Result<Vec<(PathBuf, Config)>> {
-    let metadata = cargo_metadata::MetadataCommand::new().exec()?;
+fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Config)>> {
+    let mut metadata_cmd = cargo_metadata::MetadataCommand::new();
+    if let Some(manifest_path) = &cli.manifest_path {
+        metadata_cmd.manifest_path(manifest_path);
+    }
+    let metadata = metadata_cmd.exec()?;
     let mut configs = Vec::new();
     for package in metadata.workspace_packages() {
+        // skip if this package was not specified in the explicit packages to build
+        if !cli
+            .packages
+            .as_ref()
+            .map(|packages| packages.contains(&package.name))
+            .unwrap_or(true)
+        {
+            continue;
+        }
+
         if let Some(config) = package.metadata.get("packager") {
             let mut config: Config = serde_json::from_value(config.to_owned())?;
             if config.product_name.is_empty() {
@@ -41,7 +55,7 @@ fn load_configs_from_cwd(profile: &str, verbose: u8) -> Result<Vec<(PathBuf, Con
                 config.target_triple = util::target_triple()?;
             }
             if config.log_level.is_none() {
-                config.log_level.replace(match verbose {
+                config.log_level.replace(match cli.verbose {
                     0 => LogLevel::Info,
                     1 => LogLevel::Debug,
                     2.. => LogLevel::Trace,
@@ -79,14 +93,15 @@ fn try_run(cli: Cli) -> Result<()> {
     use std::fmt::Write;
 
     let profile = if cli.release {
-        "relase"
+        "release"
     } else if let Some(profile) = &cli.profile {
         profile.as_str()
     } else {
         "debug"
     };
 
-    for (manifest_path, config) in load_configs_from_cwd(profile, cli.verbose)? {
+    let mut packages = Vec::new();
+    for (manifest_path, config) in load_configs_from_cwd(profile, &cli)? {
         std::env::set_current_dir(
             manifest_path
                 .parent()
@@ -94,19 +109,20 @@ fn try_run(cli: Cli) -> Result<()> {
         )?;
 
         // create the packages
-        let packages = package(&config)?;
-
-        // print information when finished
-        let len = packages.len();
-        let pluralised = if len == 1 { "package" } else { "packages" };
-        let mut printable_paths = String::new();
-        for p in packages {
-            for path in &p.paths {
-                writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
-            }
-        }
-        log::info!(action = "Finished"; "{} {} at:\n{}", len, pluralised, printable_paths);
+        packages.extend(package(&config)?);
     }
+
+    // print information when finished
+    let len = packages.len();
+    let pluralised = if len == 1 { "package" } else { "packages" };
+    let mut printable_paths = String::new();
+    for p in packages {
+        for path in &p.paths {
+            writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
+        }
+    }
+    log::info!(action = "Finished"; "{} {} at:\n{}", len, pluralised, printable_paths);
+
     Ok(())
 }
 
@@ -144,6 +160,12 @@ pub(crate) struct Cli {
     /// Specify the cargo profile to use for packaging your app.
     #[clap(long)]
     profile: Option<String>,
+    /// Specify the packages to build.
+    #[clap(short, long)]
+    packages: Option<Vec<String>>,
+    /// Specify the manifest path to use for reading the configuration.
+    #[clap(long)]
+    manifest_path: Option<String>,
 }
 
 fn main() {

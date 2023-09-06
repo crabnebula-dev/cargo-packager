@@ -7,7 +7,7 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "tauri example",
+    "productName": "tauri-example",
     "version": "0.0.0"
   },
   "tauri": {

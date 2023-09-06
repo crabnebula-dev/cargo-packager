@@ -516,6 +516,21 @@ pub enum Resources {
     Map(HashMap<String, String>),
 }
 
+/// Describes a shell command to be executed when a CLI hook is triggered.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(untagged)]
+pub enum HookCommand {
+    /// Run the given script with the default options.
+    Script(String),
+    /// Run the given script with custom options.
+    ScriptWithOptions {
+        /// The script to execute.
+        script: String,
+        /// The working directory.
+        dir: Option<String>,
+    },
+}
+
 /// The packaging config.
 #[derive(Deserialize, Serialize, Default, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -523,6 +538,13 @@ pub struct Config {
     /// The JSON schema for the config.
     #[serde(rename = "$schema")]
     pub schema: Option<String>,
+    /// Specify a command to run before starting to package an application.
+    #[serde(
+        default,
+        alias = "before-packaging-command",
+        alias = "before_packaging_command"
+    )]
+    pub before_packaging_command: Option<HookCommand>,
     /// The log level.
     #[serde(alias = "log-level", alias = "log_level")]
     pub log_level: Option<LogLevel>,

@@ -47,9 +47,10 @@ mod nsis;
     target_os = "openbsd"
 ))]
 mod rpm;
+mod sign;
 pub mod util;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Command};
 
 use config::Config;
 pub use config::PackageFormat;
@@ -74,6 +75,47 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
 
     if target_os != std::env::consts::OS {
         log:: warn!("Cross-platform compilation is experimental and does not support all features. Please use a matching host system for full compatibility.");
+    }
+
+    if let Some(hook) = &config.before_packaging_command {
+        let (mut cmd, script) = match hook {
+            cargo_packager_config::HookCommand::Script(script) => {
+                #[cfg(windows)]
+                let mut cmd = Command::new("cmd");
+                #[cfg(windows)]
+                cmd.arg("/S").arg("/C").arg(&script);
+                #[cfg(not(windows))]
+                let mut cmd = Command::new("sh");
+                #[cfg(not(windows))]
+                cmd.arg("-c").arg(&script);
+                (cmd, script)
+            }
+            cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
+                #[cfg(windows)]
+                let mut cmd = Command::new("cmd");
+                #[cfg(windows)]
+                cmd.arg("/S").arg("/C").arg(&script);
+                #[cfg(not(windows))]
+                let mut cmd = Command::new("sh");
+                #[cfg(not(windows))]
+                cmd.arg("-c").arg(&script);
+                if let Some(dir) = dir {
+                    cmd.current_dir(dir);
+                }
+                (cmd, script)
+            }
+        };
+
+        log::info!(action = "Running"; "beforePackagingCommand `{}`", script);
+        let status = cmd.status()?;
+
+        if !status.success() {
+            return Err(crate::Error::HookCommandFailure(
+                "beforePackagingCommand".into(),
+                script.into(),
+                status.code().unwrap_or_default(),
+            ));
+        }
     }
 
     let mut packages = Vec::new();
