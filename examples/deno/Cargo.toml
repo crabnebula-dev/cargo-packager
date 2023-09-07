@@ -1,0 +1,14 @@
+[package]
+name = "deno-example"
+version = "0.0.0"
+edition = "2021"
+
+# This is only here to please cargo
+[[bin]]
+name = "hello-world"
+path = "hello-world.ts"
+
+[package.metadata.packager]
+before-packaging-command = "deno compile hello-world.ts"
+product-name = "Deno example"
+identifier = "com.deno.example"
