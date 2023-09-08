@@ -125,7 +125,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         }
     }
 
-    for format in formats {
+    for format in &formats {
         if let Some(hook) = &config.before_each_package_command {
             let (mut cmd, script) = match hook {
                 cargo_packager_config::HookCommand::Script(script) => {
@@ -194,7 +194,10 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             }
         }?;
 
-        packages.push(Package { format, paths });
+        packages.push(Package {
+            format: *format,
+            paths,
+        });
     }
 
     #[cfg(target_os = "macos")]
