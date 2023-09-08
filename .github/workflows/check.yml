@@ -28,16 +28,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install clippy with stable toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-
+      - name: install webkit2gtk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
       - uses: Swatinem/rust-cache@v2
-
-      - name: clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   fmt:
     runs-on: ubuntu-latest
@@ -46,12 +45,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install rustfmt with stable toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -62,11 +58,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-
+      - uses: dtolnay/rust-toolchain@stable
+      - name: install webkit2gtk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
       - uses: Swatinem/rust-cache@v2
-
-      - name: cargo test
-        run: cargo test --workspace --all-targets --all-features --no-fail-fast
+      - run: cargo test --workspace --all-targets --all-features --no-fail-fast

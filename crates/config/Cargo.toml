@@ -5,6 +5,11 @@ description = "Config types for cargo-packager."
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 
+[features]
+clap = ["dep:clap"]
+
 [dependencies]
 serde.workspace = true
 schemars.workspace = true
+clap = { workspace = true, optional = true }
+strsim = "0.10"

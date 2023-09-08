@@ -36,8 +36,6 @@ mod dmg;
 mod error;
 #[cfg(target_os = "macos")]
 mod ios;
-#[cfg(windows)]
-mod msi;
 mod nsis;
 #[cfg(any(
     target_os = "linux",
@@ -49,6 +47,8 @@ mod nsis;
 mod rpm;
 mod sign;
 pub mod util;
+#[cfg(windows)]
+mod wix;
 
 use std::{path::PathBuf, process::Command};
 
@@ -65,6 +65,18 @@ pub struct Package {
     pub paths: Vec<PathBuf>,
 }
 
+fn cross_command(script: &str) -> Command {
+    #[cfg(windows)]
+    let mut cmd = Command::new("cmd");
+    #[cfg(windows)]
+    cmd.arg("/S").arg("/C").arg(script);
+    #[cfg(not(windows))]
+    let mut cmd = Command::new("sh");
+    #[cfg(not(windows))]
+    cmd.arg("-c").arg(script);
+    cmd
+}
+
 pub fn package(config: &Config) -> Result<Vec<Package>> {
     let target_os = config
         .target_triple
@@ -77,55 +89,70 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         log:: warn!("Cross-platform compilation is experimental and does not support all features. Please use a matching host system for full compatibility.");
     }
 
-    if let Some(hook) = &config.before_packaging_command {
-        let (mut cmd, script) = match hook {
-            cargo_packager_config::HookCommand::Script(script) => {
-                #[cfg(windows)]
-                let mut cmd = Command::new("cmd");
-                #[cfg(windows)]
-                cmd.arg("/S").arg("/C").arg(&script);
-                #[cfg(not(windows))]
-                let mut cmd = Command::new("sh");
-                #[cfg(not(windows))]
-                cmd.arg("-c").arg(&script);
-                (cmd, script)
-            }
-            cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
-                #[cfg(windows)]
-                let mut cmd = Command::new("cmd");
-                #[cfg(windows)]
-                cmd.arg("/S").arg("/C").arg(&script);
-                #[cfg(not(windows))]
-                let mut cmd = Command::new("sh");
-                #[cfg(not(windows))]
-                cmd.arg("-c").arg(&script);
-                if let Some(dir) = dir {
-                    cmd.current_dir(dir);
-                }
-                (cmd, script)
-            }
-        };
-
-        log::info!(action = "Running"; "beforePackagingCommand `{}`", script);
-        let status = cmd.status()?;
-
-        if !status.success() {
-            return Err(crate::Error::HookCommandFailure(
-                "beforePackagingCommand".into(),
-                script.into(),
-                status.code().unwrap_or_default(),
-            ));
-        }
-    }
-
     let mut packages = Vec::new();
 
     let formats = config
-        .format
+        .formats
         .clone()
         .unwrap_or_else(|| PackageFormat::all().to_vec());
 
-    for format in formats {
+    if !formats.is_empty() {
+        if let Some(hook) = &config.before_packaging_command {
+            let (mut cmd, script) = match hook {
+                cargo_packager_config::HookCommand::Script(script) => {
+                    let cmd = cross_command(script);
+                    (cmd, script)
+                }
+                cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
+                    let mut cmd = cross_command(script);
+                    if let Some(dir) = dir {
+                        cmd.current_dir(dir);
+                    }
+                    (cmd, script)
+                }
+            };
+
+            log::info!(action = "Running"; "beforePackagingCommand `{}`", script);
+            let status = cmd.status()?;
+
+            if !status.success() {
+                return Err(crate::Error::HookCommandFailure(
+                    "beforePackagingCommand".into(),
+                    script.into(),
+                    status.code().unwrap_or_default(),
+                ));
+            }
+        }
+    }
+
+    for format in &formats {
+        if let Some(hook) = &config.before_each_package_command {
+            let (mut cmd, script) = match hook {
+                cargo_packager_config::HookCommand::Script(script) => {
+                    let cmd = cross_command(script);
+                    (cmd, script)
+                }
+                cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
+                    let mut cmd = cross_command(script);
+                    if let Some(dir) = dir {
+                        cmd.current_dir(dir);
+                    }
+                    (cmd, script)
+                }
+            };
+
+            log::info!(action = "Running"; "[\x1b[34m{}\x1b[0m] beforeEachPackageCommand `{}`", format, script);
+            let status = cmd.status()?;
+
+            if !status.success() {
+                return Err(crate::Error::HookCommandFailure(
+                    "beforeEachPackageCommand".into(),
+                    script.into(),
+                    status.code().unwrap_or_default(),
+                ));
+            }
+        }
+
         let paths = match format {
             #[cfg(target_os = "macos")]
             PackageFormat::App => app::package(config),
@@ -134,7 +161,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             #[cfg(target_os = "macos")]
             PackageFormat::Ios => ios::package(config),
             #[cfg(target_os = "windows")]
-            PackageFormat::Msi => msi::package(config),
+            PackageFormat::Wix => wix::package(config),
             PackageFormat::Nsis => nsis::package(config),
             #[cfg(any(
                 target_os = "linux",
@@ -167,7 +194,10 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             }
         }?;
 
-        packages.push(Package { format, paths });
+        packages.push(Package {
+            format: *format,
+            paths,
+        });
     }
 
     #[cfg(target_os = "macos")]
