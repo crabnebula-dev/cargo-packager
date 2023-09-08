@@ -23,7 +23,7 @@ serde.workspace = true
 serde_json.workspace = true
 dunce.workspace = true
 cargo_metadata = "0.17"
-env_logger = { version = "0.9", optional = true }
+env_logger = { version = "0.10", optional = true }
 clap = { workspace = true, optional = true }
 dirs = "5.0"
 ureq = "2.7"
