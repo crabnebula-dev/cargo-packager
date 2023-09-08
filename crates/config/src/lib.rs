@@ -3,8 +3,12 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// The type of the package we're bundling.
+mod category;
+pub use category::AppCategory;
+
+/// The type of the package we're packaging.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum PackageFormat {
@@ -14,8 +18,8 @@ pub enum PackageFormat {
     Dmg,
     /// The iOS app bundle.
     Ios,
-    /// The Microsoft Software Installer (.msi).
-    Msi,
+    /// The Microsoft Software Installer (.msi) through WiX Toolset.
+    Wix,
     /// The NSIS installer (.exe).
     Nsis,
     /// The Linux Debian package (.deb).
@@ -34,14 +38,14 @@ impl Display for PackageFormat {
 
 impl PackageFormat {
     /// Maps a short name to a [PackageFormat].
-    /// Possible values are "deb", "ios", "msi", "app", "rpm", "appimage", "dmg".
+    /// Possible values are "deb", "ios", "wix", "app", "rpm", "appimage", "dmg".
     pub fn from_short_name(name: &str) -> Option<PackageFormat> {
         // Other types we may eventually want to support: apk.
         match name {
             "app" => Some(PackageFormat::App),
             "dmg" => Some(PackageFormat::Dmg),
             "ios" => Some(PackageFormat::Ios),
-            "msi" => Some(PackageFormat::Msi),
+            "wix" => Some(PackageFormat::Wix),
             "nsis" => Some(PackageFormat::Nsis),
             "deb" => Some(PackageFormat::Deb),
             "rpm" => Some(PackageFormat::Rpm),
@@ -56,7 +60,7 @@ impl PackageFormat {
             PackageFormat::App => "app",
             PackageFormat::Dmg => "dmg",
             PackageFormat::Ios => "ios",
-            PackageFormat::Msi => "msi",
+            PackageFormat::Wix => "wix",
             PackageFormat::Nsis => "nsis",
             PackageFormat::Deb => "deb",
             PackageFormat::Rpm => "rpm",
@@ -78,7 +82,7 @@ const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
     #[cfg(target_os = "macos")]
     PackageFormat::Ios,
     #[cfg(target_os = "windows")]
-    PackageFormat::Msi,
+    PackageFormat::Wix,
     #[cfg(target_os = "windows")]
     PackageFormat::Nsis,
     #[cfg(any(
@@ -106,58 +110,6 @@ const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
     ))]
     PackageFormat::AppImage,
 ];
-
-// TODO: Right now, these categories correspond to LSApplicationCategoryType
-// values for OS X.  There are also some additional GNOME registered categories
-// that don't fit these; we should add those here too.
-/// The possible app categories.
-/// Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[non_exhaustive]
-pub enum AppCategory {
-    Business,
-    DeveloperTool,
-    Education,
-    Entertainment,
-    Finance,
-    Game,
-    ActionGame,
-    AdventureGame,
-    ArcadeGame,
-    BoardGame,
-    CardGame,
-    CasinoGame,
-    DiceGame,
-    EducationalGame,
-    FamilyGame,
-    KidsGame,
-    MusicGame,
-    PuzzleGame,
-    RacingGame,
-    RolePlayingGame,
-    SimulationGame,
-    SportsGame,
-    StrategyGame,
-    TriviaGame,
-    WordGame,
-    GraphicsAndDesign,
-    HealthcareAndFitness,
-    Lifestyle,
-    Medical,
-    Music,
-    News,
-    Photography,
-    Productivity,
-    Reference,
-    SocialNetworking,
-    Sports,
-    Travel,
-    Utility,
-    Video,
-    Weather,
-}
 
 /// **macOS-only**. Corresponds to CFBundleTypeRole
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, JsonSchema)]
@@ -205,9 +157,6 @@ pub struct FileAssociation {
 pub struct DebianConfig {
     /// the list of debian dependencies.
     pub depends: Option<Vec<String>>,
-    /// List of custom files to add to the deb package.
-    /// Maps the path on the debian package to the path of the file to include (relative to the current working directory).
-    pub files: Option<HashMap<PathBuf, PathBuf>>,
     /// Path to a custom desktop file Handlebars template.
     ///
     /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
@@ -276,7 +225,7 @@ impl Default for WixLanguages {
     }
 }
 
-/// Settings specific to the WiX implementation.
+/// The wix format configuration
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WixConfig {
@@ -359,7 +308,7 @@ impl Default for NSISInstallerMode {
     }
 }
 
-/// Settings specific to the NSIS implementation.
+/// The NSIS format configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NsisConfig {
@@ -422,7 +371,7 @@ pub struct WindowsConfig {
     /// use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
     #[serde(default)]
     pub tsp: bool,
-    // TODO find an agnostic way to specify custom logic to install webview2
+    // TODO: find an agnostic way to specify custom logic to install webview2
     // /// The installation mode for the Webview2 runtime.
     // pub webview_install_mode: WebviewInstallMode,
     // /// Path to the webview fixed runtime to use.
@@ -497,7 +446,7 @@ pub enum LogLevel {
 
 impl Default for LogLevel {
     fn default() -> Self {
-        Self::Info
+        Self::Error
     }
 }
 
@@ -568,7 +517,7 @@ pub struct Config {
     /// The package types we're creating.
     ///
     /// if not present, we'll use the PackageType list for the target OS.
-    pub format: Option<Vec<PackageFormat>>,
+    pub formats: Option<Vec<PackageFormat>>,
     /// the directory where the packages will be placed.
     #[serde(default, alias = "out-dir", alias = "out_dir")]
     pub out_dir: PathBuf,

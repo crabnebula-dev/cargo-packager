@@ -36,8 +36,6 @@ mod dmg;
 mod error;
 #[cfg(target_os = "macos")]
 mod ios;
-#[cfg(windows)]
-mod msi;
 mod nsis;
 #[cfg(any(
     target_os = "linux",
@@ -49,6 +47,8 @@ mod nsis;
 mod rpm;
 mod sign;
 pub mod util;
+#[cfg(windows)]
+mod wix;
 
 use std::{path::PathBuf, process::Command};
 
@@ -69,11 +69,11 @@ fn cross_command(script: &str) -> Command {
     #[cfg(windows)]
     let mut cmd = Command::new("cmd");
     #[cfg(windows)]
-    cmd.arg("/S").arg("/C").arg(&script);
+    cmd.arg("/S").arg("/C").arg(script);
     #[cfg(not(windows))]
     let mut cmd = Command::new("sh");
     #[cfg(not(windows))]
-    cmd.arg("-c").arg(&script);
+    cmd.arg("-c").arg(script);
     cmd
 }
 
@@ -92,7 +92,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
     let mut packages = Vec::new();
 
     let formats = config
-        .format
+        .formats
         .clone()
         .unwrap_or_else(|| PackageFormat::all().to_vec());
 
@@ -100,11 +100,11 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         if let Some(hook) = &config.before_packaging_command {
             let (mut cmd, script) = match hook {
                 cargo_packager_config::HookCommand::Script(script) => {
-                    let cmd = cross_command(&script);
+                    let cmd = cross_command(script);
                     (cmd, script)
                 }
                 cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
-                    let mut cmd = cross_command(&script);
+                    let mut cmd = cross_command(script);
                     if let Some(dir) = dir {
                         cmd.current_dir(dir);
                     }
@@ -125,15 +125,15 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         }
     }
 
-    for format in formats {
+    for format in &formats {
         if let Some(hook) = &config.before_each_package_command {
             let (mut cmd, script) = match hook {
                 cargo_packager_config::HookCommand::Script(script) => {
-                    let cmd = cross_command(&script);
+                    let cmd = cross_command(script);
                     (cmd, script)
                 }
                 cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
-                    let mut cmd = cross_command(&script);
+                    let mut cmd = cross_command(script);
                     if let Some(dir) = dir {
                         cmd.current_dir(dir);
                     }
@@ -161,7 +161,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             #[cfg(target_os = "macos")]
             PackageFormat::Ios => ios::package(config),
             #[cfg(target_os = "windows")]
-            PackageFormat::Msi => msi::package(config),
+            PackageFormat::Wix => wix::package(config),
             PackageFormat::Nsis => nsis::package(config),
             #[cfg(any(
                 target_os = "linux",
@@ -194,7 +194,10 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             }
         }?;
 
-        packages.push(Package { format, paths });
+        packages.push(Package {
+            format: *format,
+            paths,
+        });
     }
 
     #[cfg(target_os = "macos")]
