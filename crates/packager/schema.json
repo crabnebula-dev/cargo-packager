@@ -339,7 +339,7 @@
       ]
     },
     "PackageFormat": {
-      "description": "The type of the package we're bundling.",
+      "description": "The type of the package we're packaging.",
       "oneOf": [
         {
           "description": "The macOS application bundle (.app).",
@@ -403,46 +403,46 @@
       "description": "The possible app categories. Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.",
       "type": "string",
       "enum": [
-        "business",
-        "developerTool",
-        "education",
-        "entertainment",
-        "finance",
-        "game",
-        "actionGame",
-        "adventureGame",
-        "arcadeGame",
-        "boardGame",
-        "cardGame",
-        "casinoGame",
-        "diceGame",
-        "educationalGame",
-        "familyGame",
-        "kidsGame",
-        "musicGame",
-        "puzzleGame",
-        "racingGame",
-        "rolePlayingGame",
-        "simulationGame",
-        "sportsGame",
-        "strategyGame",
-        "triviaGame",
-        "wordGame",
-        "graphicsAndDesign",
-        "healthcareAndFitness",
-        "lifestyle",
-        "medical",
-        "music",
-        "news",
-        "photography",
-        "productivity",
-        "reference",
-        "socialNetworking",
-        "sports",
-        "travel",
-        "utility",
-        "video",
-        "weather"
+        "Business",
+        "DeveloperTool",
+        "Education",
+        "Entertainment",
+        "Finance",
+        "Game",
+        "ActionGame",
+        "AdventureGame",
+        "ArcadeGame",
+        "BoardGame",
+        "CardGame",
+        "CasinoGame",
+        "DiceGame",
+        "EducationalGame",
+        "FamilyGame",
+        "KidsGame",
+        "MusicGame",
+        "PuzzleGame",
+        "RacingGame",
+        "RolePlayingGame",
+        "SimulationGame",
+        "SportsGame",
+        "StrategyGame",
+        "TriviaGame",
+        "WordGame",
+        "GraphicsAndDesign",
+        "HealthcareAndFitness",
+        "Lifestyle",
+        "Medical",
+        "Music",
+        "News",
+        "Photography",
+        "Productivity",
+        "Reference",
+        "SocialNetworking",
+        "Sports",
+        "Travel",
+        "Utility",
+        "Video",
+        "Weather"
       ]
     },
     "Binary": {
@@ -597,16 +597,6 @@
             "null"
           ],
           "items": {
-            "type": "string"
-          }
-        },
-        "files": {
-          "description": "List of custom files to add to the deb package. Maps the path on the debian package to the path of the file to include (relative to the current working directory).",
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": {
             "type": "string"
           }
         },

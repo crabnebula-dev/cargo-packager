@@ -123,7 +123,7 @@ struct Binary {
     path: String,
 }
 
-/// Generates the data required for the external binaries and extra binaries bundling.
+/// Generates the data required for the external binaries.
 fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
     let mut binaries = Vec::new();
     let cwd = std::env::current_dir()?;
@@ -247,7 +247,7 @@ impl ResourceDirectory {
 /// Mapper between a resource directory name and its ResourceDirectory descriptor.
 type ResourceMap = BTreeMap<String, ResourceDirectory>;
 
-/// Generates the data required for the resource bundling on wix
+/// Generates the data required for the resource on wix
 fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
     let mut resources_map = ResourceMap::new();
     if let Some(resources) = config.resources() {
@@ -418,11 +418,7 @@ fn run_candle(
     extensions: Vec<PathBuf>,
     log_level: LogLevel,
 ) -> crate::Result<()> {
-    let main_binary = config
-        .binaries
-        .iter()
-        .find(|bin| bin.main)
-        .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
+    let main_binary = config.main_binary()?;
     let mut args = vec![
         "-arch".to_string(),
         arch.to_string(),
@@ -519,11 +515,7 @@ fn build_wix_app_installer(
 
     log::info!("Target: {}", arch);
 
-    let main_binary = config
-        .binaries
-        .iter()
-        .find(|bin| bin.main)
-        .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
+    let main_binary = config.main_binary()?;
     let app_exe_source = config.binary_path(main_binary);
 
     sign::try_sign(&app_exe_source.with_extension("exe"), config)?;

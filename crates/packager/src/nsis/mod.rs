@@ -259,11 +259,7 @@ fn build_nsis_app_installer(
 
     #[cfg(target_os = "windows")]
     {
-        let main_binary = config
-            .binaries
-            .iter()
-            .find(|bin| bin.main)
-            .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
+        let main_binary = config.main_binary()?;
         let app_exe_source = config.binary_path(main_binary);
         crate::sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
     }

@@ -57,9 +57,12 @@ pub enum Error {
     /// Invalid app version when building [crate::PackageFormat::Msi]
     #[error("invalid app version: {0}")]
     InvalidAppVersion(String),
+    /// Handlebars render error.
+    #[error(transparent)]
+    HandleBarsRenderError(#[from] handlebars::RenderError),
     /// Handlebars template error.
     #[error(transparent)]
-    HandleBarsError(#[from] handlebars::RenderError),
+    HandleBarsTemplateError(#[from] Box<handlebars::TemplateError>),
     /// Nsis error
     #[error("error running makensis.exe: {0}")]
     NsisFailed(String),
@@ -84,6 +87,29 @@ pub enum Error {
     /// Unsupported WiX language
     #[error("Language {0} not found. It must be one of {1}")]
     UnsupportedWixLanguage(String, String),
+    /// image crate errors.
+    #[error(transparent)]
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    ImageError(#[from] image::ImageError),
+    /// walkdir crate errors.
+    #[error(transparent)]
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    WalkDirError(#[from] walkdir::Error),
+    /// Path prefix strip error.
+    #[error(transparent)]
+    StripPrefixError(#[from] std::path::StripPrefixError),
 }
 
 /// Convenient type alias of Result type for cargo-packager.

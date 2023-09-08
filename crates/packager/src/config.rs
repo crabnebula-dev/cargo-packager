@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub use cargo_packager_config::*;
 
@@ -15,6 +15,8 @@ pub trait ConfigExt {
     fn nsis(&self) -> Option<&NsisConfig>;
     /// Returns the wix specific configuration
     fn wix(&self) -> Option<&WixConfig>;
+    /// Returns the debian specific configuration
+    fn deb(&self) -> Option<&DebianConfig>;
     /// Returns the architecture for the binary being packaged (e.g. "arm", "x86" or "x86_64").
     fn target_arch(&self) -> crate::Result<&str>;
     /// Returns the path to the specified binary.
@@ -36,6 +38,10 @@ impl ConfigExt for Config {
 
     fn wix(&self) -> Option<&WixConfig> {
         self.wix.as_ref()
+    }
+
+    fn deb(&self) -> Option<&DebianConfig> {
+        self.deb.as_ref()
     }
 
     fn target_arch(&self) -> crate::Result<&str> {
@@ -73,11 +79,30 @@ impl ConfigExt for Config {
 }
 
 pub(crate) trait ConfigExtInternal {
+    fn main_binary(&self) -> crate::Result<&Binary>;
+    fn main_binary_name(&self) -> crate::Result<&String>;
     fn resources(&self) -> Option<Vec<Resource>>;
     fn find_ico(&self) -> Option<PathBuf>;
+    fn copy_resources(&self, path: &Path) -> crate::Result<()>;
+    fn copy_binaries(&self, path: &Path) -> crate::Result<()>;
 }
 
 impl ConfigExtInternal for Config {
+    fn main_binary(&self) -> crate::Result<&Binary> {
+        self.binaries
+            .iter()
+            .find(|bin| bin.main)
+            .ok_or_else(|| crate::Error::MainBinaryNotFound)
+    }
+
+    fn main_binary_name(&self) -> crate::Result<&String> {
+        self.binaries
+            .iter()
+            .find(|bin| bin.main)
+            .map(|b| &b.name)
+            .ok_or_else(|| crate::Error::MainBinaryNotFound)
+    }
+
     fn resources(&self) -> Option<Vec<Resource>> {
         self.resources.as_ref().map(|resources| {
             let mut out = Vec::new();
@@ -133,5 +158,34 @@ impl ConfigExtInternal for Config {
                     })
             })
             .map(PathBuf::from)
+    }
+
+    fn copy_resources(&self, path: &Path) -> crate::Result<()> {
+        if let Some(resources) = self.resources() {
+            for resource in resources {
+                let dest = path.join(resource.target);
+                std::fs::create_dir_all(dest.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
+                std::fs::copy(resource.src, dest)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn copy_binaries(&self, path: &Path) -> crate::Result<()> {
+        if let Some(external_binaries) = &self.external_binaries {
+            for src in external_binaries {
+                let src = PathBuf::from(src);
+                let dest = path.join(
+                    src.file_name()
+                        .expect("failed to extract external binary filename")
+                        .to_string_lossy()
+                        .replace(&format!("-{}", self.target_triple), ""),
+                );
+                std::fs::create_dir_all(dest.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
+                std::fs::copy(src, dest)?;
+            }
+        }
+
+        Ok(())
     }
 }
