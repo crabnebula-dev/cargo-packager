@@ -123,7 +123,7 @@ struct Binary {
     path: String,
 }
 
-/// Generates the data required for the external binaries and extra binaries bundling.
+/// Generates the data required for the external binaries.
 fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
     let mut binaries = Vec::new();
     let cwd = std::env::current_dir()?;
@@ -132,7 +132,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
-            let binary_path = cwd.join(&src);
+            let binary_path = cwd.join(src);
             let dest_filename = PathBuf::from(src)
                 .file_name()
                 .expect("failed to extract external binary filename")
@@ -247,7 +247,7 @@ impl ResourceDirectory {
 /// Mapper between a resource directory name and its ResourceDirectory descriptor.
 type ResourceMap = BTreeMap<String, ResourceDirectory>;
 
-/// Generates the data required for the resource bundling on wix
+/// Generates the data required for the resource on wix
 fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
     let mut resources_map = ResourceMap::new();
     if let Some(resources) = config.resources() {
@@ -411,7 +411,6 @@ fn clear_env_for_wix(cmd: &mut Command) {
 /// Runs the Candle.exe executable for Wix. Candle parses the wxs file and generates the code for building the installer.
 fn run_candle(
     config: &Config,
-    main_binary: &crate::config::Binary,
     arch: &str,
     wix_toolset_path: &Path,
     cwd: &Path,
@@ -419,6 +418,7 @@ fn run_candle(
     extensions: Vec<PathBuf>,
     log_level: LogLevel,
 ) -> crate::Result<()> {
+    let main_binary = config.main_binary()?;
     let mut args = vec![
         "-arch".to_string(),
         arch.to_string(),
@@ -515,11 +515,7 @@ fn build_wix_app_installer(
 
     log::info!("Target: {}", arch);
 
-    let main_binary = config
-        .binaries
-        .iter()
-        .find(|bin| bin.main)
-        .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
+    let main_binary = config.main_binary()?;
     let app_exe_source = config.binary_path(main_binary);
 
     sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
@@ -747,7 +743,6 @@ fn build_wix_app_installer(
         }
         run_candle(
             config,
-            main_binary,
             arch,
             wix_toolset_path,
             &output_path,

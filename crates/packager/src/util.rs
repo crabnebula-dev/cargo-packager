@@ -70,7 +70,7 @@ pub fn target_triple() -> crate::Result<String> {
 
 pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
     log::info!(action = "Downloading"; "{}", url);
-    let response = ureq::get(url).call()?;
+    let response = ureq::get(url).call().map_err(Box::new)?;
     let mut bytes = Vec::new();
     response.into_reader().read_to_end(&mut bytes)?;
     Ok(bytes)
@@ -152,6 +152,7 @@ pub(crate) fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+#[cfg(windows)]
 pub(crate) enum Bitness {
     X86_32,
     X86_64,
@@ -193,4 +194,39 @@ pub(crate) fn log_if_needed(log_level: LogLevel, output: Output) {
         };
         log::error!(action = action; "{}", String::from_utf8_lossy(output))
     }
+}
+
+/// Returns true if the path has a filename indicating that it is a high-density
+/// "retina" icon.  Specifically, returns true the file stem ends with
+/// "@2x" (a convention specified by the [Apple developer docs](
+/// https://developer.apple.com/library/mac/documentation/GraphicsAnimation/Conceptual/HighResolutionOSX/Optimizing/Optimizing.html)).
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd"
+))]
+pub(crate) fn is_retina<P: AsRef<Path>>(path: P) -> bool {
+    path.as_ref()
+        .file_stem()
+        .and_then(std::ffi::OsStr::to_str)
+        .map(|stem| stem.ends_with("@2x"))
+        .unwrap_or(false)
+}
+
+/// Creates a new file at the given path, creating any parent directories as needed.
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd"
+))]
+pub(crate) fn create_file(path: &Path) -> crate::Result<std::io::BufWriter<File>> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let file = File::create(path)?;
+    Ok(std::io::BufWriter::new(file))
 }
