@@ -12,3 +12,4 @@ clap = ["dep:clap"]
 serde.workspace = true
 schemars.workspace = true
 clap = { workspace = true, optional = true }
+strsim = "0.10"

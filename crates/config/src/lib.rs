@@ -3,7 +3,10 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// The type of the package we're bundling.
+mod category;
+pub use category::AppCategory;
+
+/// The type of the package we're packaging.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[non_exhaustive]
@@ -108,58 +111,6 @@ const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
     PackageFormat::AppImage,
 ];
 
-// TODO: Right now, these categories correspond to LSApplicationCategoryType
-// values for OS X.  There are also some additional GNOME registered categories
-// that don't fit these; we should add those here too.
-/// The possible app categories.
-/// Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[non_exhaustive]
-pub enum AppCategory {
-    Business,
-    DeveloperTool,
-    Education,
-    Entertainment,
-    Finance,
-    Game,
-    ActionGame,
-    AdventureGame,
-    ArcadeGame,
-    BoardGame,
-    CardGame,
-    CasinoGame,
-    DiceGame,
-    EducationalGame,
-    FamilyGame,
-    KidsGame,
-    MusicGame,
-    PuzzleGame,
-    RacingGame,
-    RolePlayingGame,
-    SimulationGame,
-    SportsGame,
-    StrategyGame,
-    TriviaGame,
-    WordGame,
-    GraphicsAndDesign,
-    HealthcareAndFitness,
-    Lifestyle,
-    Medical,
-    Music,
-    News,
-    Photography,
-    Productivity,
-    Reference,
-    SocialNetworking,
-    Sports,
-    Travel,
-    Utility,
-    Video,
-    Weather,
-}
-
 /// **macOS-only**. Corresponds to CFBundleTypeRole
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -206,9 +157,6 @@ pub struct FileAssociation {
 pub struct DebianConfig {
     /// the list of debian dependencies.
     pub depends: Option<Vec<String>>,
-    /// List of custom files to add to the deb package.
-    /// Maps the path on the debian package to the path of the file to include (relative to the current working directory).
-    pub files: Option<HashMap<PathBuf, PathBuf>>,
     /// Path to a custom desktop file Handlebars template.
     ///
     /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.

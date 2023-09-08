@@ -15,8 +15,9 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
         metadata_cmd.manifest_path(manifest_path);
     }
     let metadata = metadata_cmd.exec()?;
+
     let mut configs = Vec::new();
-    for package in metadata.workspace_packages() {
+    for package in metadata.workspace_packages().iter() {
         // skip if this package was not specified in the explicit packages to build
         if cli
             .packages
@@ -92,60 +93,6 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
     Ok(configs)
 }
 
-fn try_run(cli: Cli) -> Result<()> {
-    use std::fmt::Write;
-
-    let profile = if cli.release {
-        "release"
-    } else if let Some(profile) = &cli.profile {
-        profile.as_str()
-    } else {
-        "debug"
-    };
-
-    let mut packages = Vec::new();
-    for (manifest_path, config) in load_configs_from_cwd(profile, &cli)? {
-        std::env::set_current_dir(
-            manifest_path
-                .parent()
-                .ok_or(cargo_packager::Error::ParentDirNotFound)?,
-        )?;
-
-        // create the packages
-        packages.extend(package(&config)?);
-    }
-
-    // print information when finished
-    let len = packages.len();
-    if len >= 1 {
-        let pluralised = if len == 1 { "package" } else { "packages" };
-        let mut printable_paths = String::new();
-        for p in packages {
-            for path in &p.paths {
-                writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
-            }
-        }
-        log::info!(action = "Finished"; "{} {} at:\n{}", len, pluralised, printable_paths);
-    }
-
-    Ok(())
-}
-
-fn prettyprint_level(lvl: Level) -> &'static str {
-    match lvl {
-        Level::Error => "Error",
-        Level::Warn => "Warn",
-        Level::Info => "Info",
-        Level::Debug => "Debug",
-        Level::Trace => "Trace",
-    }
-}
-
-fn format_error<I: CommandFactory>(err: clap::Error) -> clap::Error {
-    let mut app = I::command();
-    err.format(&mut app)
-}
-
 #[derive(Parser)]
 #[clap(
     author,
@@ -176,29 +123,69 @@ pub(crate) struct Cli {
     formats: Option<Vec<PackageFormat>>,
 }
 
+fn try_run(cli: Cli) -> Result<()> {
+    use std::fmt::Write;
+
+    let profile = if cli.release {
+        "release"
+    } else if let Some(profile) = &cli.profile {
+        profile.as_str()
+    } else {
+        "debug"
+    };
+
+    let mut outputs = Vec::new();
+    for (manifest_path, config) in load_configs_from_cwd(profile, &cli)? {
+        // change the directory to the manifest being built
+        // so paths are read relative to it
+        std::env::set_current_dir(
+            manifest_path
+                .parent()
+                .ok_or(cargo_packager::Error::ParentDirNotFound)?,
+        )?;
+
+        // create the packages
+        outputs.extend(package(&config)?);
+    }
+
+    // print information when finished
+    let len = outputs.len();
+    if len >= 1 {
+        let pluralised = if len == 1 { "package" } else { "packages" };
+        let mut printable_paths = String::new();
+        for p in outputs {
+            for path in &p.paths {
+                writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
+            }
+        }
+        log::info!(action = "Finished"; "{} {} at:\n{}", len, pluralised, printable_paths);
+    }
+
+    Ok(())
+}
+
 fn main() {
-    let mut args = std::env::args_os();
-    args.next();
+    // prepare cli args
+    let args = std::env::args_os().skip(1);
     let cli = Cli::command();
     let matches = cli.get_matches_from(args);
-    let res = Cli::from_arg_matches(&matches).map_err(format_error::<Cli>);
+    let res = Cli::from_arg_matches(&matches).map_err(|e| e.format(&mut Cli::command()));
     let cli = match res {
         Ok(s) => s,
         Err(e) => e.exit(),
     };
 
+    // setup logger
+    let filter_level = match cli.verbose {
+        0 => Level::Info,
+        1 => Level::Debug,
+        2.. => Level::Trace,
+    }
+    .to_level_filter();
     let mut builder = env_logger::Builder::from_default_env();
-    let init_res = builder
+    let logger_init_res = builder
         .format_indent(Some(12))
-        .filter(
-            None,
-            match cli.verbose {
-                0 => Level::Info,
-                1 => Level::Debug,
-                2.. => Level::Trace,
-            }
-            .to_level_filter(),
-        )
+        .filter(None, filter_level)
         .format(|f, record| {
             let mut is_command_output = false;
             if let Some(action) = record.key_values().get("action".into()) {
@@ -207,24 +194,24 @@ fn main() {
                 if !is_command_output {
                     let mut action_style = f.style();
                     action_style.set_color(Color::Green).set_bold(true);
-
                     write!(f, "{:>12} ", action_style.value(action))?;
                 }
             } else {
                 let mut level_style = f.default_level_style(record.level());
                 level_style.set_bold(true);
-
-                write!(
-                    f,
-                    "{:>12} ",
-                    level_style.value(prettyprint_level(record.level()))
-                )?;
+                let level = match record.level() {
+                    Level::Error => "Error",
+                    Level::Warn => "Warn",
+                    Level::Info => "Info",
+                    Level::Debug => "Debug",
+                    Level::Trace => "Trace",
+                };
+                write!(f, "{:>12} ", level_style.value(level))?;
             }
 
             if !is_command_output && log_enabled!(Level::Debug) {
                 let mut target_style = f.style();
                 target_style.set_color(Color::Black);
-
                 write!(f, "[{}] ", target_style.value(record.target()))?;
             }
 
@@ -232,7 +219,7 @@ fn main() {
         })
         .try_init();
 
-    if let Err(err) = init_res {
+    if let Err(err) = logger_init_res {
         eprintln!("Failed to attach logger: {err}");
     }
 
