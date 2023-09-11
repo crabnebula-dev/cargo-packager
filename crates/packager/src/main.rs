@@ -52,9 +52,6 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
             if config.authors.is_empty() {
                 config.authors = package.authors.clone();
             }
-            if config.default_run.is_none() {
-                config.default_run = package.default_run.clone();
-            }
             if config.target_triple.is_empty() {
                 config.target_triple = util::target_triple()?;
             }

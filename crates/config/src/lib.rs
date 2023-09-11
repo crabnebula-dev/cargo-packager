@@ -557,9 +557,6 @@ pub struct Config {
     /// the binaries to package.
     #[serde(default)]
     pub binaries: Vec<Binary>,
-    /// the default binary to run.
-    #[serde(alias = "default-run", alias = "default_run")]
-    pub default_run: Option<String>,
     /// the file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,

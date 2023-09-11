@@ -162,13 +162,6 @@
         "$ref": "#/definitions/Binary"
       }
     },
-    "defaultRun": {
-      "description": "the default binary to run.",
-      "type": [
-        "string",
-        "null"
-      ]
-    },
     "fileAssociations": {
       "description": "the file associations",
       "type": [
