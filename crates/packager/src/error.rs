@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use thiserror::Error;
 
 #[non_exhaustive]
@@ -119,6 +121,71 @@ pub enum Error {
     /// Relative paths errors
     #[error(transparent)]
     RelativeToError(#[from] relative_path::RelativeToError),
+
+    /// Time error.
+    #[cfg(target_os = "macos")]
+    #[error("`{0}`")]
+    TimeError(#[from] time::error::Error),
+    /// Plist error.
+    #[cfg(target_os = "macos")]
+    #[error(transparent)]
+    Plist(#[from] plist::Error),
+    /// Error walking directory.
+    #[cfg(target_os = "macos")]
+    #[error(transparent)]
+    WalkdirError(#[from] walkdir::Error),
+    /// Framework not found.
+    #[cfg(target_os = "macos")]
+    #[error("framework {0} not found")]
+    FrameworkNotFound(String),
+    /// Invalid framework.
+    #[cfg(target_os = "macos")]
+    #[error("invalid framework {framework}: {reason}")]
+    InvalidFramework {
+        framework: String,
+        reason: &'static str,
+    },
+    /// Image error.
+    #[cfg(target_os = "macos")]
+    #[error(transparent)]
+    ImageError(#[from] image::ImageError),
+    /// Invalid icons.
+    #[cfg(target_os = "macos")]
+    #[error("could not find a valid icon")]
+    InvalidIconList,
+    /// Failed to notarize.
+    #[cfg(target_os = "macos")]
+    #[error("failed to notarize app")]
+    FailedToNotarize,
+    /// Rejected on notarize.
+    #[cfg(target_os = "macos")]
+    #[error("failed to notarize app: {0}")]
+    NotarizeRejected(String),
+    /// Failed to parse notarytool output.
+    #[cfg(target_os = "macos")]
+    #[error("failed to parse notarytool output as JSON: `{0}`")]
+    FailedToParseNotarytoolOutput(String),
+    /// Failed to find API key file.
+    #[cfg(target_os = "macos")]
+    #[error("could not find API key file. Please set the APPLE_API_KEY_PATH environment variables to the path to the {filename} file")]
+    ApiKeyMissing { filename: String },
+    /// Missing notarize environment variables.
+    #[cfg(target_os = "macos")]
+    #[error("no APPLE_ID & APPLE_PASSWORD or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
+    MissingNotarizeAuthVars,
+
+    /// Path already exists.
+    #[error("{0} already exists")]
+    AlreadyExists(PathBuf),
+    /// Path does not exist.
+    #[error("{0} does not exist")]
+    DoesNotExist(PathBuf),
+    /// Path is not a directory.
+    #[error("{0} is not a directory")]
+    IsNotDirectory(PathBuf),
+    /// Failed to run command.
+    #[error("failed to run command {0}")]
+    FailedToRunCommand(String),
 }
 
 /// Convenient type alias of Result type for cargo-packager.

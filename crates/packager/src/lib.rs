@@ -45,6 +45,7 @@ mod nsis;
     target_os = "openbsd"
 ))]
 mod rpm;
+mod shell;
 mod sign;
 pub mod util;
 #[cfg(windows)]

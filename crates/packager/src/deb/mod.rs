@@ -130,9 +130,9 @@ pub fn generate_data(config: &Config, package_dir: &Path) -> crate::Result<PathB
     let bin_dir = data_dir.join("usr/bin");
 
     log::debug!("copying binaries");
+    std::fs::create_dir_all(&bin_dir)?;
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
-        std::fs::create_dir_all(&bin_dir)?;
         std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
     }
 

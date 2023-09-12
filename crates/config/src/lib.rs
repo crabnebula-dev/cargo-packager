@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+    path::PathBuf,
+};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -130,6 +134,18 @@ pub enum BundleTypeRole {
 impl Default for BundleTypeRole {
     fn default() -> Self {
         Self::Editor
+    }
+}
+
+impl Display for BundleTypeRole {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Editor => write!(f, "Editor"),
+            Self::Viewer => write!(f, "Viewer"),
+            Self::Shell => write!(f, "Shell"),
+            Self::QLGenerator => write!(f, "QLGenerator"),
+            Self::None => write!(f, "None"),
+        }
     }
 }
 
