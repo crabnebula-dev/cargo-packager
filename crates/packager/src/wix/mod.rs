@@ -164,7 +164,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                     .into_string()
                     .expect("failed to read binary path"),
                 id: regex
-                    .replace_all(&&bin.filename.replace('-', "_"), "")
+                    .replace_all(&bin.filename.replace('-', "_"), "")
                     .to_string(),
             })
         }

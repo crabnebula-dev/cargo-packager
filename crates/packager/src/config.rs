@@ -130,7 +130,7 @@ impl ConfigExtInternal for Config {
                             use relative_path::PathExt;
                             let src = src?;
                             let src = dunce::canonicalize(src)?;
-                            let target = src.relative_to(&cwd)?;
+                            let target = src.relative_to(cwd)?;
                             out.push(Resource {
                                 src,
                                 target: target.to_path(""),
