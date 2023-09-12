@@ -7,7 +7,7 @@ edition = "2021"
 before-packaging-command = "dx build --platform desktop --release"
 product-name = "Dioxus example"
 identifier = "com.dioxus.example"
-resources = ["src/**/*"]
+resources = ["src/**/*", "Cargo.toml", "README.md"]
 
 [package.metadata.packager.deb]
 depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"]

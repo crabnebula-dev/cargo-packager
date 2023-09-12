@@ -1,13 +1,13 @@
 ## Tauri example
 
-You need to install `tauri-cli` first
+1. install `tauri-cli` first
 
-```sh
-cargo install tauri-cli --version 2.0.0-alpha.10
-```
+   ```sh
+   cargo install tauri-cli --version 2.0.0-alpha.10
+   ```
 
-then package the app
+2. package the app
 
-```sh
-cargo r -p cargo-packager -- -p tauri-example --relase
-```
+   ```sh
+   cargo r -p cargo-packager -- -p tauri-example --relase
+   ```

@@ -133,7 +133,7 @@ pub fn generate_data(config: &Config, package_dir: &Path) -> crate::Result<PathB
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
         std::fs::create_dir_all(&bin_dir)?;
-        std::fs::copy(&bin_path, bin_dir.join(&bin.name))?;
+        std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
     }
 
     log::debug!("copying resource files");
@@ -141,7 +141,7 @@ pub fn generate_data(config: &Config, package_dir: &Path) -> crate::Result<PathB
     config.copy_resources(&resource_dir)?;
 
     log::debug!("copying external binaries");
-    config.copy_binaries(&bin_dir)?;
+    config.copy_external_binaries(&bin_dir)?;
 
     log::debug!("generating icons");
     generate_icon_files(config, &data_dir)?;
@@ -312,13 +312,13 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     let package_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
     let package_name = format!("{package_base_name}.deb");
 
-    let base_dir = config.out_dir.join("deb");
+    let base_dir = config.out_dir().join("deb");
 
     let package_dir = base_dir.join(&package_base_name);
     if package_dir.exists() {
         std::fs::remove_dir_all(&package_dir)?;
     }
-    let package_path = base_dir.join(&package_name);
+    let package_path = config.out_dir().join(&package_name);
 
     log::info!(action = "Pckaging"; "{} ({})", package_name, package_path.display());
 

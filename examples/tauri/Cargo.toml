@@ -7,7 +7,7 @@ edition = "2021"
 before-packaging-command = "cargo tauri build"
 product-name = "Tauri example"
 identifier = "com.tauri.example"
-resources = ["src/**/*"]
+resources = ["src/**/*", "Cargo.toml", "README.md"]
 icons = [
     "icons/32x32.png",
     "icons/128x128.png",

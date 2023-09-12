@@ -72,23 +72,13 @@ fn cross_command(script: &str) -> Command {
     cmd.arg("/S").arg("/C").arg(script);
     #[cfg(not(windows))]
     let mut cmd = Command::new("sh");
+    cmd.current_dir(dunce::canonicalize(std::env::current_dir().unwrap()).unwrap());
     #[cfg(not(windows))]
     cmd.arg("-c").arg(script);
     cmd
 }
 
 pub fn package(config: &Config) -> Result<Vec<Package>> {
-    let target_os = config
-        .target_triple
-        .split('-')
-        .nth(2)
-        .unwrap_or(std::env::consts::OS)
-        .replace("darwin", "macos");
-
-    if target_os != std::env::consts::OS {
-        log:: warn!("Cross-platform compilation is experimental and does not support all features. Please use a matching host system for full compatibility.");
-    }
-
     let mut packages = Vec::new();
 
     let formats = config

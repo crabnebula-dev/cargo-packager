@@ -454,10 +454,8 @@ impl Default for LogLevel {
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Binary {
-    /// Name as given in the Cargo.toml
-    pub name: String,
-    /// Path to the main source file of the binary.
-    pub path: PathBuf,
+    /// File name and without `.exe` on Windows
+    pub filename: String,
     /// Whether this is the main binary or not
     #[serde(default)]
     pub main: bool,
@@ -518,12 +516,12 @@ pub struct Config {
     ///
     /// if not present, we'll use the PackageType list for the target OS.
     pub formats: Option<Vec<PackageFormat>>,
-    /// the directory where the packages will be placed.
+    /// the directory where the `binaries` exist and where the packages will be placed.
     #[serde(default, alias = "out-dir", alias = "out_dir")]
     pub out_dir: PathBuf,
-    /// The target triple.
-    #[serde(default, alias = "target-triple", alias = "target_triple")]
-    pub target_triple: String,
+    /// The target triple. Defaults to the current OS target triple.
+    #[serde(alias = "target-triple", alias = "target_triple")]
+    pub target_triple: Option<String>,
     /// the package's product name, for example "My Awesome App".
     #[serde(default, alias = "product-name", alias = "product_name")]
     pub product_name: String,
