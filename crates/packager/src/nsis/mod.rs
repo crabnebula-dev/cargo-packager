@@ -42,9 +42,9 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
     "Plugins/x86-unicode/nsis_tauri_utils.dll",
 ];
 
-fn generate_resource_data(
-    config: &Config,
-) -> crate::Result<(BTreeSet<PathBuf>, Vec<(PathBuf, PathBuf)>)> {
+type DirectoriesSet = BTreeSet<PathBuf>;
+type ResourcesMap = Vec<(PathBuf, PathBuf)>;
+fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, ResourcesMap)> {
     let mut directories = BTreeSet::new();
     let mut resources_map = Vec::new();
     for r in config.resources()? {

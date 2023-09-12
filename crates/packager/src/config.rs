@@ -97,7 +97,7 @@ impl ConfigExt for Config {
 pub(crate) trait ConfigExtInternal {
     fn main_binary(&self) -> crate::Result<&Binary>;
     fn main_binary_name(&self) -> crate::Result<&String>;
-    fn resources_from_dir(src_dir: &PathBuf, target_dir: &Path) -> crate::Result<Vec<IResource>>;
+    fn resources_from_dir(src_dir: &Path, target_dir: &Path) -> crate::Result<Vec<IResource>>;
     fn resources_from_glob(glob: &str) -> crate::Result<Vec<IResource>>;
     fn resources(&self) -> crate::Result<Vec<IResource>>;
     fn find_ico(&self) -> Option<PathBuf>;
@@ -122,7 +122,7 @@ impl ConfigExtInternal for Config {
     }
 
     #[inline]
-    fn resources_from_dir(src_dir: &PathBuf, target_dir: &Path) -> crate::Result<Vec<IResource>> {
+    fn resources_from_dir(src_dir: &Path, target_dir: &Path) -> crate::Result<Vec<IResource>> {
         let mut out = Vec::new();
         for entry in walkdir::WalkDir::new(src_dir) {
             let entry = entry?;
@@ -161,7 +161,7 @@ impl ConfigExtInternal for Config {
                             let target_dir = Path::new(src_dir.file_name().unwrap());
                             out.extend(Self::resources_from_dir(&src_dir, target_dir)?);
                         } else {
-                            out.extend(Self::resources_from_glob(&src)?);
+                            out.extend(Self::resources_from_glob(src)?);
                         }
                     }
                     Resource::Mapped { src, target } => {
@@ -175,7 +175,7 @@ impl ConfigExtInternal for Config {
                                 target: sanitize_path(target),
                             });
                         } else {
-                            let globbed_res = Self::resources_from_glob(&src)?;
+                            let globbed_res = Self::resources_from_glob(src)?;
                             let retargetd_res = globbed_res.into_iter().map(|mut r| {
                                 r.target = target_dir.join(r.target);
                                 r
@@ -238,9 +238,8 @@ impl ConfigExtInternal for Config {
 fn sanitize_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut dest = PathBuf::new();
     for c in path.as_ref().components() {
-        match c {
-            std::path::Component::Normal(s) => dest.push(s),
-            _ => {}
+        if let std::path::Component::Normal(s) = c {
+            dest.push(s)
         }
     }
     dest
