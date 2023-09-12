@@ -34,17 +34,7 @@ mod deb;
 #[cfg(target_os = "macos")]
 mod dmg;
 mod error;
-#[cfg(target_os = "macos")]
-mod ios;
 mod nsis;
-#[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
-))]
-mod rpm;
 mod shell;
 mod sign;
 pub mod util;
@@ -86,6 +76,11 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         .formats
         .clone()
         .unwrap_or_else(|| PackageFormat::all().to_vec());
+    let formats_comma_separated = formats
+        .iter()
+        .map(|f| f.short_name())
+        .collect::<Vec<_>>()
+        .join(",");
 
     if !formats.is_empty() {
         if let Some(hook) = &config.before_packaging_command {
@@ -104,7 +99,9 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             };
 
             log::info!(action = "Running"; "beforePackagingCommand `{}`", script);
-            let status = cmd.status()?;
+            let status = cmd
+                .env("CARGO_PACKAGER_FORMATS", &formats_comma_separated)
+                .status()?;
 
             if !status.success() {
                 return Err(crate::Error::HookCommandFailure(
@@ -133,7 +130,10 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             };
 
             log::info!(action = "Running"; "[\x1b[34m{}\x1b[0m] beforeEachPackageCommand `{}`", format, script);
-            let status = cmd.status()?;
+            let status = cmd
+                .env("CARGO_PACKAGER_FORMATS", &formats_comma_separated)
+                .env("CARGO_PACKAGER_FORMAT", format.short_name())
+                .status()?;
 
             if !status.success() {
                 return Err(crate::Error::HookCommandFailure(
@@ -149,8 +149,6 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             PackageFormat::App => app::package(config),
             #[cfg(target_os = "macos")]
             PackageFormat::Dmg => dmg::package(config),
-            #[cfg(target_os = "macos")]
-            PackageFormat::Ios => ios::package(config),
             #[cfg(target_os = "windows")]
             PackageFormat::Wix => wix::package(config),
             PackageFormat::Nsis => nsis::package(config),
@@ -162,14 +160,6 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
                 target_os = "openbsd"
             ))]
             PackageFormat::Deb => deb::package(config),
-            #[cfg(any(
-                target_os = "linux",
-                target_os = "dragonfly",
-                target_os = "freebsd",
-                target_os = "netbsd",
-                target_os = "openbsd"
-            ))]
-            PackageFormat::Rpm => rpm::package(config),
             #[cfg(any(
                 target_os = "linux",
                 target_os = "dragonfly",

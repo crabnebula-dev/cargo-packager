@@ -36,6 +36,7 @@ zip = { version = "0.6", default-features = false, features = ["deflate"] }
 handlebars = "4.4"
 glob = "0.3"
 relative-path = "1.9"
+walkdir = "2"
 os_pipe = "1"
 
 [target."cfg(target_os = \"windows\")".dependencies]
@@ -52,7 +53,6 @@ features = ["Win32_System_SystemInformation", "Win32_System_Diagnostics_Debug"]
 image = "0.24"
 md5 = "0.7"
 heck = "0.4"
-walkdir = "2.4"
 ar = "0.9"
 tar = "0.4"
 libflate = "2.0"
@@ -62,6 +62,5 @@ icns = { package = "tauri-icns", version = "0.1" }
 time = { version = "0.3", features = [ "formatting" ] }
 plist = "1"
 dirs-next = "2"
-walkdir = "2"
 image = "0.24"
 tempfile = "3"

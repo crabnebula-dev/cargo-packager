@@ -20,16 +20,12 @@ pub enum PackageFormat {
     App,
     /// The macOS DMG package (.dmg).
     Dmg,
-    /// The iOS app bundle.
-    Ios,
     /// The Microsoft Software Installer (.msi) through WiX Toolset.
     Wix,
     /// The NSIS installer (.exe).
     Nsis,
     /// The Linux Debian package (.deb).
     Deb,
-    /// The Linux RPM package (.rpm).
-    Rpm,
     /// The Linux AppImage package (.AppImage).
     AppImage,
 }
@@ -48,11 +44,9 @@ impl PackageFormat {
         match name {
             "app" => Some(PackageFormat::App),
             "dmg" => Some(PackageFormat::Dmg),
-            "ios" => Some(PackageFormat::Ios),
             "wix" => Some(PackageFormat::Wix),
             "nsis" => Some(PackageFormat::Nsis),
             "deb" => Some(PackageFormat::Deb),
-            "rpm" => Some(PackageFormat::Rpm),
             "appimage" => Some(PackageFormat::AppImage),
             _ => None,
         }
@@ -63,11 +57,9 @@ impl PackageFormat {
         match *self {
             PackageFormat::App => "app",
             PackageFormat::Dmg => "dmg",
-            PackageFormat::Ios => "ios",
             PackageFormat::Wix => "wix",
             PackageFormat::Nsis => "nsis",
             PackageFormat::Deb => "deb",
-            PackageFormat::Rpm => "rpm",
             PackageFormat::AppImage => "appimage",
         }
     }
@@ -83,8 +75,6 @@ const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
     PackageFormat::App,
     #[cfg(target_os = "macos")]
     PackageFormat::Dmg,
-    #[cfg(target_os = "macos")]
-    PackageFormat::Ios,
     #[cfg(target_os = "windows")]
     PackageFormat::Wix,
     #[cfg(target_os = "windows")]
@@ -97,14 +87,6 @@ const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
         target_os = "openbsd"
     ))]
     PackageFormat::Deb,
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    PackageFormat::Rpm,
     #[cfg(any(
         target_os = "linux",
         target_os = "dragonfly",
@@ -183,6 +165,9 @@ pub struct DebianConfig {
     /// ```
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
+    /// List of custom files to add to the deb package.
+    /// Maps a dir/file to a dir/file inside the debian package.
+    pub files: Option<HashMap<String, String>>,
 }
 
 /// The macOS configuration.
@@ -477,12 +462,17 @@ pub struct Binary {
     pub main: bool,
 }
 
-/// A list or a map of resources.
+/// A path to a resource (with optional glob pattern)
+/// or an object of `src` and `target` paths.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
-pub enum Resources {
-    List(Vec<String>),
-    Map(HashMap<String, String>),
+pub enum Resource {
+    /// Supports glob patterns
+    Single(String),
+    Mapped {
+        src: PathBuf,
+        target: PathBuf,
+    },
 }
 
 /// Describes a shell command to be executed when a CLI hook is triggered.
@@ -574,12 +564,14 @@ pub struct Config {
     /// the file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,
-    /// The app's resources to package.
+    /// The app's resources to package. This a list of either a path to a resource (with optional glob pattern)
+    /// or an object of `src` and `target` paths.
     ///
-    /// Can be either be a list of files/folder or a map of src file/folder and target file/folder.
+    /// ## Format-specific:
     ///
-    /// supports glob patterns.
-    pub resources: Option<Resources>,
+    /// - **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.
+    /// - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.
+    pub resources: Option<Vec<Resource>>,
     /// External binaries to add to the package.
     ///
     /// Note that each binary name should have the target platform's target triple appended,

@@ -104,13 +104,6 @@ pub enum Error {
     ImageError(#[from] image::ImageError),
     /// walkdir crate errors.
     #[error(transparent)]
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
     WalkDirError(#[from] walkdir::Error),
     /// Path prefix strip error.
     #[error(transparent)]
@@ -130,10 +123,6 @@ pub enum Error {
     #[cfg(target_os = "macos")]
     #[error(transparent)]
     Plist(#[from] plist::Error),
-    /// Error walking directory.
-    #[cfg(target_os = "macos")]
-    #[error(transparent)]
-    WalkdirError(#[from] walkdir::Error),
     /// Framework not found.
     #[cfg(target_os = "macos")]
     #[error("framework {0} not found")]

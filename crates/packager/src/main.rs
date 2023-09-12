@@ -167,7 +167,7 @@ pub(crate) struct Cli {
     /// Ignored when `--config` is used.
     #[clap(long, group = "cargo-profile")]
     profile: Option<String>,
-    /// Specify the cargo packages in a workspace to create.
+    /// Specify the cargo packages to use from the current workspace.
     /// Ignored when `--config` is used.
     #[clap(short, long)]
     packages: Option<Vec<String>>,
@@ -316,7 +316,7 @@ fn main() {
     }
 
     if let Err(e) = try_run(cli) {
-        log::error!("{}", e);
+        log::error!("{:?}", e);
         std::process::exit(1);
     }
 }

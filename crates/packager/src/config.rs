@@ -1,11 +1,12 @@
 use std::path::{Path, PathBuf};
 
 pub use cargo_packager_config::*;
+use relative_path::PathExt;
 
 use crate::util;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Resource {
+pub(crate) struct IResource {
     pub src: PathBuf,
     pub target: PathBuf,
 }
@@ -69,7 +70,7 @@ impl ConfigExt for Config {
         } else if target.starts_with("universal") {
             "universal"
         } else {
-            return Err(crate::Error::UnexpectedTargetTriple(target.clone()));
+            return Err(crate::Error::UnexpectedTargetTriple(target));
         })
     }
 
@@ -96,7 +97,7 @@ impl ConfigExt for Config {
 pub(crate) trait ConfigExtInternal {
     fn main_binary(&self) -> crate::Result<&Binary>;
     fn main_binary_name(&self) -> crate::Result<&String>;
-    fn resources(&self) -> crate::Result<Vec<Resource>>;
+    fn resources(&self) -> crate::Result<Vec<IResource>>;
     fn find_ico(&self) -> Option<PathBuf>;
     fn copy_resources(&self, path: &Path) -> crate::Result<()>;
     fn copy_external_binaries(&self, path: &Path) -> crate::Result<()>;
@@ -118,40 +119,63 @@ impl ConfigExtInternal for Config {
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
     }
 
-    fn resources(&self) -> crate::Result<Vec<Resource>> {
+    fn resources(&self) -> crate::Result<Vec<IResource>> {
         if let Some(resources) = &self.resources {
-            let mut out = Vec::new();
             let cwd = std::env::current_dir()?;
             let cwd = dunce::simplified(&cwd);
-            match resources {
-                Resources::List(l) => {
-                    for resource in l {
-                        for src in glob::glob(resource).unwrap() {
-                            use relative_path::PathExt;
-                            let src = src?;
-                            let src = dunce::canonicalize(src)?;
-                            let target = src.relative_to(cwd)?;
-                            out.push(Resource {
-                                src,
-                                target: target.to_path(""),
-                            })
-                        }
+
+            #[inline]
+            fn create_resources_from_dir(
+                src: &PathBuf,
+                target: &Path,
+            ) -> crate::Result<Vec<IResource>> {
+                let mut out = Vec::new();
+                for entry in walkdir::WalkDir::new(src) {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.is_file() {
+                        let relative = path.relative_to(src)?.to_path("");
+                        let resource = IResource {
+                            src: dunce::canonicalize(path)?,
+                            target: target.join(relative),
+                        };
+                        out.push(resource);
                     }
                 }
-                Resources::Map(m) => {
-                    for (src, target) in m.iter() {
-                        for src in glob::glob(src).unwrap() {
-                            let src = src?;
-                            let src = dunce::canonicalize(src)?;
-                            let target = PathBuf::from(target).join(
-                                src.file_name()
-                                    .expect("Failed to get filename of a resource file"),
-                            );
-                            out.push(Resource { src, target });
+                Ok(out)
+            }
+
+            let mut out = Vec::new();
+            for r in resources {
+                match r {
+                    Resource::Single(src) => {
+                        let src_p = PathBuf::from(src);
+                        if src_p.is_dir() {
+                            out.extend(create_resources_from_dir(&src_p, &src_p)?);
+                        } else {
+                            for src in glob::glob(src).unwrap() {
+                                let src = src?;
+                                let src = dunce::canonicalize(src)?;
+                                let target = src.relative_to(cwd)?;
+                                out.push(IResource {
+                                    src,
+                                    target: target.to_path(""),
+                                })
+                            }
+                        }
+                    }
+                    Resource::Mapped { src, target } => {
+                        let src = dunce::canonicalize(src)?;
+                        let target = PathBuf::from(target);
+                        if src.is_file() {
+                            out.push(IResource { src, target })
+                        } else if src.is_dir() {
+                            out.extend(create_resources_from_dir(&src, &target)?);
                         }
                     }
                 }
             }
+
             Ok(out)
         } else {
             Ok(vec![])
@@ -193,7 +217,6 @@ impl ConfigExtInternal for Config {
                         .to_string_lossy()
                         .replace(&format!("-{}", self.target_triple()), ""),
                 );
-                std::fs::create_dir_all(dest.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
                 std::fs::copy(src, dest)?;
             }
         }
