@@ -16,16 +16,12 @@ pub enum PackageFormat {
     App,
     /// The macOS DMG package (.dmg).
     Dmg,
-    /// The iOS app bundle.
-    Ios,
     /// The Microsoft Software Installer (.msi) through WiX Toolset.
     Wix,
     /// The NSIS installer (.exe).
     Nsis,
     /// The Linux Debian package (.deb).
     Deb,
-    /// The Linux RPM package (.rpm).
-    Rpm,
     /// The Linux AppImage package (.AppImage).
     AppImage,
 }
@@ -44,11 +40,9 @@ impl PackageFormat {
         match name {
             "app" => Some(PackageFormat::App),
             "dmg" => Some(PackageFormat::Dmg),
-            "ios" => Some(PackageFormat::Ios),
             "wix" => Some(PackageFormat::Wix),
             "nsis" => Some(PackageFormat::Nsis),
             "deb" => Some(PackageFormat::Deb),
-            "rpm" => Some(PackageFormat::Rpm),
             "appimage" => Some(PackageFormat::AppImage),
             _ => None,
         }
@@ -59,11 +53,9 @@ impl PackageFormat {
         match *self {
             PackageFormat::App => "app",
             PackageFormat::Dmg => "dmg",
-            PackageFormat::Ios => "ios",
             PackageFormat::Wix => "wix",
             PackageFormat::Nsis => "nsis",
             PackageFormat::Deb => "deb",
-            PackageFormat::Rpm => "rpm",
             PackageFormat::AppImage => "appimage",
         }
     }
@@ -79,8 +71,6 @@ const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
     PackageFormat::App,
     #[cfg(target_os = "macos")]
     PackageFormat::Dmg,
-    #[cfg(target_os = "macos")]
-    PackageFormat::Ios,
     #[cfg(target_os = "windows")]
     PackageFormat::Wix,
     #[cfg(target_os = "windows")]
@@ -93,14 +83,6 @@ const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
         target_os = "openbsd"
     ))]
     PackageFormat::Deb,
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    PackageFormat::Rpm,
     #[cfg(any(
         target_os = "linux",
         target_os = "dragonfly",
