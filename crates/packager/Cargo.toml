@@ -27,7 +27,7 @@ clap = { workspace = true, optional = true }
 log = { workspace = true, features = ["kv_unstable", "kv_unstable_std"] }
 toml = "0.7"
 env_logger = { version = "0.10", optional = true }
-cargo_metadata = "0.17"
+cargo_metadata = "0.18"
 ureq = "2.7"
 hex = "0.4"
 sha1 = "0.10"
