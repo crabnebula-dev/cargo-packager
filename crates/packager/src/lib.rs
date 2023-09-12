@@ -34,17 +34,7 @@ mod deb;
 #[cfg(target_os = "macos")]
 mod dmg;
 mod error;
-#[cfg(target_os = "macos")]
-mod ios;
 mod nsis;
-#[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
-))]
-mod rpm;
 mod sign;
 pub mod util;
 #[cfg(windows)]
@@ -158,8 +148,6 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             PackageFormat::App => app::package(config),
             #[cfg(target_os = "macos")]
             PackageFormat::Dmg => dmg::package(config),
-            #[cfg(target_os = "macos")]
-            PackageFormat::Ios => ios::package(config),
             #[cfg(target_os = "windows")]
             PackageFormat::Wix => wix::package(config),
             PackageFormat::Nsis => nsis::package(config),
@@ -171,14 +159,6 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
                 target_os = "openbsd"
             ))]
             PackageFormat::Deb => deb::package(config),
-            #[cfg(any(
-                target_os = "linux",
-                target_os = "dragonfly",
-                target_os = "freebsd",
-                target_os = "netbsd",
-                target_os = "openbsd"
-            ))]
-            PackageFormat::Rpm => rpm::package(config),
             #[cfg(any(
                 target_os = "linux",
                 target_os = "dragonfly",
