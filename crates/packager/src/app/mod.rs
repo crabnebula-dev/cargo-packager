@@ -1,5 +1,5 @@
 use std::{
-    fs::{copy, create_dir, create_dir_all, read_link, remove_dir_all},
+    fs::{copy, create_dir, create_dir_all, read_link},
     path::{Path, PathBuf},
 };
 
@@ -22,10 +22,6 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         .join(&app_product_name);
 
     info!(action = "Bundling"; "{} ({})", app_product_name, app_bundle_path.display());
-
-    if app_bundle_path.exists() {
-        remove_dir_all(&app_bundle_path)?;
-    }
 
     let bundle_directory = app_bundle_path.join("Contents");
     create_dir_all(&bundle_directory)?;
