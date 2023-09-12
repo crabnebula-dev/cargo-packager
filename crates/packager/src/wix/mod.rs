@@ -318,36 +318,6 @@ fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
         directory_entry.add_file(resource_entry);
     }
 
-    let mut dlls = Vec::new();
-
-    for dll in glob::glob(
-        config
-            .out_dir()
-            .join("*.dll")
-            .to_string_lossy()
-            .to_string()
-            .as_str(),
-    )? {
-        let path = dll?;
-        dlls.push(ResourceFile {
-            id: format!("I{}", Uuid::new_v4().as_simple()),
-            guid: Uuid::new_v4().to_string(),
-            path: dunce::simplified(&path).to_path_buf(),
-        });
-    }
-
-    if !dlls.is_empty() {
-        resources_map.insert(
-            "".to_string(),
-            ResourceDirectory {
-                path: "".to_string(),
-                name: "".to_string(),
-                directories: vec![],
-                files: dlls,
-            },
-        );
-    }
-
     Ok(resources_map)
 }
 
@@ -564,7 +534,7 @@ fn build_wix_app_installer(
     data.insert("resources", to_json(resources_wix_string));
     data.insert("resource_file_ids", to_json(files_ids));
 
-    // TODO: how to choose to include merge modules
+    // TODO: how to include merge modules
 
     data.insert(
         "app_exe_source",

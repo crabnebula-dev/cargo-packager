@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -42,25 +42,21 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
     "Plugins/x86-unicode/nsis_tauri_utils.dll",
 ];
 
-/// BTreeMap<OriginalPath, (ParentOfTargetPath, TargetPath)>
-type ResourcesMap = BTreeMap<PathBuf, (String, PathBuf)>;
-fn generate_resource_data(config: &Config) -> crate::Result<ResourcesMap> {
-    let mut resources_map = ResourcesMap::new();
-    for resource in config.resources()? {
-        resources_map.insert(
-            resource.src,
-            (
-                resource
-                    .target
-                    .parent()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default(),
-                resource.target,
-            ),
+type DirectoriesSet = BTreeSet<PathBuf>;
+type ResourcesMap = Vec<(PathBuf, PathBuf)>;
+fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, ResourcesMap)> {
+    let mut directories = BTreeSet::new();
+    let mut resources_map = Vec::new();
+    for r in config.resources()? {
+        directories.insert(
+            r.target
+                .parent()
+                .unwrap_or_else(|| Path::new(""))
+                .to_path_buf(),
         );
+        resources_map.push((r.src, r.target))
     }
-
-    Ok(resources_map)
+    Ok((directories, resources_map))
 }
 
 /// BTreeMap<OriginalPath, TargetFileName>
@@ -84,14 +80,12 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
     for bin in &config.binaries {
         if !bin.main {
             let bin_path = config.binary_path(bin);
-            binaries.insert(
-                bin_path.clone(),
-                bin_path
-                    .file_name()
-                    .expect("failed to extract binary filename")
-                    .to_string_lossy()
-                    .to_string(),
-            );
+            let dest_filename = bin_path
+                .file_name()
+                .expect("failed to extract binary filename")
+                .to_string_lossy()
+                .to_string();
+            binaries.insert(bin_path, dest_filename);
         }
     }
 
@@ -390,7 +384,8 @@ fn build_nsis_app_installer(
     let out_file = "nsis-output.exe";
     data.insert("out_file", to_json(out_file));
 
-    let resources = generate_resource_data(config)?;
+    let (resources_dirs, resources) = generate_resource_data(config)?;
+    data.insert("resources_dirs", to_json(resources_dirs));
     data.insert("resources", to_json(resources));
 
     let binaries = generate_binaries_data(config)?;

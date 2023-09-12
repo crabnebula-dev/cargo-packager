@@ -470,7 +470,7 @@ pub enum Resource {
     /// Supports glob patterns
     Single(String),
     Mapped {
-        src: PathBuf,
+        src: String,
         target: PathBuf,
     },
 }
@@ -564,8 +564,10 @@ pub struct Config {
     /// the file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,
-    /// The app's resources to package. This a list of either a path to a resource (with optional glob pattern)
-    /// or an object of `src` and `target` paths.
+    /// The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory
+    /// or an object of `src` and `target` paths. In the case of using an object,
+    /// the `src` could be either a glob pattern, path to a file, path to a directory,
+    /// and the `target` is a path inside the final resources folder in the installed package.
     ///
     /// ## Format-specific:
     ///

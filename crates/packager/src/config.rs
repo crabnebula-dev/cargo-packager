@@ -97,6 +97,8 @@ impl ConfigExt for Config {
 pub(crate) trait ConfigExtInternal {
     fn main_binary(&self) -> crate::Result<&Binary>;
     fn main_binary_name(&self) -> crate::Result<&String>;
+    fn resources_from_dir(src_dir: &Path, target_dir: &Path) -> crate::Result<Vec<IResource>>;
+    fn resources_from_glob(glob: &str) -> crate::Result<Vec<IResource>>;
     fn resources(&self) -> crate::Result<Vec<IResource>>;
     fn find_ico(&self) -> Option<PathBuf>;
     fn copy_resources(&self, path: &Path) -> crate::Result<()>;
@@ -119,58 +121,66 @@ impl ConfigExtInternal for Config {
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
     }
 
+    #[inline]
+    fn resources_from_dir(src_dir: &Path, target_dir: &Path) -> crate::Result<Vec<IResource>> {
+        let mut out = Vec::new();
+        for entry in walkdir::WalkDir::new(src_dir) {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_file() {
+                let relative = path.relative_to(src_dir)?.to_path("");
+                let resource = IResource {
+                    src: dunce::canonicalize(path)?,
+                    target: target_dir.join(relative),
+                };
+                out.push(resource);
+            }
+        }
+        Ok(out)
+    }
+
+    #[inline]
+    fn resources_from_glob(glob: &str) -> crate::Result<Vec<IResource>> {
+        let mut out = Vec::new();
+        for src in glob::glob(glob).unwrap() {
+            let src = dunce::canonicalize(src?)?;
+            let target = PathBuf::from(src.file_name().unwrap());
+            out.push(IResource { src, target })
+        }
+        Ok(out)
+    }
+
     fn resources(&self) -> crate::Result<Vec<IResource>> {
         if let Some(resources) = &self.resources {
-            let cwd = std::env::current_dir()?;
-            let cwd = dunce::simplified(&cwd);
-
-            #[inline]
-            fn create_resources_from_dir(
-                src: &PathBuf,
-                target: &Path,
-            ) -> crate::Result<Vec<IResource>> {
-                let mut out = Vec::new();
-                for entry in walkdir::WalkDir::new(src) {
-                    let entry = entry?;
-                    let path = entry.path();
-                    if path.is_file() {
-                        let relative = path.relative_to(src)?.to_path("");
-                        let resource = IResource {
-                            src: dunce::canonicalize(path)?,
-                            target: target.join(relative),
-                        };
-                        out.push(resource);
-                    }
-                }
-                Ok(out)
-            }
-
             let mut out = Vec::new();
             for r in resources {
                 match r {
                     Resource::Single(src) => {
-                        let src_p = PathBuf::from(src);
-                        if src_p.is_dir() {
-                            out.extend(create_resources_from_dir(&src_p, &src_p)?);
+                        let src_dir = PathBuf::from(src);
+                        if src_dir.is_dir() {
+                            let target_dir = Path::new(src_dir.file_name().unwrap());
+                            out.extend(Self::resources_from_dir(&src_dir, target_dir)?);
                         } else {
-                            for src in glob::glob(src).unwrap() {
-                                let src = src?;
-                                let src = dunce::canonicalize(src)?;
-                                let target = src.relative_to(cwd)?;
-                                out.push(IResource {
-                                    src,
-                                    target: target.to_path(""),
-                                })
-                            }
+                            out.extend(Self::resources_from_glob(src)?);
                         }
                     }
                     Resource::Mapped { src, target } => {
-                        let src = dunce::canonicalize(src)?;
-                        let target = PathBuf::from(target);
-                        if src.is_file() {
-                            out.push(IResource { src, target })
-                        } else if src.is_dir() {
-                            out.extend(create_resources_from_dir(&src, &target)?);
+                        let src_path = PathBuf::from(src);
+                        let target_dir = sanitize_path(target);
+                        if src_path.is_dir() {
+                            out.extend(Self::resources_from_dir(&src_path, &target_dir)?);
+                        } else if src_path.is_file() {
+                            out.push(IResource {
+                                src: dunce::canonicalize(src_path)?,
+                                target: sanitize_path(target),
+                            });
+                        } else {
+                            let globbed_res = Self::resources_from_glob(src)?;
+                            let retargetd_res = globbed_res.into_iter().map(|mut r| {
+                                r.target = target_dir.join(r.target);
+                                r
+                            });
+                            out.extend(retargetd_res);
                         }
                     }
                 }
@@ -223,4 +233,14 @@ impl ConfigExtInternal for Config {
 
         Ok(())
     }
+}
+
+fn sanitize_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut dest = PathBuf::new();
+    for c in path.as_ref().components() {
+        if let std::path::Component::Normal(s) = c {
+            dest.push(s)
+        }
+    }
+    dest
 }
