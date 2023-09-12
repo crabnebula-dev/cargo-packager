@@ -102,13 +102,6 @@ pub enum Error {
     ImageError(#[from] image::ImageError),
     /// walkdir crate errors.
     #[error(transparent)]
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
     WalkDirError(#[from] walkdir::Error),
     /// Path prefix strip error.
     #[error(transparent)]

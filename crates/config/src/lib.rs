@@ -443,12 +443,17 @@ pub struct Binary {
     pub main: bool,
 }
 
-/// A list or a map of resources.
+/// A path to a resource (with optional glob pattern)
+/// or an object of `src` and `target` paths.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
-pub enum Resources {
-    List(Vec<String>),
-    Map(HashMap<String, String>),
+pub enum Resource {
+    /// Supports glob patterns
+    Single(String),
+    Mapped {
+        src: PathBuf,
+        target: PathBuf,
+    },
 }
 
 /// Describes a shell command to be executed when a CLI hook is triggered.
@@ -540,12 +545,14 @@ pub struct Config {
     /// the file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,
-    /// The app's resources to package.
+    /// The app's resources to package. This a list of either a path to a resource (with optional glob pattern)
+    /// or an object of `src` and `target` paths.
     ///
-    /// Can be either be a list of files/folder or a map of src file/folder and target file/folder.
+    /// ## Format-specific:
     ///
-    /// supports glob patterns.
-    pub resources: Option<Resources>,
+    /// - **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.
+    /// - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.
+    pub resources: Option<Vec<Resource>>,
     /// External binaries to add to the package.
     ///
     /// Note that each binary name should have the target platform's target triple appended,
