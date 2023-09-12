@@ -468,10 +468,14 @@ Section Install
   ${GetSize} "$INSTDIR" "/M=${MAINBINARYNAME}.exe /S=0B" $0 $1 $2
   IntOp $AppSize $AppSize + $0
 
+  ; Create resources directory structure
+  {{#each resources_dirs}}
+    CreateDirectory "$INSTDIR\\{{this}}"
+  {{/each}}
+
   ; Copy resources
   {{#each resources}}
-    CreateDirectory "$INSTDIR\\{{this.[0]}}"
-    File /a "/oname={{this.[1]}}" "{{@key}}"
+    File /a "/oname={{this.[1]}}" "{{this.[0]}}"
     ${GetSize} "$INSTDIR" "/M={{this.[1]}} /S=0B" $0 $1 $2
     IntOp $AppSize $AppSize + $0
   {{/each}}

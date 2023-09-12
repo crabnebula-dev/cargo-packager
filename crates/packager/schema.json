@@ -175,7 +175,7 @@
       }
     },
     "resources": {
-      "description": "The app's resources to package. This a list of either a path to a resource (with optional glob pattern) or an object of `src` and `target` paths.\n\n## Format-specific:\n\n- **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager. - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.",
+      "description": "The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory or an object of `src` and `target` paths. In the case of using an object, the `src` could be either a glob pattern, path to a file, path to a directory, and the `target` is a path inside the final resources folder in the installed package.\n\n## Format-specific:\n\n- **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager. - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.",
       "type": [
         "array",
         "null"
