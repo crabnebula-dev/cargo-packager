@@ -70,7 +70,7 @@ impl ConfigExt for Config {
         } else if target.starts_with("universal") {
             "universal"
         } else {
-            return Err(crate::Error::UnexpectedTargetTriple(target.clone()));
+            return Err(crate::Error::UnexpectedTargetTriple(target));
         })
     }
 
@@ -127,16 +127,16 @@ impl ConfigExtInternal for Config {
             #[inline]
             fn create_resources_from_dir(
                 src: &PathBuf,
-                target: &PathBuf,
+                target: &Path,
             ) -> crate::Result<Vec<IResource>> {
                 let mut out = Vec::new();
-                for entry in walkdir::WalkDir::new(&src) {
+                for entry in walkdir::WalkDir::new(src) {
                     let entry = entry?;
                     let path = entry.path();
                     if path.is_file() {
-                        let relative = path.relative_to(&src)?.to_path("");
+                        let relative = path.relative_to(src)?.to_path("");
                         let resource = IResource {
-                            src: dunce::canonicalize(path.to_path_buf())?,
+                            src: dunce::canonicalize(path)?,
                             target: target.join(relative),
                         };
                         out.push(resource);
@@ -156,7 +156,7 @@ impl ConfigExtInternal for Config {
                             for src in glob::glob(src).unwrap() {
                                 let src = src?;
                                 let src = dunce::canonicalize(src)?;
-                                let target = src.relative_to(&cwd)?;
+                                let target = src.relative_to(cwd)?;
                                 out.push(IResource {
                                     src,
                                     target: target.to_path(""),
