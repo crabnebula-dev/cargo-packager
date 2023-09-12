@@ -9,6 +9,7 @@ use std::{
 use handlebars::Handlebars;
 use heck::AsKebabCase;
 use image::{codecs::png::PngDecoder, ImageDecoder};
+use relative_path::PathExt;
 use serde::Serialize;
 use walkdir::WalkDir;
 
@@ -172,6 +173,41 @@ pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
     Ok(result)
 }
 
+/// Copies user-defined files to the deb package.
+fn copy_custom_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
+    if let Some(files) = config.deb().and_then(|d| d.files.as_ref()) {
+        for (src, target) in files.iter() {
+            let src = Path::new(src).canonicalize()?;
+            let target = Path::new(target);
+            let target = if target.is_absolute() {
+                target.strip_prefix("/").unwrap()
+            } else {
+                target
+            };
+
+            if src.is_file() {
+                let dest = data_dir.join(target);
+                let parent = dest.parent().ok_or(crate::Error::ParentDirNotFound)?;
+                std::fs::create_dir_all(parent)?;
+                std::fs::copy(src, dest)?;
+            } else if src.is_dir() {
+                for entry in walkdir::WalkDir::new(&src) {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.is_file() {
+                        let relative = path.relative_to(&src)?.to_path("");
+                        let parent = data_dir.join(target);
+                        let dest = parent.join(relative);
+                        std::fs::create_dir_all(parent)?;
+                        std::fs::copy(path, dest)?;
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Generates the debian control file and stores it under the `control_dir`.
 fn generate_control_file(
     config: &Config,
@@ -325,16 +361,19 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     log::debug!("generating data");
     let data_dir = generate_data(config, &package_dir)?;
 
-    // Generate control files.
+    log::debug!("copying files specifeid in `deb.files`");
+    copy_custom_files(config, &data_dir)?;
+
     let control_dir = package_dir.join("control");
     log::debug!("generating control file");
     generate_control_file(config, arch, &control_dir, &data_dir)?;
+
     log::debug!("generating md5sums");
     generate_md5sums(&control_dir, &data_dir)?;
 
-    log::debug!("creating debian-binary file");
     // Generate `debian-binary` file; see
     // http://www.tldp.org/HOWTO/Debian-Binary-Package-Building-HOWTO/x60.html#AEN66
+    log::debug!("creating debian-binary file");
     let debian_binary_path = package_dir.join("debian-binary");
     let mut file = util::create_file(&debian_binary_path)?;
     file.write_all(b"2.0\n")?;

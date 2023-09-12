@@ -588,6 +588,16 @@
             "string",
             "null"
           ]
+        },
+        "files": {
+          "description": "List of custom files to add to the deb package. Maps a dir/file to a dir/file inside the debian package.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false

@@ -149,6 +149,9 @@ pub struct DebianConfig {
     /// ```
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
+    /// List of custom files to add to the deb package.
+    /// Maps a dir/file to a dir/file inside the debian package.
+    pub files: Option<HashMap<String, String>>,
 }
 
 /// The macOS configuration.
