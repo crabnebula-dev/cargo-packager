@@ -178,7 +178,10 @@ pub(crate) fn os_bitness() -> crate::Result<Bitness> {
     )
 }
 
-pub(crate) fn log_if_needed(log_level: LogLevel, output: Output) {
+pub(crate) fn log_if_needed_and_error_out(
+    log_level: LogLevel,
+    output: Output,
+) -> crate::Result<()> {
     if output.status.success() && !output.stdout.is_empty() && log_level >= LogLevel::Debug {
         log::debug!(action = "stdout"; "{}", String::from_utf8_lossy(&output.stdout))
     } else if !output.status.success() && log_level >= LogLevel::Error {
@@ -192,8 +195,12 @@ pub(crate) fn log_if_needed(log_level: LogLevel, output: Output) {
         } else {
             &output.stdout
         };
-        log::error!(action = action; "{}", String::from_utf8_lossy(output))
+        log::error!(action = action; "{}", String::from_utf8_lossy(output));
+
+        return Err(crate::Error::CommandFailed);
     }
+
+    Ok(())
 }
 
 /// Returns true if the path has a filename indicating that it is a high-density

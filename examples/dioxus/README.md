@@ -1,13 +1,13 @@
 ## Dioxus example
 
-You need to install `dioxus-cli` first
+1. install `dioxus-cli` first
 
-```sh
-cargo install dioxus-cli --locked
-```
+   ```sh
+   cargo install dioxus-cli --locked
+   ```
 
-then package the app
+2. package the app
 
-```sh
-cargo r -p cargo-packager -- -p dioxus-example --relase
-```
+   ```sh
+   cargo r -p cargo-packager -- -p dioxus-example --relase
+   ```

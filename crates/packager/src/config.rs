@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 
 pub use cargo_packager_config::*;
 
+use crate::util;
+
 #[derive(Debug, Clone)]
 pub(crate) struct Resource {
     pub src: PathBuf,
@@ -17,7 +19,9 @@ pub trait ConfigExt {
     fn wix(&self) -> Option<&WixConfig>;
     /// Returns the debian specific configuration
     fn deb(&self) -> Option<&DebianConfig>;
-    /// Returns the architecture for the binary being packaged (e.g. "arm", "x86" or "x86_64").
+    /// Returns the target triple for the package to be built (e.g. "aarch64-unknown-linux-gnu").
+    fn target_triple(&self) -> String;
+    /// Returns the architecture for the package to be built (e.g. "arm", "x86" or "x86_64").
     fn target_arch(&self) -> crate::Result<&str>;
     /// Returns the path to the specified binary.
     fn binary_path(&self, binary: &Binary) -> PathBuf;
@@ -25,6 +29,8 @@ pub trait ConfigExt {
     fn identifier(&self) -> &str;
     /// Returns the package publisher
     fn publisher(&self) -> String;
+    /// Returns the out dir
+    fn out_dir(&self) -> PathBuf;
 }
 
 impl ConfigExt for Config {
@@ -44,26 +50,31 @@ impl ConfigExt for Config {
         self.deb.as_ref()
     }
 
+    fn target_triple(&self) -> String {
+        self.target_triple
+            .clone()
+            .unwrap_or_else(|| util::target_triple().unwrap())
+    }
+
     fn target_arch(&self) -> crate::Result<&str> {
-        Ok(if self.target_triple.starts_with("x86_64") {
+        let target = self.target_triple();
+        Ok(if target.starts_with("x86_64") {
             "x86_64"
-        } else if self.target_triple.starts_with('i') {
+        } else if target.starts_with('i') {
             "x86"
-        } else if self.target_triple.starts_with("arm") {
+        } else if target.starts_with("arm") {
             "arm"
-        } else if self.target_triple.starts_with("aarch64") {
+        } else if target.starts_with("aarch64") {
             "aarch64"
-        } else if self.target_triple.starts_with("universal") {
+        } else if target.starts_with("universal") {
             "universal"
         } else {
-            return Err(crate::Error::UnexpectedTargetTriple(
-                self.target_triple.clone(),
-            ));
+            return Err(crate::Error::UnexpectedTargetTriple(target.clone()));
         })
     }
 
     fn binary_path(&self, binary: &Binary) -> PathBuf {
-        self.out_dir.join(&binary.name)
+        self.out_dir().join(&binary.filename)
     }
 
     fn identifier(&self) -> &str {
@@ -76,15 +87,19 @@ impl ConfigExt for Config {
             .clone()
             .unwrap_or_else(|| identifier.split('.').nth(1).unwrap_or(identifier).into())
     }
+
+    fn out_dir(&self) -> PathBuf {
+        dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
+    }
 }
 
 pub(crate) trait ConfigExtInternal {
     fn main_binary(&self) -> crate::Result<&Binary>;
     fn main_binary_name(&self) -> crate::Result<&String>;
-    fn resources(&self) -> Option<Vec<Resource>>;
+    fn resources(&self) -> crate::Result<Vec<Resource>>;
     fn find_ico(&self) -> Option<PathBuf>;
     fn copy_resources(&self, path: &Path) -> crate::Result<()>;
-    fn copy_binaries(&self, path: &Path) -> crate::Result<()>;
+    fn copy_external_binaries(&self, path: &Path) -> crate::Result<()>;
 }
 
 impl ConfigExtInternal for Config {
@@ -99,49 +114,48 @@ impl ConfigExtInternal for Config {
         self.binaries
             .iter()
             .find(|bin| bin.main)
-            .map(|b| &b.name)
+            .map(|b| &b.filename)
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
     }
 
-    fn resources(&self) -> Option<Vec<Resource>> {
-        self.resources.as_ref().map(|resources| {
+    fn resources(&self) -> crate::Result<Vec<Resource>> {
+        if let Some(resources) = &self.resources {
             let mut out = Vec::new();
-            let cwd = std::env::current_dir().expect("failed to get current directory");
+            let cwd = std::env::current_dir()?;
+            let cwd = dunce::simplified(&cwd);
             match resources {
                 Resources::List(l) => {
                     for resource in l {
-                        out.extend(glob::glob(resource).unwrap().filter_map(|src| {
-                            src.ok().and_then(|src| {
-                                use relative_path::PathExt;
-                                let src =
-                                    dunce::canonicalize(src).expect("failed to canonicalize path");
-                                let target = src.relative_to(&cwd);
-                                target.ok().map(|target| Resource {
-                                    src,
-                                    target: target.to_path(""),
-                                })
+                        for src in glob::glob(resource).unwrap() {
+                            use relative_path::PathExt;
+                            let src = src?;
+                            let src = dunce::canonicalize(src)?;
+                            let target = src.relative_to(&cwd)?;
+                            out.push(Resource {
+                                src,
+                                target: target.to_path(""),
                             })
-                        }));
+                        }
                     }
                 }
                 Resources::Map(m) => {
                     for (src, target) in m.iter() {
-                        out.extend(glob::glob(src).unwrap().filter_map(|src| {
-                            src.ok().map(|src| {
-                                let src =
-                                    dunce::canonicalize(src).expect("failed to canonicalize path");
-                                let target = PathBuf::from(target).join(
-                                    src.file_name()
-                                        .expect("Failed to get filename of a resource file"),
-                                );
-                                Resource { src, target }
-                            })
-                        }))
+                        for src in glob::glob(src).unwrap() {
+                            let src = src?;
+                            let src = dunce::canonicalize(src)?;
+                            let target = PathBuf::from(target).join(
+                                src.file_name()
+                                    .expect("Failed to get filename of a resource file"),
+                            );
+                            out.push(Resource { src, target });
+                        }
                     }
                 }
             }
-            out
-        })
+            Ok(out)
+        } else {
+            Ok(vec![])
+        }
     }
 
     fn find_ico(&self) -> Option<PathBuf> {
@@ -161,25 +175,23 @@ impl ConfigExtInternal for Config {
     }
 
     fn copy_resources(&self, path: &Path) -> crate::Result<()> {
-        if let Some(resources) = self.resources() {
-            for resource in resources {
-                let dest = path.join(resource.target);
-                std::fs::create_dir_all(dest.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
-                std::fs::copy(resource.src, dest)?;
-            }
+        for resource in self.resources()? {
+            let dest = path.join(resource.target);
+            std::fs::create_dir_all(dest.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
+            std::fs::copy(resource.src, dest)?;
         }
         Ok(())
     }
 
-    fn copy_binaries(&self, path: &Path) -> crate::Result<()> {
+    fn copy_external_binaries(&self, path: &Path) -> crate::Result<()> {
         if let Some(external_binaries) = &self.external_binaries {
             for src in external_binaries {
-                let src = PathBuf::from(src);
+                let src = dunce::canonicalize(PathBuf::from(src))?;
                 let dest = path.join(
                     src.file_name()
                         .expect("failed to extract external binary filename")
                         .to_string_lossy()
-                        .replace(&format!("-{}", self.target_triple), ""),
+                        .replace(&format!("-{}", self.target_triple()), ""),
                 );
                 std::fs::create_dir_all(dest.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
                 std::fs::copy(src, dest)?;

@@ -44,25 +44,23 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
 
 /// BTreeMap<OriginalPath, (ParentOfTargetPath, TargetPath)>
 type ResourcesMap = BTreeMap<PathBuf, (String, PathBuf)>;
-fn generate_resource_data(config: &Config) -> ResourcesMap {
+fn generate_resource_data(config: &Config) -> crate::Result<ResourcesMap> {
     let mut resources_map = ResourcesMap::new();
-    if let Some(resources) = config.resources() {
-        for resource in resources {
-            resources_map.insert(
-                resource.src,
-                (
-                    resource
-                        .target
-                        .parent()
-                        .map(|p| p.to_string_lossy().to_string())
-                        .unwrap_or_default(),
-                    resource.target,
-                ),
-            );
-        }
+    for resource in config.resources()? {
+        resources_map.insert(
+            resource.src,
+            (
+                resource
+                    .target
+                    .parent()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default(),
+                resource.target,
+            ),
+        );
     }
 
-    resources_map
+    Ok(resources_map)
 }
 
 /// BTreeMap<OriginalPath, TargetFileName>
@@ -78,7 +76,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
                 .file_name()
                 .expect("failed to extract external binary filename")
                 .to_string_lossy()
-                .replace(&format!("-{}", config.target_triple), "");
+                .replace(&format!("-{}", config.target_triple()), "");
             binaries.insert(binary_path, dest_filename);
         }
     }
@@ -267,7 +265,7 @@ fn build_nsis_app_installer(
     #[cfg(not(target_os = "windows"))]
     log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the main binary...");
 
-    let output_path = config.out_dir.join("nsis").join(arch);
+    let output_path = config.out_dir().join("nsis").join(arch);
     if output_path.exists() {
         std::fs::remove_dir_all(&output_path)?;
     }
@@ -379,7 +377,7 @@ fn build_nsis_app_installer(
         .iter()
         .find(|bin| bin.main)
         .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
-    data.insert("main_binary_name", to_json(&main_binary.name));
+    data.insert("main_binary_name", to_json(&main_binary.filename));
     data.insert(
         "main_binary_path",
         to_json(config.binary_path(main_binary).with_extension("exe")),
@@ -392,7 +390,7 @@ fn build_nsis_app_installer(
     let out_file = "nsis-output.exe";
     data.insert("out_file", to_json(out_file));
 
-    let resources = generate_resource_data(config);
+    let resources = generate_resource_data(config)?;
     data.insert("resources", to_json(resources));
 
     let binaries = generate_binaries_data(config)?;
@@ -447,12 +445,11 @@ fn build_nsis_app_installer(
         }
     }
 
-    let package_base_name = format!("{}_{}_{}-setup", main_binary.name, config.version, arch,);
-
     let nsis_output_path = output_path.join(out_file);
-    let nsis_installer_path = config
-        .out_dir
-        .join(format!("package/nsis/{}.exe", package_base_name));
+    let nsis_installer_path = config.out_dir().join(format!(
+        "{}_{}_{}-setup.exe",
+        main_binary.filename, config.version, arch
+    ));
     std::fs::create_dir_all(nsis_installer_path.parent().unwrap())?;
 
     log::info!(action = "Running"; "makensis.exe to produce {}", util::display_path(&nsis_installer_path));
@@ -477,7 +474,7 @@ fn build_nsis_app_installer(
         .output()
         .map_err(|e| crate::Error::NsisFailed(e.to_string()))?;
 
-    util::log_if_needed(log_level, output);
+    util::log_if_needed_and_error_out(log_level, output)?;
 
     std::fs::rename(nsis_output_path, &nsis_installer_path)?;
 

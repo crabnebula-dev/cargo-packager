@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
     sign,
-    util::{self, display_path, download_and_verify, extract_zip, log_if_needed, HashAlgorithm},
+    util::{self, display_path, download_and_verify, extract_zip, HashAlgorithm},
 };
 
 pub const WIX_URL: &str =
@@ -137,7 +137,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                 .file_name()
                 .expect("failed to extract external binary filename")
                 .to_string_lossy()
-                .replace(&format!("-{}", config.target_triple), "");
+                .replace(&format!("-{}", config.target_triple()), "");
             let dest = tmp_dir.join(&dest_filename);
             std::fs::copy(binary_path, &dest)?;
 
@@ -164,7 +164,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                     .into_string()
                     .expect("failed to read binary path"),
                 id: regex
-                    .replace_all(&bin.name.replace('-', "_"), "")
+                    .replace_all(&&bin.filename.replace('-', "_"), "")
                     .to_string(),
             })
         }
@@ -250,81 +250,79 @@ type ResourceMap = BTreeMap<String, ResourceDirectory>;
 /// Generates the data required for the resource on wix
 fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
     let mut resources_map = ResourceMap::new();
-    if let Some(resources) = config.resources() {
-        for resource in resources {
-            let resource_entry = ResourceFile {
-                id: format!("I{}", Uuid::new_v4().as_simple()),
-                guid: Uuid::new_v4().to_string(),
-                path: resource.src,
-            };
+    for resource in config.resources()? {
+        let resource_entry = ResourceFile {
+            id: format!("I{}", Uuid::new_v4().as_simple()),
+            guid: Uuid::new_v4().to_string(),
+            path: resource.src,
+        };
 
-            // split the resource path directories
-            let components_count = resource.target.components().count();
-            let directories = resource
-                .target
-                .components()
-                .take(components_count - 1) // the last component is the file
-                .collect::<Vec<_>>();
+        // split the resource path directories
+        let components_count = resource.target.components().count();
+        let directories = resource
+            .target
+            .components()
+            .take(components_count - 1) // the last component is the file
+            .collect::<Vec<_>>();
 
-            // transform the directory structure to a chained vec structure
-            let first_directory = directories
-                .first()
-                .map(|d| d.as_os_str().to_string_lossy().into_owned())
-                .unwrap_or_else(String::new);
+        // transform the directory structure to a chained vec structure
+        let first_directory = directories
+            .first()
+            .map(|d| d.as_os_str().to_string_lossy().into_owned())
+            .unwrap_or_else(String::new);
 
-            if !resources_map.contains_key(&first_directory) {
-                resources_map.insert(
-                    first_directory.clone(),
-                    ResourceDirectory {
-                        path: first_directory.clone(),
-                        name: first_directory.clone(),
+        if !resources_map.contains_key(&first_directory) {
+            resources_map.insert(
+                first_directory.clone(),
+                ResourceDirectory {
+                    path: first_directory.clone(),
+                    name: first_directory.clone(),
+                    directories: vec![],
+                    files: vec![],
+                },
+            );
+        }
+
+        let mut directory_entry = resources_map
+            .get_mut(&first_directory)
+            .expect("Unable to handle resources");
+
+        let mut path = String::new();
+        // the first component is already parsed on `first_directory` so we skip(1)
+        for directory in directories.into_iter().skip(1) {
+            let directory_name = directory
+                .as_os_str()
+                .to_os_string()
+                .into_string()
+                .expect("failed to read resource folder name");
+            path.push_str(directory_name.as_str());
+            path.push(std::path::MAIN_SEPARATOR);
+
+            let index = directory_entry
+                .directories
+                .iter()
+                .position(|f| f.path == path);
+            match index {
+                Some(i) => directory_entry = directory_entry.directories.get_mut(i).unwrap(),
+                None => {
+                    directory_entry.directories.push(ResourceDirectory {
+                        path: path.clone(),
+                        name: directory_name,
                         directories: vec![],
                         files: vec![],
-                    },
-                );
-            }
-
-            let mut directory_entry = resources_map
-                .get_mut(&first_directory)
-                .expect("Unable to handle resources");
-
-            let mut path = String::new();
-            // the first component is already parsed on `first_directory` so we skip(1)
-            for directory in directories.into_iter().skip(1) {
-                let directory_name = directory
-                    .as_os_str()
-                    .to_os_string()
-                    .into_string()
-                    .expect("failed to read resource folder name");
-                path.push_str(directory_name.as_str());
-                path.push(std::path::MAIN_SEPARATOR);
-
-                let index = directory_entry
-                    .directories
-                    .iter()
-                    .position(|f| f.path == path);
-                match index {
-                    Some(i) => directory_entry = directory_entry.directories.get_mut(i).unwrap(),
-                    None => {
-                        directory_entry.directories.push(ResourceDirectory {
-                            path: path.clone(),
-                            name: directory_name,
-                            directories: vec![],
-                            files: vec![],
-                        });
-                        directory_entry = directory_entry.directories.iter_mut().last().unwrap();
-                    }
+                    });
+                    directory_entry = directory_entry.directories.iter_mut().last().unwrap();
                 }
             }
-            directory_entry.add_file(resource_entry);
         }
+        directory_entry.add_file(resource_entry);
     }
 
     let mut dlls = Vec::new();
 
     for dll in glob::glob(
         config
-            .out_dir
+            .out_dir()
             .join("*.dll")
             .to_string_lossy()
             .to_string()
@@ -359,36 +357,10 @@ struct MergeModule {
     path: String,
 }
 
-fn get_merge_modules(config: &Config) -> crate::Result<Vec<MergeModule>> {
-    let mut merge_modules = Vec::new();
-    let regex = Regex::new(r"[^\w\d\.]")?;
-    for msm in glob::glob(
-        config
-            .out_dir
-            .join("*.msm")
-            .to_string_lossy()
-            .to_string()
-            .as_str(),
-    )? {
-        let path = msm?;
-        let filename = path
-            .file_name()
-            .expect("failed to extract merge module filename")
-            .to_os_string()
-            .into_string()
-            .expect("failed to convert merge module filename to string");
-        merge_modules.push(MergeModule {
-            name: regex.replace_all(&filename, "").to_string(),
-            path: path.to_string_lossy().to_string(),
-        });
-    }
-    Ok(merge_modules)
-}
-
 /// Copies the icon to the binary path, under the `resources` folder,
 /// and returns the path to the file.
 fn copy_icon(config: &Config, filename: &str, path: &Path) -> crate::Result<PathBuf> {
-    let resource_dir = config.out_dir.join("resources");
+    let resource_dir = config.out_dir().join("resources");
     std::fs::create_dir_all(&resource_dir)?;
     let icon_target_path = resource_dir.join(filename);
     let icon_path = std::env::current_dir()?.join(path);
@@ -451,7 +423,7 @@ fn run_candle(
         .output()
         .map_err(|e| crate::Error::WixFailed("candle.exe".into(), e.to_string()))?;
 
-    util::log_if_needed(log_level, output);
+    util::log_if_needed_and_error_out(log_level, output)?;
 
     Ok(())
 }
@@ -486,7 +458,7 @@ fn run_light(
         .output()
         .map_err(|e| crate::Error::WixFailed("light.exe".into(), e.to_string()))?;
 
-    log_if_needed(log_level, output);
+    util::log_if_needed_and_error_out(log_level, output)?;
 
     Ok(())
 }
@@ -520,7 +492,7 @@ fn build_wix_app_installer(
 
     sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
 
-    let output_path = config.out_dir.join("wix").join(arch);
+    let output_path = config.out_dir().join("wix").join(arch);
 
     if output_path.exists() {
         std::fs::remove_dir_all(&output_path)?;
@@ -546,7 +518,7 @@ fn build_wix_app_installer(
  "#,
                 license_contents.replace('\n', "\\par ")
             );
-            let rtf_output_path = config.out_dir.join("wix").join("LICENSE.rtf");
+            let rtf_output_path = config.out_dir().join("wix").join("LICENSE.rtf");
             std::fs::write(&rtf_output_path, license_rtf)?;
             data.insert("license", to_json(rtf_output_path));
         }
@@ -560,7 +532,7 @@ fn build_wix_app_installer(
     data.insert("manufacturer", to_json(manufacturer));
     let upgrade_code = Uuid::new_v5(
         &Uuid::NAMESPACE_DNS,
-        format!("{}.app.x64", &main_binary.name).as_bytes(),
+        format!("{}.app.x64", &main_binary.filename).as_bytes(),
     )
     .to_string();
 
@@ -592,8 +564,7 @@ fn build_wix_app_installer(
     data.insert("resources", to_json(resources_wix_string));
     data.insert("resource_file_ids", to_json(files_ids));
 
-    let merge_modules = get_merge_modules(config)?;
-    data.insert("merge_modules", to_json(merge_modules));
+    // TODO: how to choose to include merge modules
 
     data.insert(
         "app_exe_source",
@@ -716,9 +687,9 @@ fn build_wix_app_installer(
     }
 
     let main_wxs_path = output_path.join("main.wxs");
-    std::fs::write(main_wxs_path, handlebars.render("main.wxs", &data)?)?;
+    std::fs::write(&main_wxs_path, handlebars.render("main.wxs", &data)?)?;
 
-    let mut candle_inputs = vec![("main.wxs".into(), Vec::new())];
+    let mut candle_inputs = vec![(main_wxs_path, Vec::new())];
 
     let current_dir = std::env::current_dir()?;
     let extension_regex = Regex::new("\"http://schemas.microsoft.com/wix/(\\w+)\"")?;
@@ -823,9 +794,9 @@ fn build_wix_app_installer(
             "*.wixobj".into(),
         ];
         let msi_output_path = output_path.join("output.msi");
-        let msi_path = config.out_dir.join(format!(
-            "bundle/wix/{}_{}_{}_{}.msi",
-            main_binary.name, app_version, arch, language
+        let msi_path = config.out_dir().join(format!(
+            "{}_{}_{}_{}.msi",
+            main_binary.filename, app_version, arch, language
         ));
         std::fs::create_dir_all(msi_path.parent().unwrap())?;
 

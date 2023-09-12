@@ -413,6 +413,7 @@ dependencies = [
  "sha2",
  "tar",
  "thiserror",
+ "toml",
  "ureq",
  "uuid",
  "walkdir",

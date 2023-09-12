@@ -1,4 +1,7 @@
-use std::{io::Write, path::PathBuf};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use cargo_packager::{
     config::{Binary, Config},
@@ -9,9 +12,64 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser};
 use env_logger::fmt::Color;
 use log::{log_enabled, Level};
 
-fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Config)>> {
+fn parse_config_file<P: AsRef<Path>>(path: P) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
+    let path = path.as_ref().to_path_buf().canonicalize()?;
+    let content = std::fs::read_to_string(&path)?;
+    let configs = match path.extension().and_then(|e| e.to_str()) {
+        Some("toml") => {
+            if let Ok(cs) = toml::from_str::<Vec<Config>>(&content) {
+                cs.into_iter().map(|c| (Some(path.clone()), c)).collect()
+            } else {
+                vec![(Some(path), toml::from_str::<Config>(&content)?)]
+            }
+        }
+        _ => {
+            if let Ok(cs) = serde_json::from_str::<Vec<Config>>(&content) {
+                cs.into_iter().map(|c| (Some(path.clone()), c)).collect()
+            } else {
+                vec![(Some(path), serde_json::from_str::<Config>(&content)?)]
+            }
+        }
+    };
+
+    Ok(configs)
+}
+
+fn find_config_files() -> Vec<PathBuf> {
+    let opts = glob::MatchOptions {
+        case_sensitive: false,
+        ..Default::default()
+    };
+
+    [
+        glob::glob_with("**/packager.toml", opts)
+            .unwrap()
+            .flatten()
+            .collect::<Vec<_>>(),
+        glob::glob_with("**/packager.json", opts)
+            .unwrap()
+            .flatten()
+            .collect::<Vec<_>>(),
+    ]
+    .concat()
+}
+
+fn load_configs_from_cargo_workspace(
+    release: bool,
+    profile: Option<String>,
+    manifest_path: Option<PathBuf>,
+    packages: Option<Vec<String>>,
+) -> Result<Vec<(Option<PathBuf>, Config)>> {
+    let profile = if release {
+        "release"
+    } else if let Some(profile) = &profile {
+        profile.as_str()
+    } else {
+        "debug"
+    };
+
     let mut metadata_cmd = cargo_metadata::MetadataCommand::new();
-    if let Some(manifest_path) = &cli.manifest_path {
+    if let Some(manifest_path) = &manifest_path {
         metadata_cmd.manifest_path(manifest_path);
     }
     let metadata = metadata_cmd.exec()?;
@@ -19,8 +77,7 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
     let mut configs = Vec::new();
     for package in metadata.workspace_packages().iter() {
         // skip if this package was not specified in the explicit packages to build
-        if cli
-            .packages
+        if packages
             .as_ref()
             .map(|packages| !packages.contains(&package.name))
             .unwrap_or(false)
@@ -30,9 +87,6 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
 
         if let Some(config) = package.metadata.get("packager") {
             let mut config: Config = serde_json::from_value(config.to_owned())?;
-            if let Some(formats) = &cli.formats {
-                config.formats.replace(formats.clone());
-            }
             if config.product_name.is_empty() {
                 config.product_name = package.name.clone();
             }
@@ -52,16 +106,6 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
             if config.authors.is_empty() {
                 config.authors = package.authors.clone();
             }
-            if config.target_triple.is_empty() {
-                config.target_triple = util::target_triple()?;
-            }
-            if config.log_level.is_none() {
-                config.log_level.replace(match cli.verbose {
-                    0 => LogLevel::Info,
-                    1 => LogLevel::Debug,
-                    2.. => LogLevel::Trace,
-                });
-            }
             if config.license_file.is_none() {
                 config.license_file = package
                     .license_file
@@ -75,15 +119,17 @@ fn load_configs_from_cwd(profile: &str, cli: &Cli) -> Result<Vec<(PathBuf, Confi
                 .collect::<Vec<_>>();
             for target in &targets {
                 config.binaries.push(Binary {
-                    name: target.name.clone(),
-                    path: target.src_path.as_std_path().to_owned(),
+                    filename: target.name.clone(),
                     main: match targets.len() {
                         1 => true,
                         _ => target.name == package.name,
                     },
                 })
             }
-            configs.push((package.manifest_path.as_std_path().to_path_buf(), config));
+            configs.push((
+                Some(package.manifest_path.as_std_path().to_path_buf()),
+                config,
+            ));
         }
     }
 
@@ -103,43 +149,92 @@ pub(crate) struct Cli {
     /// Enables verbose logging
     #[clap(short, long, global = true, action = ArgAction::Count)]
     verbose: u8,
-    /// Package your app in release mode.
-    #[clap(short, long)]
-    release: bool,
-    /// Specify the cargo profile to use for packaging your app.
-    #[clap(long)]
-    profile: Option<String>,
-    /// Specify the packages to build.
-    #[clap(short, long)]
-    packages: Option<Vec<String>>,
-    /// Specify the manifest path to use for reading the configuration.
-    #[clap(long)]
-    manifest_path: Option<String>,
     /// Specify the package fromats to build.
     #[clap(long, value_enum)]
     formats: Option<Vec<PackageFormat>>,
+    /// Specify a configuration to read, which could be a JSON file,
+    /// TOML file, or a raw JSON string. By default, cargo-pacakger
+    /// looks for `{p,P}ackager.{toml,json}` and
+    /// `[package.metadata.packager]` in `Cargo.toml` files.
+    #[clap(short, long)]
+    config: Option<String>,
+
+    /// Package the release version of your app.
+    /// Ignored when `--config` is used.
+    #[clap(short, long, group = "cargo-profile")]
+    release: bool,
+    /// Specify the cargo profile to use for packaging your app.
+    /// Ignored when `--config` is used.
+    #[clap(long, group = "cargo-profile")]
+    profile: Option<String>,
+    /// Specify the cargo packages in a workspace to create.
+    /// Ignored when `--config` is used.
+    #[clap(short, long)]
+    packages: Option<Vec<String>>,
+    /// Specify the manifest path to use for reading the configuration.
+    /// Ignored when `--config` is used.
+    #[clap(long)]
+    manifest_path: Option<PathBuf>,
 }
 
 fn try_run(cli: Cli) -> Result<()> {
     use std::fmt::Write;
 
-    let profile = if cli.release {
-        "release"
-    } else if let Some(profile) = &cli.profile {
-        profile.as_str()
-    } else {
-        "debug"
+    let mut configs = match cli.config {
+        // if a raw json object
+        Some(c) if c.starts_with("{") => vec![(None, serde_json::from_str::<Config>(&c)?)],
+        // if a raw json array
+        Some(c) if c.starts_with("[") => serde_json::from_str::<Vec<Config>>(&c)?
+            .into_iter()
+            .map(|c| (None, c))
+            .collect(),
+        // if a path to config file
+        Some(c) => parse_config_file(c)?,
+        // fallback to config files and cargo workspaces configs
+        _ => [
+            find_config_files()
+                .into_iter()
+                .filter_map(|c| parse_config_file(c).ok())
+                .collect::<Vec<_>>()
+                .concat(),
+            load_configs_from_cargo_workspace(
+                cli.release,
+                cli.profile,
+                cli.manifest_path,
+                cli.packages,
+            )?,
+        ]
+        .concat(),
     };
 
+    if configs.is_empty() {
+        log::warn!("Couldn't detect a valid configuration file! Nothing to do here.")
+    }
+
+    for (_, config) in &mut configs {
+        if let Some(formats) = &cli.formats {
+            config.formats.replace(formats.clone());
+        }
+
+        if config.log_level.is_none() {
+            config.log_level.replace(match cli.verbose {
+                0 => LogLevel::Info,
+                1 => LogLevel::Debug,
+                2.. => LogLevel::Trace,
+            });
+        }
+    }
+
     let mut outputs = Vec::new();
-    for (manifest_path, config) in load_configs_from_cwd(profile, &cli)? {
-        // change the directory to the manifest being built
-        // so paths are read relative to it
-        std::env::set_current_dir(
-            manifest_path
-                .parent()
-                .ok_or(cargo_packager::Error::ParentDirNotFound)?,
-        )?;
+    for (config_dir, config) in configs {
+        if let Some(path) = config_dir {
+            // change the directory to the manifest being built
+            // so paths are read relative to it
+            std::env::set_current_dir(
+                path.parent()
+                    .ok_or(cargo_packager::Error::ParentDirNotFound)?,
+            )?;
+        }
 
         // create the packages
         outputs.extend(package(&config)?);

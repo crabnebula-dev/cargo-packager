@@ -7,9 +7,12 @@ pub enum Error {
     /// Error while reading cargo metadata.
     #[error("Failed to read cargo metadata: {0}")]
     Metadata(#[from] cargo_metadata::Error),
-    /// Config parsing error.
+    /// JSON Config parsing error.
     #[error("Failed to parse config: {0}")]
-    ParseError(#[from] serde_json::Error),
+    JSONConfigParseError(#[from] serde_json::Error),
+    /// TOML Config parsing error.
+    #[error("Failed to parse config: {0}")]
+    TOMLConfigParseError(#[from] toml::de::Error),
     /// Target triple architecture error
     #[error("Unable to determine target-architecture")]
     Architecture,
@@ -110,6 +113,12 @@ pub enum Error {
     /// Path prefix strip error.
     #[error(transparent)]
     StripPrefixError(#[from] std::path::StripPrefixError),
+    /// std::process::Command program failed
+    #[error("Command failed")]
+    CommandFailed,
+    /// Relative paths errors
+    #[error(transparent)]
+    RelativeToError(#[from] relative_path::RelativeToError),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
