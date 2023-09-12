@@ -9,10 +9,12 @@ product-name = "Tauri example"
 identifier = "com.tauri.example"
 resources = [
     "Cargo.toml",
-    "README.md",
+    "../../README.md",
     "icons/*",
     "src",
-    { src = "src-ui", target = "public" },
+    { src = "src-ui/assets/tauri.svg", target = "path/to/tauri.svg" },
+    { src = "src-ui", target = "path/to/src-ui" },
+    { src = "src-ui/assets/*", target = "public" },
 ]
 icons = [
     "icons/32x32.png",
