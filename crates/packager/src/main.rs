@@ -182,9 +182,9 @@ fn try_run(cli: Cli) -> Result<()> {
 
     let mut configs = match cli.config {
         // if a raw json object
-        Some(c) if c.starts_with("{") => vec![(None, serde_json::from_str::<Config>(&c)?)],
+        Some(c) if c.starts_with('{') => vec![(None, serde_json::from_str::<Config>(&c)?)],
         // if a raw json array
-        Some(c) if c.starts_with("[") => serde_json::from_str::<Vec<Config>>(&c)?
+        Some(c) if c.starts_with('[') => serde_json::from_str::<Vec<Config>>(&c)?
             .into_iter()
             .map(|c| (None, c))
             .collect(),
