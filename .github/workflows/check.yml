@@ -52,14 +52,18 @@ jobs:
         run: cargo fmt --all -- --check
 
   test:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: install webkit2gtk
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
