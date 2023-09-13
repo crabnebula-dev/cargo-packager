@@ -27,12 +27,12 @@ icons = [
 [package.metadata.packager.deb]
 depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"]
 
-
 [build-dependencies]
-tauri-build = { version = "=2.0.0-alpha.7", features = [] }
+tauri-build = { version = "=2.0.0-alpha.6", features = [] }
 
 [dependencies]
 tauri = { version = "=2.0.0-alpha.10", features = [] }
+tauri-utils = { version = "=2.0.0-alpha.6", features = [] }
 tauri-macros = "=2.0.0-alpha.6"
 serde.workspace = true
 serde_json.workspace = true

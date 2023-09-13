@@ -35,6 +35,7 @@ mod deb;
 mod dmg;
 mod error;
 mod nsis;
+mod shell;
 mod sign;
 pub mod util;
 #[cfg(windows)]
@@ -42,8 +43,7 @@ mod wix;
 
 use std::{path::PathBuf, process::Command};
 
-use config::Config;
-pub use config::PackageFormat;
+pub use config::{Config, PackageFormat};
 pub use error::{Error, Result};
 
 /// Generated Package metadata.

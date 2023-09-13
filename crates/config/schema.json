@@ -206,7 +206,7 @@
       ]
     },
     "deb": {
-      "description": "Platform-specific configurations. Debian-specific settings.",
+      "description": "Debian-specific settings.",
       "anyOf": [
         {
           "$ref": "#/definitions/DebianConfig"
