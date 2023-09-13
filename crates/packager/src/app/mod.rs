@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
-    sign,
+    sign, util,
 };
 
 pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
@@ -44,7 +44,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         // notarization is required for distribution
         match sign::notarize_auth() {
             Ok(auth) => {
-                notarize(app_bundle_path.clone(), auth, config)?;
+                sign::notarize(app_bundle_path.clone(), auth, config)?;
             }
             Err(e) => {
                 log::warn!("skipping app notarization, {}", e.to_string());
@@ -258,7 +258,7 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
             } else if framework.ends_with(".dylib") {
                 let src_path = PathBuf::from(&framework);
                 if !src_path.exists() {
-                    return Err(crate::Error::FrameworkNotFound(framework));
+                    return Err(crate::Error::FrameworkNotFound(framework.to_string()));
                 }
                 let src_name = src_path.file_name().expect("Couldn't get library filename");
                 std::fs::create_dir_all(&dest_dir)?;
@@ -266,7 +266,7 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                 continue;
             } else if framework.contains('/') {
                 return Err(crate::Error::InvalidFramework {
-                    framework,
+                    framework.to_string(),
                     reason: "path should have the .framework extension",
                 });
             }
@@ -291,7 +291,7 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                 continue;
             }
 
-            return Err(crate::Error::FrameworkNotFound(framework));
+            return Err(crate::Error::FrameworkNotFound(framework.to_string()));
         }
     }
 

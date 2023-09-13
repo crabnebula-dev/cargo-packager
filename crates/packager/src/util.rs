@@ -18,12 +18,9 @@ pub fn display_path<P: AsRef<Path>>(p: P) -> String {
 /// Try to determine the current target triple.
 ///
 /// Returns a target triple (e.g. `x86_64-unknown-linux-gnu` or `i686-pc-windows-msvc`) or an
-/// `Error::Config` if the current config cannot be determined or is not some combination of the
+/// error if the current config cannot be determined or is not some combination of the
 /// following values:
 /// `linux, mac, windows` -- `i686, x86, armv7` -- `gnu, musl, msvc`
-///
-/// * Errors:
-///     * Unexpected system config
 pub fn target_triple() -> crate::Result<String> {
     let arch = if cfg!(target_arch = "x86") {
         "i686"
@@ -243,7 +240,9 @@ pub(crate) fn create_file(path: &Path) -> crate::Result<std::io::BufWriter<File>
 // and return the path to it.  Returns `Ok(None)` if no usable icons
 // were provided.
 #[cfg(target_os = "macos")]
-pub fn create_icns_file(out_dir: &Path, config: &Config) -> crate::Result<Option<PathBuf>> {
+pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result<Option<PathBuf>> {
+    use image::GenericImageView;
+
     if config.icons.as_ref().map(|i| i.len()).unwrap_or_default() == 0 {
         return Ok(None);
     }

@@ -3,7 +3,7 @@ use std::{ffi::OsString, fs::File, io::prelude::*, path::PathBuf, process::Comma
 use cargo_packager_config::Config;
 use serde::Deserialize;
 
-use crate::{shell::CommandExt, Error};
+use crate::{config::ConfigExt, shell::CommandExt, Error};
 
 const KEYCHAIN_ID: &str = "cargo-packager.keychain";
 const KEYCHAIN_PWD: &str = "cargo-packager";
@@ -238,7 +238,7 @@ pub fn notarize(
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        sign(zip_path.clone(), identity, config, false)?;
+        try_sign(zip_path.clone(), identity, config, false)?;
     };
 
     let notarize_args = vec![
@@ -270,7 +270,7 @@ pub fn notarize(
             submit_output.status, submit_output.id, submit_output.message
         );
         if submit_output.status == "Accepted" {
-            log::log::info!(action = "Notarizing"; "{}", log_message);
+            log::info!(action = "Notarizing"; "{}", log_message);
             staple_app(app_bundle_path)?;
             Ok(())
         } else {
@@ -391,7 +391,7 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
                     let mut key_path = None;
 
                     let mut search_paths = vec!["./private_keys".into()];
-                    if let Some(home_dir) = dirs_next::home_dir() {
+                    if let Some(home_dir) = dirs::home_dir() {
                         search_paths.push(home_dir.join("private_keys"));
                         search_paths.push(home_dir.join(".private_keys"));
                         search_paths.push(home_dir.join(".appstoreconnect").join("private_keys"));

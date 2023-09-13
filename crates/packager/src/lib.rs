@@ -43,8 +43,7 @@ mod wix;
 
 use std::{path::PathBuf, process::Command};
 
-use config::Config;
-pub use config::PackageFormat;
+pub use config::{Config, PackageFormat};
 pub use error::{Error, Result};
 
 /// Generated Package metadata.
