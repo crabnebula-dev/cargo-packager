@@ -25,7 +25,7 @@ dirs.workspace = true
 semver.workspace = true
 clap = { workspace = true, optional = true }
 log = { workspace = true, features = ["kv_unstable", "kv_unstable_std"] }
-toml = "0.7"
+toml = "0.8"
 env_logger = { version = "0.10", optional = true }
 cargo_metadata = "0.18"
 ureq = "2.7"
