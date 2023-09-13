@@ -68,6 +68,23 @@ impl PackageFormat {
     pub fn all() -> &'static [PackageFormat] {
         ALL_PACKAGE_TYPES
     }
+
+    /// Gets a number representing priority which used to sort package types
+    /// in an order that guarantees that if a certain package type
+    /// depends on another (like Dmg depending on MacOsBundle), the dependency
+    /// will be built first
+    ///
+    /// The lower the number, the higher the priority
+    pub fn priority(&self) -> u32 {
+        match self {
+            PackageFormat::App => 0,
+            PackageFormat::Wix => 0,
+            PackageFormat::Nsis => 0,
+            PackageFormat::Deb => 0,
+            PackageFormat::AppImage => 0,
+            PackageFormat::Dmg => 1,
+        }
+    }
 }
 
 const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
