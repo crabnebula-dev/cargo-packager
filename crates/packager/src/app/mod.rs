@@ -1,60 +1,53 @@
-use std::{
-    fs::{copy, create_dir, create_dir_all, read_link},
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
-    sign::{notarize, notarize_auth, sign},
-    util::create_icns_file,
+    sign,
 };
-
-use log::{info, warn};
 
 pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     // we should use the bundle name (App name) as a MacOS standard.
     // version or platform shouldn't be included in the App name.
     let app_product_name = format!("{}.app", config.product_name);
+    let app_bundle_path = config.out_dir().join(&app_product_name);
 
-    let app_bundle_path = config
-        .out_dir()
-        .join("bundle/macos")
-        .join(&app_product_name);
+    log::info!(action = "Packaging"; "{} ({})", app_product_name, app_bundle_path.display());
 
-    info!(action = "Bundling"; "{} ({})", app_product_name, app_bundle_path.display());
+    let contents_directory = app_bundle_path.join("Contents");
+    std::fs::create_dir_all(&contents_directory)?;
 
-    let bundle_directory = app_bundle_path.join("Contents");
-    create_dir_all(&bundle_directory)?;
+    let resources_dir = contents_directory.join("Resources");
+    let bin_dir = contents_directory.join("MacOS");
 
-    let resources_dir = bundle_directory.join("Resources");
-    let bin_dir = bundle_directory.join("MacOS");
+    let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
 
-    let bundle_icon_file = create_icns_file(&resources_dir, config)?;
+    log::debug!("creating info.plist");
+    create_info_plist(&contents_directory, bundle_icon_file, config)?;
 
-    create_info_plist(&bundle_directory, bundle_icon_file, config)?;
+    log::debug!("copying frameworks");
+    copy_frameworks_to_bundle(&contents_directory, config)?;
 
-    copy_frameworks_to_bundle(&bundle_directory, config)?;
-
+    log::debug!("copying resources");
     config.copy_resources(&resources_dir)?;
 
+    log::debug!("copying external binaries");
     config.copy_external_binaries(&bin_dir)?;
 
-    copy_binaries_to_bundle(&bundle_directory, config)?;
+    log::debug!("copying binaries");
+    copy_binaries_to_bundle(&contents_directory, config)?;
 
     if let Some(identity) = config
-        .macos
-        .as_ref()
+        .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        // sign application
-        sign(app_bundle_path.clone(), identity, config, true)?;
+        sign::try_sign(app_bundle_path.clone(), identity, config, true)?;
         // notarization is required for distribution
-        match notarize_auth() {
+        match sign::notarize_auth() {
             Ok(auth) => {
                 notarize(app_bundle_path.clone(), auth, config)?;
             }
             Err(e) => {
-                warn!("skipping app notarization, {}", e.to_string());
+                log::warn!("skipping app notarization, {}", e.to_string());
             }
         }
     }
@@ -63,14 +56,13 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
 }
 
 // Copies the app's binaries to the bundle.
-fn copy_binaries_to_bundle(bundle_directory: &Path, config: &Config) -> crate::Result<()> {
-    let bin_dir = bundle_directory.join("MacOS");
-    create_dir_all(&bin_dir)?;
+fn copy_binaries_to_bundle(contents_directory: &Path, config: &Config) -> crate::Result<()> {
+    let bin_dir = contents_directory.join("MacOS");
+    std::fs::create_dir_all(&bin_dir)?;
 
-    log::debug!("copying binaries");
-    for bin in config.binaries.iter() {
+    for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
-        copy(&bin_path, bin_dir.join(&bin.filename))?;
+        std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
     }
 
     Ok(())
@@ -78,7 +70,7 @@ fn copy_binaries_to_bundle(bundle_directory: &Path, config: &Config) -> crate::R
 
 // Creates the Info.plist file.
 fn create_info_plist(
-    bundle_dir: &Path,
+    contents_directory: &Path,
     bundle_icon_file: Option<PathBuf>,
     config: &Config,
 ) -> crate::Result<()> {
@@ -125,8 +117,7 @@ fn create_info_plist(
         );
     }
     if let Some(version) = config
-        .macos
-        .as_ref()
+        .macos()
         .and_then(|macos| macos.minimum_system_version.as_deref())
     {
         plist.insert("LSMinimumSystemVersion".into(), version.into());
@@ -177,8 +168,7 @@ fn create_info_plist(
     }
 
     if let Some(exception_domain) = config
-        .macos
-        .as_ref()
+        .macos()
         .and_then(|macos| macos.exception_domain.clone())
     {
         let mut security = plist::Dictionary::new();
@@ -193,8 +183,7 @@ fn create_info_plist(
     }
 
     if let Some(user_plist_path) = config
-        .macos
-        .as_ref()
+        .macos()
         .and_then(|macos| macos.info_plist_path.as_ref())
     {
         let user_plist = plist::Value::from_file(user_plist_path)?;
@@ -205,7 +194,7 @@ fn create_info_plist(
         }
     }
 
-    plist::Value::Dictionary(plist).to_file_xml(bundle_dir.join("Info.plist"))?;
+    plist::Value::Dictionary(plist).to_file_xml(contents_directory.join("Info.plist"))?;
 
     Ok(())
 }
@@ -222,19 +211,19 @@ fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
     }
 
     let parent = to.parent().expect("No data in parent");
-    create_dir_all(parent)?;
+    std::fs::create_dir_all(parent)?;
     for entry in walkdir::WalkDir::new(from) {
         let entry = entry?;
         debug_assert!(entry.path().starts_with(from));
         let rel_path = entry.path().strip_prefix(from)?;
         let dest_path = to.join(rel_path);
         if entry.file_type().is_symlink() {
-            let target = read_link(entry.path())?;
+            let target = std::fs::read_link(entry.path())?;
             std::os::unix::fs::symlink(&target, &dest_path)?;
         } else if entry.file_type().is_dir() {
-            create_dir(dest_path)?;
+            std::fs::create_dir(dest_path)?;
         } else {
-            copy(entry.path(), dest_path)?;
+            std::fs::copy(entry.path(), dest_path)?;
         }
     }
     Ok(())
@@ -253,60 +242,58 @@ fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crat
 }
 
 // Copies the macOS application bundle frameworks to the .app
-fn copy_frameworks_to_bundle(bundle_directory: &Path, config: &Config) -> crate::Result<()> {
-    let frameworks = config
-        .macos
-        .as_ref()
-        .map(|macos| macos.frameworks.as_ref().cloned().unwrap_or_default())
-        .unwrap_or_default();
-    if frameworks.is_empty() {
-        return Ok(());
-    }
+fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crate::Result<()> {
+    if let Some(frameworks) = config.macos().and_then(|m| m.frameworks.as_ref()) {
+        let dest_dir = contents_directory.join("Frameworks");
+        std::fs::create_dir_all(contents_directory)?;
 
-    let dest_dir = bundle_directory.join("Frameworks");
-    create_dir_all(bundle_directory)?;
-
-    for framework in frameworks {
-        if framework.ends_with(".framework") {
-            let src_path = PathBuf::from(framework);
-            let src_name = src_path
-                .file_name()
-                .expect("Couldn't get framework filename");
-            copy_dir(&src_path, &dest_dir.join(src_name))?;
-            continue;
-        } else if framework.ends_with(".dylib") {
-            let src_path = PathBuf::from(&framework);
-            if !src_path.exists() {
-                return Err(crate::Error::FrameworkNotFound(framework));
+        for framework in frameworks {
+            if framework.ends_with(".framework") {
+                let src_path = PathBuf::from(framework);
+                let src_name = src_path
+                    .file_name()
+                    .expect("Couldn't get framework filename");
+                copy_dir(&src_path, &dest_dir.join(src_name))?;
+                continue;
+            } else if framework.ends_with(".dylib") {
+                let src_path = PathBuf::from(&framework);
+                if !src_path.exists() {
+                    return Err(crate::Error::FrameworkNotFound(framework));
+                }
+                let src_name = src_path.file_name().expect("Couldn't get library filename");
+                std::fs::create_dir_all(&dest_dir)?;
+                std::fs::copy(&src_path, dest_dir.join(src_name))?;
+                continue;
+            } else if framework.contains('/') {
+                return Err(crate::Error::InvalidFramework {
+                    framework,
+                    reason: "path should have the .framework extension",
+                });
             }
-            let src_name = src_path.file_name().expect("Couldn't get library filename");
-            create_dir_all(&dest_dir)?;
-            copy(&src_path, dest_dir.join(src_name))?;
-            continue;
-        } else if framework.contains('/') {
-            return Err(crate::Error::InvalidFramework {
-                framework,
-                reason: "path should have the .framework extension",
-            });
-        }
-        if let Some(home_dir) = dirs_next::home_dir() {
-            if copy_framework_from(&dest_dir, &framework, &home_dir.join("Library/Frameworks/"))? {
+            if let Some(home_dir) = dirs::home_dir() {
+                if copy_framework_from(
+                    &dest_dir,
+                    &framework,
+                    &home_dir.join("Library/Frameworks/"),
+                )? {
+                    continue;
+                }
+            }
+            if copy_framework_from(
+                &dest_dir,
+                &framework,
+                &PathBuf::from("/Library/Frameworks/"),
+            )? || copy_framework_from(
+                &dest_dir,
+                &framework,
+                &PathBuf::from("/Network/Library/Frameworks/"),
+            )? {
                 continue;
             }
-        }
-        if copy_framework_from(
-            &dest_dir,
-            &framework,
-            &PathBuf::from("/Library/Frameworks/"),
-        )? || copy_framework_from(
-            &dest_dir,
-            &framework,
-            &PathBuf::from("/Network/Library/Frameworks/"),
-        )? {
-            continue;
-        }
 
-        return Err(crate::Error::FrameworkNotFound(framework));
+            return Err(crate::Error::FrameworkNotFound(framework));
+        }
     }
+
     Ok(())
 }

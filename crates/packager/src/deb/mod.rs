@@ -137,7 +137,7 @@ pub fn generate_data(config: &Config, package_dir: &Path) -> crate::Result<PathB
         std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
     }
 
-    log::debug!("copying resource files");
+    log::debug!("copying resources");
     let resource_dir = data_dir.join("usr/lib").join(config.main_binary_name()?);
     config.copy_resources(&resource_dir)?;
 

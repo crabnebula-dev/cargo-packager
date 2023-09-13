@@ -1,20 +1,12 @@
-use std::{
-    env::{var, var_os},
-    ffi::OsString,
-    fs::File,
-    io::prelude::*,
-    path::PathBuf,
-    process::Command,
-};
+use std::{ffi::OsString, fs::File, io::prelude::*, path::PathBuf, process::Command};
 
 use cargo_packager_config::Config;
-use log::info;
 use serde::Deserialize;
 
 use crate::{shell::CommandExt, Error};
 
-const KEYCHAIN_ID: &str = "tauri-build.keychain";
-const KEYCHAIN_PWD: &str = "tauri-build";
+const KEYCHAIN_ID: &str = "cargo-packager.keychain";
+const KEYCHAIN_PWD: &str = "cargo-packager";
 
 // Import certificate from ENV variables.
 // APPLE_CERTIFICATE is the p12 certificate base64 encoded.
@@ -28,13 +20,14 @@ pub fn setup_keychain(
 ) -> crate::Result<()> {
     // we delete any previous version of our keychain if present
     delete_keychain();
-    info!("setup keychain from environment variables...");
+    log::info!("setting up keychain from environment variables...");
 
     let keychain_list_output = Command::new("security")
         .args(["list-keychain", "-d", "user"])
         .output()?;
 
     let tmp_dir = tempfile::tempdir()?;
+
     let cert_path = tmp_dir
         .path()
         .join("cert.p12")
@@ -49,7 +42,6 @@ pub fn setup_keychain(
         .to_str()
         .expect("failed to convert APPLE_CERTIFICATE to string")
         .as_bytes();
-
     let certificate_password = certificate_password
         .to_str()
         .expect("failed to convert APPLE_CERTIFICATE_PASSWORD to string")
@@ -132,17 +124,17 @@ pub fn delete_keychain() {
         .output_ok();
 }
 
-pub fn sign(
+pub fn try_sign(
     path_to_sign: PathBuf,
     identity: &str,
     config: &Config,
     is_an_executable: bool,
 ) -> crate::Result<()> {
-    info!(action = "Signing"; "{} with identity \"{}\"", path_to_sign.display(), identity);
+    log::info!(action = "Signing"; "{} with identity \"{}\"", path_to_sign.display(), identity);
 
-    let setup_keychain = if let (Some(certificate_encoded), Some(certificate_password)) = (
-        var_os("APPLE_CERTIFICATE"),
-        var_os("APPLE_CERTIFICATE_PASSWORD"),
+    let packager_keychain = if let (Some(certificate_encoded), Some(certificate_password)) = (
+        std::env::var_os("APPLE_CERTIFICATE"),
+        std::env::var_os("APPLE_CERTIFICATE_PASSWORD"),
     ) {
         // setup keychain allow you to import your certificate
         // for CI build
@@ -152,15 +144,15 @@ pub fn sign(
         false
     };
 
-    let res = try_sign(
+    let res = sign(
         path_to_sign,
         identity,
         config,
         is_an_executable,
-        setup_keychain,
+        packager_keychain,
     );
 
-    if setup_keychain {
+    if packager_keychain {
         // delete the keychain again after signing
         delete_keychain();
     }
@@ -168,26 +160,21 @@ pub fn sign(
     res
 }
 
-fn try_sign(
+fn sign(
     path_to_sign: PathBuf,
     identity: &str,
     config: &Config,
     is_an_executable: bool,
-    tauri_keychain: bool,
+    pcakger_keychain: bool,
 ) -> crate::Result<()> {
     let mut args = vec!["--force", "-s", identity];
 
-    if tauri_keychain {
+    if pcakger_keychain {
         args.push("--keychain");
         args.push(KEYCHAIN_ID);
     }
 
-    if let Some(entitlements_path) = config
-        .macos
-        .as_ref()
-        .and_then(|macos| macos.entitlements.as_ref())
-    {
-        info!("using entitlements file at {}", entitlements_path);
+    if let Some(entitlements_path) = config.macos().and_then(|macos| macos.entitlements.as_ref()) {
         args.push("--entitlements");
         args.push(entitlements_path);
     }
@@ -248,8 +235,7 @@ pub fn notarize(
 
     // sign the zip file
     if let Some(identity) = &config
-        .macos
-        .as_ref()
+        .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
         sign(zip_path.clone(), identity, config, false)?;
@@ -266,7 +252,7 @@ pub fn notarize(
         "json",
     ];
 
-    info!(action = "Notarizing"; "{}", app_bundle_path.display());
+    log::info!(action = "Notarizing"; "{}", app_bundle_path.display());
 
     let output = Command::new("xcrun")
         .args(notarize_args)
@@ -284,7 +270,7 @@ pub fn notarize(
             submit_output.status, submit_output.id, submit_output.message
         );
         if submit_output.status == "Accepted" {
-            log::info!(action = "Notarizing"; "{}", log_message);
+            log::log::info!(action = "Notarizing"; "{}", log_message);
             staple_app(app_bundle_path)?;
             Ok(())
         } else {
@@ -355,7 +341,10 @@ impl NotarytoolCmdExt for Command {
 }
 
 pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
-    match (var_os("APPLE_ID"), var_os("APPLE_PASSWORD")) {
+    match (
+        std::env::var_os("APPLE_ID"),
+        std::env::var_os("APPLE_PASSWORD"),
+    ) {
         (Some(apple_id), Some(apple_password)) => {
             let apple_id = apple_id
                 .to_str()
@@ -369,9 +358,9 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
         }
         _ => {
             match (
-                var_os("APPLE_API_KEY"),
-                var_os("APPLE_API_ISSUER"),
-                var("APPLE_API_KEY_PATH"),
+                std::env::var_os("APPLE_API_KEY"),
+                std::env::var_os("APPLE_API_ISSUER"),
+                std::env::var("APPLE_API_KEY_PATH"),
             ) {
                 (Some(api_key), Some(api_issuer), Ok(key_path)) => {
                     let key = api_key

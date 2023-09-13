@@ -392,7 +392,6 @@ dependencies = [
  "cargo_metadata",
  "clap",
  "dirs",
- "dirs-next",
  "dunce",
  "env_logger",
  "glob",

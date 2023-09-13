@@ -592,7 +592,6 @@ pub struct Config {
     pub external_binaries: Option<Vec<String>>,
     /// Signing configuration.
     pub signing: Option<SigningConfig>,
-    /// Platform-specific configurations.
     /// Debian-specific settings.
     pub deb: Option<DebianConfig>,
     /// WiX configuration.

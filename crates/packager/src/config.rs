@@ -20,6 +20,8 @@ pub trait ConfigExt {
     fn wix(&self) -> Option<&WixConfig>;
     /// Returns the debian specific configuration
     fn deb(&self) -> Option<&DebianConfig>;
+    /// Returns the macos specific configuration
+    fn macos(&self) -> Option<&MacOsConfig>;
     /// Returns the target triple for the package to be built (e.g. "aarch64-unknown-linux-gnu").
     fn target_triple(&self) -> String;
     /// Returns the architecture for the package to be built (e.g. "arm", "x86" or "x86_64").
@@ -37,6 +39,10 @@ pub trait ConfigExt {
 impl ConfigExt for Config {
     fn windows(&self) -> Option<&WindowsConfig> {
         self.windows.as_ref()
+    }
+
+    fn macos(&self) -> Option<&MacOsConfig> {
+        self.macos.as_ref()
     }
 
     fn nsis(&self) -> Option<&NsisConfig> {

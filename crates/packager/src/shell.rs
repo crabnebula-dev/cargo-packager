@@ -7,7 +7,7 @@ use std::{
 use log::debug;
 
 pub trait CommandExt {
-    // The `pipe` function sets the stdout and stderr to properly
+    // The `piped` method sets the stdout and stderr to properly
     // show the command output in the Node.js wrapper.
     fn piped(&mut self) -> std::io::Result<ExitStatus>;
     fn output_ok(&mut self) -> crate::Result<Output>;

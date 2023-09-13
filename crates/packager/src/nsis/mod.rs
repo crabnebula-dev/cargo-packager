@@ -8,6 +8,7 @@ use handlebars::{to_json, Handlebars};
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal, LogLevel, NSISInstallerMode},
+    sign,
     util::{self, download, download_and_verify, extract_zip, HashAlgorithm},
 };
 
@@ -253,7 +254,7 @@ fn build_nsis_app_installer(
     {
         let main_binary = config.main_binary()?;
         let app_exe_source = config.binary_path(main_binary);
-        crate::sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
+        sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -295,13 +296,13 @@ fn build_nsis_app_installer(
 
     #[cfg(target_os = "windows")]
     {
-        use crate::sign::ConfigSignExt;
+        use sign::ConfigSignExt;
         if config.can_sign() {
             data.insert(
                 "uninstaller_sign_cmd",
                 to_json(format!(
                     "{:?}",
-                    crate::sign::sign_command("%1", &config.sign_params())?.0
+                    sign::sign_command("%1", &config.sign_params())?.0
                 )),
             );
         }
@@ -474,7 +475,7 @@ fn build_nsis_app_installer(
     std::fs::rename(nsis_output_path, &nsis_installer_path)?;
 
     #[cfg(target_os = "windows")]
-    crate::sign::try_sign(&nsis_installer_path, config)?;
+    sign::try_sign(&nsis_installer_path, config)?;
     #[cfg(not(target_os = "windows"))]
     log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the installer...");
 
