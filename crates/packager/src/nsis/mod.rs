@@ -6,9 +6,10 @@ use std::{
 
 use handlebars::{to_json, Handlebars};
 
+#[cfg(windows)]
+use crate::sign;
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal, LogLevel, NSISInstallerMode},
-    sign,
     util::{self, download, download_and_verify, extract_zip, HashAlgorithm},
 };
 
