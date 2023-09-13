@@ -266,7 +266,7 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                 continue;
             } else if framework.contains('/') {
                 return Err(crate::Error::InvalidFramework {
-                    framework.to_string(),
+                    framework: framework.to_string(),
                     reason: "path should have the .framework extension",
                 });
             }
