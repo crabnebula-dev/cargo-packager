@@ -1,4 +1,5 @@
 use std::{
+    os::unix::fs::PermissionsExt,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -6,13 +7,15 @@ use std::{
 use crate::{
     config::{Config, ConfigExt},
     shell::CommandExt,
-    sign::try_sign,
+    sign,
     util::create_icns_file,
 };
 
 pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     // get the target path
-    let output_path = config.out_dir();
+    let out_dir = config.out_dir();
+    let output_path = out_dir.join("dmg");
+    let support_directory_path = output_path.join("support");
     let package_base_name = format!(
         "{}_{}_{}",
         config.product_name,
@@ -23,49 +26,38 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         }
     );
     let dmg_name = format!("{}.dmg", &package_base_name);
-    let dmg_path = output_path.join(&dmg_name);
+    let dmg_path = out_dir.join(&dmg_name);
+    let app_bundle_file_name = format!("{}.app", config.product_name);
 
     log::info!(action = "Packaging"; "{} ({})", dmg_name, dmg_path.display());
 
-    if dmg_path.exists() {
-        std::fs::remove_file(&dmg_path)?;
+    if output_path.exists() {
+        std::fs::remove_file(&output_path)?;
     }
-
-    let bundle_file_name = format!("{}.app", config.product_name);
-
-    let support_directory_path = output_path.join("support");
-
     std::fs::create_dir_all(&support_directory_path)?;
 
-    // create paths for script
     let bundle_script_path = output_path.join("bundle_dmg.sh");
-
-    // write the scripts
+    log::debug!(action = "Writing"; "{} and setting its permissions to 764", bundle_script_path.display());
     std::fs::write(&bundle_script_path, include_str!("bundle_dmg"))?;
+    std::fs::set_permissions(&bundle_script_path, std::fs::Permissions::from_mode(0o764))?;
+
+    log::debug!(action = "Writing"; "template.applescript");
     std::fs::write(
         support_directory_path.join("template.applescript"),
         include_str!("template.applescript"),
     )?;
+
+    log::debug!(action = "Writing"; "eula-resources-template.xml");
     std::fs::write(
         support_directory_path.join("eula-resources-template.xml"),
         include_str!("eula-resources-template.xml"),
     )?;
 
-    // chmod script for execution
-    Command::new("chmod")
-        .arg("777")
-        .arg(&bundle_script_path)
-        .current_dir(&output_path)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .expect("Failed to chmod script");
-
     let mut args = vec![
         "--volname",
         &config.product_name,
         "--icon",
-        &bundle_file_name,
+        &app_bundle_file_name,
         "180",
         "170",
         "--app-drop-link",
@@ -75,7 +67,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         "660",
         "400",
         "--hide-extension",
-        &bundle_file_name,
+        &app_bundle_file_name,
     ];
 
     let icns_icon_path =
@@ -111,7 +103,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     Command::new(&bundle_script_path)
         .current_dir(output_path.clone())
         .args(args)
-        .args(vec![dmg_name.as_str(), bundle_file_name.as_str()])
+        .args(vec![dmg_name.as_str(), app_bundle_file_name.as_str()])
         .output_ok()?;
 
     std::fs::rename(output_path.join(dmg_name), dmg_path.clone())?;
@@ -121,7 +113,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        try_sign(dmg_path.clone(), identity, config, false)?;
+        sign::try_sign(dmg_path.clone(), identity, config, false)?;
     }
 
     Ok(vec![dmg_path])

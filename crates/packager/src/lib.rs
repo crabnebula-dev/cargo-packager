@@ -75,6 +75,8 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         .formats
         .clone()
         .unwrap_or_else(|| PackageFormat::all().to_vec());
+    formats.sort_by_key(|f| f.priority());
+
     let formats_comma_separated = formats
         .iter()
         .map(|f| f.short_name())
@@ -111,8 +113,6 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             }
         }
     }
-
-    formats.sort_by_key(|f| f.priority());
 
     for format in &formats {
         if let Some(hook) = &config.before_each_package_command {
