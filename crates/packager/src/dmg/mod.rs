@@ -103,7 +103,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     });
     if let Some(license_path) = &license_file {
         args.push("--eula");
-        args.push(license_file.as_str());
+        args.push(license_path.as_str());
     }
 
     // Issue #592 - Building MacOS dmg files on CI
