@@ -1,8 +1,4 @@
-use std::{
-    os::unix::fs::PermissionsExt,
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 
 use crate::{
     config::{Config, ConfigExt},
@@ -14,8 +10,8 @@ use crate::{
 pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     // get the target path
     let out_dir = config.out_dir();
-    let output_path = out_dir.join("dmg");
-    let support_directory_path = output_path.join("support");
+    let intermediates_out_dir = out_dir.join("dmg");
+    let support_directory_path = intermediates_out_dir.join("support");
     let package_base_name = format!(
         "{}_{}_{}",
         config.product_name,
@@ -31,12 +27,13 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
 
     log::info!(action = "Packaging"; "{} ({})", dmg_name, dmg_path.display());
 
-    if output_path.exists() {
-        std::fs::remove_file(&output_path)?;
+    std::fs::create_dir_all(&intermediates_out_dir)?;
+    if dmg_path.exists() {
+        std::fs::remove_file(&dmg_path)?;
     }
     std::fs::create_dir_all(&support_directory_path)?;
 
-    let bundle_script_path = output_path.join("bundle_dmg.sh");
+    let bundle_script_path = intermediates_out_dir.join("bundle_dmg.sh");
     log::debug!(action = "Writing"; "{} and setting its permissions to 764", bundle_script_path.display());
     std::fs::write(&bundle_script_path, include_str!("bundle_dmg"))?;
     std::fs::set_permissions(&bundle_script_path, std::fs::Permissions::from_mode(0o764))?;
@@ -70,8 +67,8 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         &app_bundle_file_name,
     ];
 
-    let icns_icon_path =
-        create_icns_file(&output_path, config)?.map(|path| path.to_string_lossy().to_string());
+    let icns_icon_path = create_icns_file(&intermediates_out_dir, config)?
+        .map(|path| path.to_string_lossy().to_string());
     if let Some(icon) = &icns_icon_path {
         args.push("--volicon");
         args.push(icon);
@@ -101,19 +98,17 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
 
     // execute the bundle script
     Command::new(&bundle_script_path)
-        .current_dir(output_path.clone())
+        .current_dir(&out_dir)
         .args(args)
         .args(vec![dmg_name.as_str(), app_bundle_file_name.as_str()])
         .output_ok()?;
-
-    std::fs::rename(output_path.join(dmg_name), dmg_path.clone())?;
 
     // Sign DMG if needed
     if let Some(identity) = &config
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        sign::try_sign(dmg_path.clone(), identity, config, false)?;
+        sign::try_sign(&dmg_path, identity, config, false)?;
     }
 
     Ok(vec![dmg_path])

@@ -40,7 +40,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        sign::try_sign(app_bundle_path.clone(), identity, config, true)?;
+        sign::try_sign(&app_bundle_path, identity, config, true)?;
         // notarization is required for distribution
         match sign::notarize_auth() {
             Ok(auth) => {
