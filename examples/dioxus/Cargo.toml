@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [package.metadata.packager]
+out-dir = "./dist"
 before-packaging-command = "dx build --platform desktop --release"
 product-name = "Dioxus example"
 identifier = "com.dioxus.example"

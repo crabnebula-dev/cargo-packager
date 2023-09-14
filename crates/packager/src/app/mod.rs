@@ -21,7 +21,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
 
     let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
 
-    log::debug!("creating info.plist");
+    log::debug!("creating Info.plist");
     create_info_plist(&contents_directory, bundle_icon_file, config)?;
 
     log::debug!("copying frameworks");
@@ -40,7 +40,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        sign::try_sign(app_bundle_path.clone(), identity, config, true)?;
+        sign::try_sign(&app_bundle_path, identity, config, true)?;
         // notarization is required for distribution
         match sign::notarize_auth() {
             Ok(auth) => {
@@ -271,23 +271,18 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                 });
             }
             if let Some(home_dir) = dirs::home_dir() {
-                if copy_framework_from(
-                    &dest_dir,
-                    &framework,
-                    &home_dir.join("Library/Frameworks/"),
-                )? {
+                if copy_framework_from(&dest_dir, framework, &home_dir.join("Library/Frameworks/"))?
+                {
                     continue;
                 }
             }
-            if copy_framework_from(
-                &dest_dir,
-                &framework,
-                &PathBuf::from("/Library/Frameworks/"),
-            )? || copy_framework_from(
-                &dest_dir,
-                &framework,
-                &PathBuf::from("/Network/Library/Frameworks/"),
-            )? {
+            if copy_framework_from(&dest_dir, framework, &PathBuf::from("/Library/Frameworks/"))?
+                || copy_framework_from(
+                    &dest_dir,
+                    framework,
+                    &PathBuf::from("/Network/Library/Frameworks/"),
+                )?
+            {
                 continue;
             }
 

@@ -71,10 +71,12 @@ fn cross_command(script: &str) -> Command {
 pub fn package(config: &Config) -> Result<Vec<Package>> {
     let mut packages = Vec::new();
 
-    let formats = config
+    let mut formats = config
         .formats
         .clone()
         .unwrap_or_else(|| PackageFormat::all().to_vec());
+    formats.sort_by_key(|f| f.priority());
+
     let formats_comma_separated = formats
         .iter()
         .map(|f| f.short_name())
@@ -147,7 +149,20 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             #[cfg(target_os = "macos")]
             PackageFormat::App => app::package(config),
             #[cfg(target_os = "macos")]
-            PackageFormat::Dmg => dmg::package(config),
+            PackageFormat::Dmg => {
+                // PackageFormat::App is required for the DMG bundle
+                if !packages
+                    .iter()
+                    .any(|b: &Package| b.format == PackageFormat::App)
+                {
+                    let paths = app::package(config)?;
+                    packages.push(Package {
+                        format: PackageFormat::App,
+                        paths,
+                    });
+                }
+                dmg::package(config)
+            }
             #[cfg(target_os = "windows")]
             PackageFormat::Wix => wix::package(config),
             PackageFormat::Nsis => nsis::package(config),

@@ -1,4 +1,10 @@
-use std::{ffi::OsString, fs::File, io::prelude::*, path::PathBuf, process::Command};
+use std::{
+    ffi::OsString,
+    fs::File,
+    io::prelude::*,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use cargo_packager_config::Config;
 use serde::Deserialize;
@@ -125,7 +131,7 @@ pub fn delete_keychain() {
 }
 
 pub fn try_sign(
-    path_to_sign: PathBuf,
+    path_to_sign: &Path,
     identity: &str,
     config: &Config,
     is_an_executable: bool,
@@ -161,7 +167,7 @@ pub fn try_sign(
 }
 
 fn sign(
-    path_to_sign: PathBuf,
+    path_to_sign: &Path,
     identity: &str,
     config: &Config,
     is_an_executable: bool,
@@ -190,7 +196,7 @@ fn sign(
 
     Command::new("codesign")
         .args(args)
-        .arg(path_to_sign.to_string_lossy().to_string())
+        .arg(path_to_sign)
         .output_ok()?;
 
     Ok(())
@@ -238,7 +244,7 @@ pub fn notarize(
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        try_sign(zip_path.clone(), identity, config, false)?;
+        try_sign(&zip_path, identity, config, false)?;
     };
 
     let notarize_args = vec![
