@@ -94,7 +94,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         args.push(icon);
     }
 
-    let license_file = config.license_file.map(|l| {
+    let license_file = config.license_file.as_ref().map(|l| {
         std::env::current_dir()
             .unwrap()
             .join(l)
