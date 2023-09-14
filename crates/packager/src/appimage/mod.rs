@@ -118,11 +118,11 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         .appimage()
         .and_then(|a| a.linuxdeploy_plugins.clone())
         .unwrap_or_default()
-        .into_iter()
-        .map(|(name, _)| format!("--plugin {name}"))
+        .into_keys()
+        .map(|name| format!("--plugin {name}"))
         .collect::<Vec<_>>()
         .join(" ");
-    sh_map.insert("linuxdeploy_plugins", to_json(&linuxdeploy_plugins));
+    sh_map.insert("linuxdeploy_plugins", to_json(linuxdeploy_plugins));
 
     let larger_icon = icons
         .iter()
