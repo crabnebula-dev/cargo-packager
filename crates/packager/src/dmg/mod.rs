@@ -97,13 +97,13 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     let license_file = config.license_file.map(|l| {
         std::env::current_dir()
             .unwrap()
-            .join(license_path)
+            .join(l)
             .to_string_lossy()
             .to_string()
     });
     if let Some(license_path) = &license_file {
         args.push("--eula");
-        args.push(&license_path_ref);
+        args.push(license_file.as_str());
     }
 
     // Issue #592 - Building MacOS dmg files on CI
