@@ -94,15 +94,15 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         args.push(icon);
     }
 
-    // we need to keep the license path string around, `args` takes references
-    #[allow(unused_assignments)]
-    let mut license_path_ref = "".to_string();
-    if let Some(license_path) = &config.license_file {
-        args.push("--eula");
-        license_path_ref = std::env::current_dir()?
+    let license_file = config.license_file.map(|l| {
+        std::env::current_dir()
+            .unwrap()
             .join(license_path)
             .to_string_lossy()
-            .to_string();
+            .to_string()
+    });
+    if let Some(license_path) = &license_file {
+        args.push("--eula");
         args.push(&license_path_ref);
     }
 
