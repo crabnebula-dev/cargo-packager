@@ -185,7 +185,7 @@
       }
     },
     "externalBinaries": {
-      "description": "External binaries to add to the package.\n\nNote that each binary name should have the target platform's target triple appended, as well as `.exe` for Windows. For example, if you're packaging a sidecar called `sqlite3`, the packager expects a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux, and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.\n\nRun `tauri build --help` for more info on targets.\n\nIf you are building a universal binary for MacOS, the packager expects your external binary to also be universal, and named after the target triple, e.g. `sqlite3-universal-apple-darwin`. See <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>",
+      "description": "External binaries to add to the package.\n\nNote that each binary name should have the target platform's target triple appended, as well as `.exe` for Windows. For example, if you're packaging a sidecar called `sqlite3`, the packager expects a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux, and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.\n\nIf you are building a universal binary for MacOS, the packager expects your external binary to also be universal, and named after the target triple, e.g. `sqlite3-universal-apple-darwin`. See <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>",
       "type": [
         "array",
         "null"
@@ -210,6 +210,17 @@
       "anyOf": [
         {
           "$ref": "#/definitions/DebianConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "appimage": {
+      "description": "Debian-specific settings.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AppImageConfig"
         },
         {
           "type": "null"
@@ -602,6 +613,43 @@
       },
       "additionalProperties": false
     },
+    "AppImageConfig": {
+      "description": "The Linux AppImage configuration.",
+      "type": "object",
+      "properties": {
+        "libs": {
+          "description": "List of libs that exist in `/usr/lib*` to be include in the final AppImage. The libs will be searched for using the command `find -L /usr/lib* -name <libname>`",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "bins": {
+          "description": "List of binary paths to include in the final AppImage. For example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "linuxdeployPlugins": {
+          "description": "Hashmap of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy) plugin name and its URL to be downloaded and executed while packaing the appimage. For example, if you want to use the [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin, you'd specify `gtk` as the key and its url as the value.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "WixConfig": {
       "description": "The wix format configuration",
       "type": "object",
@@ -799,7 +847,7 @@
           }
         },
         "customLanguageFiles": {
-          "description": "An key-value pair where the key is the language and the value is the path to a custom `.nsi` file that holds the translated text for tauri's custom messages.\n\nSee <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.\n\n**Note**: the key must be a valid NSIS language and it must be added to [`NsisConfig`]languages array,",
+          "description": "An key-value pair where the key is the language and the value is the path to a custom `.nsi` file that holds the translated text for cargo-packager's custom messages.\n\nSee <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.\n\n**Note**: the key must be a valid NSIS language and it must be added to [`NsisConfig`]languages array,",
           "type": [
             "object",
             "null"

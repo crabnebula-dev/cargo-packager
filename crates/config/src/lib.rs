@@ -14,6 +14,7 @@ pub use category::AppCategory;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[non_exhaustive]
+#[value(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum PackageFormat {
     /// The macOS application bundle (.app).
@@ -187,6 +188,26 @@ pub struct DebianConfig {
     pub files: Option<HashMap<String, String>>,
 }
 
+/// The Linux AppImage configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AppImageConfig {
+    /// List of libs that exist in `/usr/lib*` to be include in the final AppImage.
+    /// The libs will be searched for using the command
+    /// `find -L /usr/lib* -name <libname>`
+    pub libs: Option<Vec<String>>,
+    /// List of binary paths to include in the final AppImage.
+    /// For example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`
+    pub bins: Option<Vec<String>>,
+    /// Hashmap of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy)
+    /// plugin name and its URL to be downloaded and executed while packaing the appimage.
+    /// For example, if you want to use the
+    /// [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin,
+    /// you'd specify `gtk` as the key and its url as the value.
+    #[serde(alias = "linuxdeploy-plugins", alias = "linuxdeploy_plugins")]
+    pub linuxdeploy_plugins: Option<HashMap<String, String>>,
+}
+
 /// The macOS configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -355,7 +376,7 @@ pub struct NsisConfig {
     /// See <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.
     pub languages: Option<Vec<String>>,
     /// An key-value pair where the key is the language and the
-    /// value is the path to a custom `.nsi` file that holds the translated text for tauri's custom messages.
+    /// value is the path to a custom `.nsi` file that holds the translated text for cargo-packager's custom messages.
     ///
     /// See <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.
     ///
@@ -599,8 +620,6 @@ pub struct Config {
     /// a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux,
     /// and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.
     ///
-    /// Run `tauri build --help` for more info on targets.
-    ///
     /// If you are building a universal binary for MacOS, the packager expects
     /// your external binary to also be universal, and named after the target triple,
     /// e.g. `sqlite3-universal-apple-darwin`. See
@@ -611,6 +630,8 @@ pub struct Config {
     pub signing: Option<SigningConfig>,
     /// Debian-specific settings.
     pub deb: Option<DebianConfig>,
+    /// Debian-specific settings.
+    pub appimage: Option<AppImageConfig>,
     /// WiX configuration.
     pub wix: Option<WixConfig>,
     /// Nsis configuration.

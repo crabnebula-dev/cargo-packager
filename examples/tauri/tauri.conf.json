@@ -11,6 +11,9 @@
     "version": "0.0.0"
   },
   "tauri": {
+    "systemTray": {
+      "iconPath": "icons/32x32.png"
+    },
     "bundle": {
       "active": false,
       "targets": "all",

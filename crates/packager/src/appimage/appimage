@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+export ARCH={{arch}}
+
+mkdir -p "{{app_name}}.AppDir"
+cp -r ../appimage_deb/data/usr "{{app_name}}.AppDir"
+
+cd "{{app_name}}.AppDir"
+mkdir -p "usr/bin"
+mkdir -p "usr/lib"
+
+# Copy libs. Follow symlinks in case `/usr/lib64` is a symlink to `/usr/lib`
+{{#each libs}}
+find -L /usr/lib* -name {{this}} -exec mkdir -p "$(dirname '{}')" \; -exec cp --parents '{}' "." \; || true
+{{/each}}
+
+# Copy bins.
+{{#each bins}}
+cp {{this}} usr/bin
+{{/each}}
+
+# We need AppRun to be installed as {{app_name}}.AppDir/AppRun.
+# Otherwise the linuxdeploy scripts will default to symlinking our main bin instead and will crash on trying to launch.
+cp "{{packager_tools_path}}/AppRun-${ARCH}" AppRun
+
+cp "{{icon_path}}" .DirIcon
+ln -sf "{{icon_path}}" "{{app_name}}.png"
+
+ln -sf "usr/share/applications/{{app_name}}.desktop" "{{app_name}}.desktop"
+
+cd ..
+
+# modify the linux deploy appimage ELF header so that binfmt no longer identifies it as an appimage
+# and so appimagelauncher doesn't inject itself and the binary runs directly
+dd if=/dev/zero bs=1 count=3 seek=8 conv=notrunc of="{{packager_tools_path}}/linuxdeploy-{{linuxdeploy_arch}}.AppImage"
+
+OUTPUT="{{appimage_path}}" "{{packager_tools_path}}/linuxdeploy-{{linuxdeploy_arch}}.AppImage" --appimage-extract-and-run --appdir "{{app_name}}.AppDir" {{linuxdeploy_plugins}} --output appimage

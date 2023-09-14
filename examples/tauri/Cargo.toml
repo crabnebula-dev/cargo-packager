@@ -27,11 +27,23 @@ icons = [
 [package.metadata.packager.deb]
 depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"]
 
+[package.metadata.packager.appimage]
+bins = ["/usr/bin/xdg-open"]
+libs = [
+    "WebKitNetworkProcess",
+    "WebKitWebProcess",
+    "libwebkit2gtkinjectedbundle.so",
+    "libayatana-appindicator3.so.1",
+]
+
+[package.metadata.packager.appimage.linuxdeploy-plugins]
+"gtk" = "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
+
 [build-dependencies]
 tauri-build = { version = "=2.0.0-alpha.6", features = [] }
 
 [dependencies]
-tauri = { version = "=2.0.0-alpha.10", features = [] }
+tauri = { version = "=2.0.0-alpha.10", features = ["system-tray"] }
 tauri-utils = { version = "=2.0.0-alpha.6", features = [] }
 tauri-macros = "=2.0.0-alpha.6"
 serde.workspace = true

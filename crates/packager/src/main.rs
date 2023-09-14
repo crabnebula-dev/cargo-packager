@@ -316,7 +316,7 @@ fn main() {
     }
 
     if let Err(e) = try_run(cli) {
-        log::error!("{:?}", e);
+        log::error!("{}", e);
         std::process::exit(1);
     }
 }
