@@ -8,9 +8,21 @@ before-packaging-command = "dx build --platform desktop --release"
 product-name = "Dioxus example"
 identifier = "com.dioxus.example"
 resources = ["src/**/*", "Cargo.toml", "README.md"]
+icons = ["32x32.png"]
 
 [package.metadata.packager.deb]
 depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"]
+
+[package.metadata.packager.appimage]
+libs = [
+    "WebKitNetworkProcess",
+    "WebKitWebProcess",
+    "libwebkit2gtkinjectedbundle.so",
+    "libayatana-appindicator3.so.1",
+]
+
+[package.metadata.packager.appimage.linuxdeploy-plugins]
+"gtk" = "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
 
 [dependencies]
 dioxus = "0.4"

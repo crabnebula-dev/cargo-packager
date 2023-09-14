@@ -27,7 +27,7 @@ pub struct DebIcon {
 }
 
 /// Generate the icon files and store them under the `data_dir`.
-fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
+fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let base_dir = data_dir.join("usr/share/icons/hicolor");
     let get_dest_path = |width: u32, height: u32, is_high_density: bool| {
         base_dir.join(format!(
@@ -71,7 +71,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
             }
         }
     }
-    Ok(())
+    Ok(icons_set)
 }
 
 /// Generate the application desktop file and store it under the `data_dir`.
@@ -105,7 +105,19 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
         exec: &'a str,
         icon: &'a str,
         name: &'a str,
+        mime_type: Option<String>,
     }
+
+    let mime_type = if let Some(associations) = &config.file_associations {
+        let mime_types: Vec<&str> = associations
+            .iter()
+            .filter_map(|association| association.mime_type.as_ref())
+            .map(|s| s.as_str())
+            .collect();
+        Some(mime_types.join(";"))
+    } else {
+        None
+    };
 
     handlebars.render_to_write(
         "main.desktop",
@@ -118,6 +130,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
             exec: bin_name,
             icon: bin_name,
             name: config.product_name.as_str(),
+            mime_type,
         },
         file,
     )?;
@@ -125,7 +138,10 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
     Ok(())
 }
 
-pub fn generate_data(config: &Config, package_dir: &Path) -> crate::Result<PathBuf> {
+pub fn generate_data(
+    config: &Config,
+    package_dir: &Path,
+) -> crate::Result<(PathBuf, BTreeSet<DebIcon>)> {
     // Generate data files.
     let data_dir = package_dir.join("data");
     let bin_dir = data_dir.join("usr/bin");
@@ -145,12 +161,12 @@ pub fn generate_data(config: &Config, package_dir: &Path) -> crate::Result<PathB
     config.copy_external_binaries(&bin_dir)?;
 
     log::debug!("generating icons");
-    generate_icon_files(config, &data_dir)?;
+    let icons = generate_icon_files(config, &data_dir)?;
 
     log::debug!("generating desktop file");
     generate_desktop_file(config, &data_dir)?;
 
-    Ok(data_dir)
+    Ok((data_dir, icons))
 }
 
 pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
@@ -359,7 +375,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     log::info!(action = "Pckaging"; "{} ({})", package_name, package_path.display());
 
     log::debug!("generating data");
-    let data_dir = generate_data(config, &package_dir)?;
+    let (data_dir, _) = generate_data(config, &package_dir)?;
 
     log::debug!("copying files specifeid in `deb.files`");
     copy_custom_files(config, &data_dir)?;

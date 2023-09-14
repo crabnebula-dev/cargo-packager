@@ -344,7 +344,7 @@ fn clear_env_for_wix(cmd: &mut Command) {
         vec!["SYSTEMROOT".into(), "TMP".into(), "TEMP".into()];
     for (k, v) in std::env::vars_os() {
         let k = k.to_ascii_uppercase();
-        if required_vars.contains(&k) || k.to_string_lossy().starts_with("TAURI") {
+        if required_vars.contains(&k) || k.to_string_lossy().starts_with("CARGO_PACKAGER") {
             cmd.env(k, v);
         }
     }
@@ -452,10 +452,8 @@ fn build_wix_app_installer(
         "x86_64" => "x64",
         "x86" => "x86",
         "aarch64" => "arm64",
-        target => return Err(crate::Error::UnsupportedArch("msi".into(), target.into())),
+        target => return Err(crate::Error::UnsupportedArch("wix".into(), target.into())),
     };
-
-    log::info!("Target: {}", arch);
 
     let main_binary = config.main_binary()?;
     let app_exe_source = config.binary_path(main_binary);
