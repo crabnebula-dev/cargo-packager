@@ -13,7 +13,7 @@
             Id="*"
             Name="{{product_name}}"
             UpgradeCode="{{upgrade_code}}"
-            Language="!(loc.TauriLanguage)"
+            Language="!(loc.CargoPackagerLanguage)"
             Manufacturer="{{manufacturer}}"
             Version="{{version}}">
 
@@ -23,7 +23,7 @@
                  Languages="0"
                  Compressed="yes"
                  InstallScope="perMachine"
-                 SummaryCodepage="!(loc.TauriCodepage)"/>
+                 SummaryCodepage="!(loc.CargoPackagerCodepage)"/>
 
         <!-- https://docs.microsoft.com/en-us/windows/win32/msi/reinstallmode -->
         <!-- reinstall all files; rewrite all registry entries; reinstall all shortcuts -->

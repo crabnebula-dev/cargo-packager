@@ -6,5 +6,6 @@
   "version": "0.0.0",
   "identifier": "com.deno.example",
   "resources": ["deno-example.js", "README.md"],
-  "binaries": [{ "filename": "deno-example", "main": true }]
+  "binaries": [{ "filename": "deno-example", "main": true }],
+  "icons": ["32x32.png"]
 }

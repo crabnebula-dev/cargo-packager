@@ -3,7 +3,7 @@
 1. install `tauri-cli` first
 
    ```sh
-   cargo install tauri-cli --version 2.0.0-alpha.10
+   cargo install tauri-cli --version "2.0.0-alpha.10" --locked
    ```
 
 2. package the app

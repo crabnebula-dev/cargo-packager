@@ -114,7 +114,6 @@ pub enum Error {
     /// Relative paths errors
     #[error(transparent)]
     RelativeToError(#[from] relative_path::RelativeToError),
-
     /// Time error.
     #[cfg(target_os = "macos")]
     #[error("`{0}`")]
@@ -162,7 +161,6 @@ pub enum Error {
     #[cfg(target_os = "macos")]
     #[error("no APPLE_ID & APPLE_PASSWORD or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
     MissingNotarizeAuthVars,
-
     /// Path already exists.
     #[error("{0} already exists")]
     AlreadyExists(PathBuf),
@@ -175,6 +173,9 @@ pub enum Error {
     /// Failed to run command.
     #[error("failed to run command {0}")]
     FailedToRunCommand(String),
+    /// Couldn't find a square icon to use as AppImage icon
+    #[error("couldn't find a square icon to use as AppImage icon")]
+    AppImageSquareIcon,
 }
 
 /// Convenient type alias of Result type for cargo-packager.

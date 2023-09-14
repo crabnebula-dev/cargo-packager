@@ -22,6 +22,8 @@ pub trait ConfigExt {
     fn deb(&self) -> Option<&DebianConfig>;
     /// Returns the macos specific configuration
     fn macos(&self) -> Option<&MacOsConfig>;
+    /// Returns the appimage specific configuration
+    fn appimage(&self) -> Option<&AppImageConfig>;
     /// Returns the target triple for the package to be built (e.g. "aarch64-unknown-linux-gnu").
     fn target_triple(&self) -> String;
     /// Returns the architecture for the package to be built (e.g. "arm", "x86" or "x86_64").
@@ -55,6 +57,10 @@ impl ConfigExt for Config {
 
     fn deb(&self) -> Option<&DebianConfig> {
         self.deb.as_ref()
+    }
+
+    fn appimage(&self) -> Option<&AppImageConfig> {
+        self.appimage.as_ref()
     }
 
     fn target_triple(&self) -> String {

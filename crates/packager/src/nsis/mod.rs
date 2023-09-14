@@ -249,8 +249,6 @@ fn build_nsis_app_installer(
         target => return Err(crate::Error::UnsupportedArch("nsis".into(), target.into())),
     };
 
-    log::info!("Target: {}", arch);
-
     #[cfg(target_os = "windows")]
     {
         let main_binary = config.main_binary()?;
