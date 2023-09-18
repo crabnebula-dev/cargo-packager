@@ -4,6 +4,7 @@ use std::{
     process::Command,
 };
 
+use cargo_packager_config::NsisCompression;
 use handlebars::{to_json, Handlebars};
 
 #[cfg(windows)]
@@ -356,6 +357,16 @@ fn build_nsis_app_installer(
         }
         if let Some(preinstall_section) = &nsis.preinstall_section {
             data.insert("preinstall_section", to_json(preinstall_section));
+        }
+        if let Some(compression) = &nsis.compression {
+            data.insert(
+                "compression",
+                to_json(match &compression {
+                    NsisCompression::Zlib => "zlib",
+                    NsisCompression::Bzip2 => "bzip2",
+                    NsisCompression::Lzma => "lzma",
+                }),
+            );
         }
     }
 

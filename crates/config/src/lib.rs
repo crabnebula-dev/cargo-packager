@@ -337,10 +337,28 @@ impl Default for NSISInstallerMode {
     }
 }
 
+/// Compression algorithms used in the NSIS installer.
+///
+/// See <https://nsis.sourceforge.io/Reference/SetCompressor>
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum NsisCompression {
+    /// ZLIB uses the deflate algorithm, it is a quick and simple method. With the default compression level it uses about 300 KB of memory.
+    Zlib,
+    /// BZIP2 usually gives better compression ratios than ZLIB, but it is a bit slower and uses more memory. With the default compression level it uses about 4 MB of memory.
+    Bzip2,
+    /// LZMA (default) is a new compression method that gives very good compression ratios. The decompression speed is high (10-20 MB/s on a 2 GHz CPU), the compression speed is lower. The memory size that will be used for decompression is the dictionary size plus a few KBs, the default is 8 MB.
+    Lzma,
+}
+
 /// The NSIS format configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NsisConfig {
+    /// Set the compression algorithm used to compress files in the installer.
+    ///
+    /// See <https://nsis.sourceforge.io/Reference/SetCompressor>
+    pub compression: Option<NsisCompression>,
     /// A custom `.nsi` template to use.
     ///
     /// See the default template here
