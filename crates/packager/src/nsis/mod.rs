@@ -174,6 +174,18 @@ fn association_description(
     Ok(())
 }
 
+fn unescape_newlines(
+    h: &handlebars::Helper<'_, '_>,
+    _: &Handlebars<'_>,
+    _: &handlebars::Context,
+    _: &mut handlebars::RenderContext<'_, '_>,
+    out: &mut dyn handlebars::Output,
+) -> handlebars::HelperResult {
+    let s = h.param(0).unwrap().render();
+    out.write(&s.replace("$\\n", "\n"))?;
+    Ok(())
+}
+
 fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
     let version = semver::Version::parse(version_str)?;
     if !version.build.is_empty() {
@@ -315,7 +327,6 @@ fn build_nsis_app_installer(
     let mut languages = vec!["English".into()];
     let mut custom_template_path = None;
     let mut custom_language_files = None;
-
     if let Some(nsis) = config.nsis() {
         custom_template_path = nsis.template.clone();
         custom_language_files = nsis.custom_language_files.clone();
@@ -342,6 +353,9 @@ fn build_nsis_app_installer(
                 "sidebar_image",
                 to_json(dunce::canonicalize(sidebar_image)?),
             );
+        }
+        if let Some(preinstall_section) = &nsis.preinstall_section {
+            data.insert("preinstall_section", to_json(preinstall_section));
         }
     }
 
@@ -391,11 +405,10 @@ fn build_nsis_app_installer(
     let binaries = generate_binaries_data(config)?;
     data.insert("binaries", to_json(binaries));
 
-    // TODO: webview2 logic
-
     let mut handlebars = Handlebars::new();
     handlebars.register_helper("or", Box::new(handlebars_or));
     handlebars.register_helper("association-description", Box::new(association_description));
+    handlebars.register_helper("unescape_newlines", Box::new(unescape_newlines));
     handlebars.register_escape_fn(|s| {
         let mut output = String::new();
         for c in s.chars() {

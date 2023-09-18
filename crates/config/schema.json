@@ -567,7 +567,7 @@
       ]
     },
     "SigningConfig": {
-      "description": "The app sigining configuration.",
+      "description": "The package sigining configuration. This only signs the resulting pacakge file itself and generates a signatue file so your users can verify the downloaded file or when [`cargo-packager-updater`] downloads an update.\n\n[`cargo-packager-updater`]: https://docs.rs/cargo-packager-updater",
       "type": "object",
       "required": [
         "pubkey"
@@ -800,7 +800,14 @@
       "type": "object",
       "properties": {
         "template": {
-          "description": "A custom .nsi template to use.",
+          "description": "A custom `.nsi` template to use.\n\nSee the default template here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preinstallSection": {
+          "description": "Logic of an NSIS section that will be ran before the install section.\n\nSee the available libraries, dlls and global variables here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>\n\n### Example ```toml [package.metadata.packager.nsis] preinstall-section = \"\"\" ; Setup custom messages LangString webview2AbortError ${LANG_ENGLISH} \"Failed to install WebView2! The app can't run without it. Try restarting the installer.\" LangString webview2DownloadError ${LANG_ARABIC} \"خطأ: فشل تنزيل WebView2 - $0\"\n\nSection PreInstall ; <section logic here> SectionEnd\n\nSection AnotherPreInstall ; <section logic here> SectionEnd \"\"\" ```",
           "type": [
             "string",
             "null"

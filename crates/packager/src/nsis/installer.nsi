@@ -425,6 +425,10 @@ Section EarlyChecks
 
 SectionEnd
 
+{{#if preinstall_section}}
+{{unescape_newlines preinstall_section}}
+{{/if}}
+
 !macro CheckIfAppIsRunning
   nsis_tauri_utils::FindProcess "${MAINBINARYNAME}.exe"
   Pop $R0

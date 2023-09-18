@@ -292,9 +292,6 @@ pub struct WixConfig {
     /// The Merge element ids you want to reference from the fragments.
     #[serde(alias = "merge-refs", alias = "merge_refs")]
     pub merge_refs: Option<Vec<String>>,
-    // TODO: find an agnostic way to introduce this option
-    // /// Disables the Webview2 runtime installation after app install. Will be removed in v2, use [`WindowsSettings::webview_install_mode`] instead.
-    // pub skip_webview_install: bool,
     /// Create an elevated update task within Windows Task Scheduler.
     #[serde(
         default,
@@ -351,8 +348,35 @@ impl Default for NSISInstallerMode {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NsisConfig {
-    /// A custom .nsi template to use.
+    /// A custom `.nsi` template to use.
+    ///
+    /// See the default template here
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
     pub template: Option<PathBuf>,
+    /// Logic of an NSIS section that will be ran before the install section.
+    ///
+    /// See the available libraries, dlls and global variables here
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    ///
+    /// ### Example
+    /// ```toml
+    /// [package.metadata.packager.nsis]
+    /// preinstall-section = """
+    ///     ; Setup custom messages
+    ///     LangString webview2AbortError ${LANG_ENGLISH} "Failed to install WebView2! The app can't run without it. Try restarting the installer."
+    ///     LangString webview2DownloadError ${LANG_ARABIC} "خطأ: فشل تنزيل WebView2 - $0"
+    ///
+    ///     Section PreInstall
+    ///      ; <section logic here>
+    ///     SectionEnd
+    ///
+    ///     Section AnotherPreInstall
+    ///      ; <section logic here>
+    ///     SectionEnd
+    /// """
+    /// ```
+    #[serde(alias = "preinstall-section", alias = "preinstall_section")]
+    pub preinstall_section: Option<String>,
     /// The path to a bitmap file to display on the header of installers pages.
     ///
     /// The recommended dimensions are 150px x 57px.
@@ -410,15 +434,6 @@ pub struct WindowsConfig {
     /// use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
     #[serde(default)]
     pub tsp: bool,
-    // TODO: find an agnostic way to specify custom logic to install webview2
-    // /// The installation mode for the Webview2 runtime.
-    // pub webview_install_mode: WebviewInstallMode,
-    // /// Path to the webview fixed runtime to use.
-    // ///
-    // /// Overwrites [`Self::webview_install_mode`] if set.
-    // ///
-    // /// Will be removed in v2, use [`Self::webview_install_mode`] instead.
-    // pub webview_fixed_runtime_path: Option<PathBuf>,
     /// Validates a second app installation, blocking the user from installing an older version if set to `false`.
     ///
     /// For instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.
@@ -448,7 +463,12 @@ impl Default for WindowsConfig {
     }
 }
 
-/// The app sigining configuration.
+/// The package sigining configuration. This only signs
+/// the resulting pacakge file itself and generates a signatue file
+/// so your users can verify the downloaded file or when [`cargo-packager-updater`]
+/// downloads an update.
+///
+/// [`cargo-packager-updater`]: https://docs.rs/cargo-packager-updater
 #[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
 pub struct SigningConfig {
     /// Signature public key.
