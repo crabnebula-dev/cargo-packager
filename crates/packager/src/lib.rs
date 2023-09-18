@@ -74,7 +74,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
     let mut formats = config
         .formats
         .clone()
-        .unwrap_or_else(|| PackageFormat::all().to_vec());
+        .unwrap_or_else(|| PackageFormat::platform_defaults().to_vec());
     formats.sort_by_key(|f| f.priority());
 
     let formats_comma_separated = formats

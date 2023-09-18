@@ -70,6 +70,38 @@ impl PackageFormat {
         ALL_PACKAGE_TYPES
     }
 
+    /// Returns the default list of targets this platform
+    ///
+    /// - **macOS**: App, Dmg
+    /// - **Windows**: Nsis
+    /// - **Linux**: Deb, AppImage
+    pub fn platform_defaults() -> &'static [PackageFormat] {
+        &[
+            #[cfg(target_os = "macos")]
+            PackageFormat::App,
+            #[cfg(target_os = "macos")]
+            PackageFormat::Dmg,
+            #[cfg(target_os = "windows")]
+            PackageFormat::Nsis,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Deb,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::AppImage,
+        ]
+    }
+
     /// Gets a number representing priority which used to sort package types
     /// in an order that guarantees that if a certain package type
     /// depends on another (like Dmg depending on MacOsBundle), the dependency
