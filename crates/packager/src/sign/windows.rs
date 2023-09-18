@@ -14,6 +14,7 @@ use winreg::{
 
 use crate::{
     config::{Config, ConfigExt},
+    shell::CommandExt,
     util::{self, Bitness},
 };
 
@@ -157,7 +158,7 @@ pub fn sign<P: AsRef<Path>>(path: P, params: &SignParams) -> crate::Result<()> {
     let (mut cmd, signtool) = sign_command(path_str, params)?;
     log::debug!("Running signtool {:?}", signtool);
 
-    let output = cmd.output()?;
+    let output = cmd.output_ok()?;
     let stdout = String::from_utf8_lossy(output.stdout.as_slice()).into_owned();
     log::info!("{:?}", stdout);
 

@@ -14,8 +14,9 @@ use uuid::Uuid;
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
+    shell::CommandExt,
     sign,
-    util::{self, display_path, download_and_verify, extract_zip, HashAlgorithm},
+    util::{display_path, download_and_verify, extract_zip, HashAlgorithm},
 };
 
 pub const WIX_URL: &str =
@@ -387,13 +388,11 @@ fn run_candle(
     if log_level >= LogLevel::Debug {
         cmd.arg("-v");
     }
-    let output = cmd
-        .args(&args)
-        .current_dir(cwd)
-        .output()
-        .map_err(|e| crate::Error::WixFailed("candle.exe".into(), e.to_string()))?;
 
-    util::log_if_needed_and_error_out(log_level, output)?;
+    cmd.args(&args)
+        .current_dir(cwd)
+        .output_ok()
+        .map_err(|e| crate::Error::WixFailed("candle.exe".into(), e.to_string()))?;
 
     Ok(())
 }
@@ -422,13 +421,10 @@ fn run_light(
     if log_level >= LogLevel::Debug {
         cmd.arg("-v");
     }
-    let output = cmd
-        .args(&args)
+    cmd.args(&args)
         .current_dir(build_path)
-        .output()
+        .output_ok()
         .map_err(|e| crate::Error::WixFailed("light.exe".into(), e.to_string()))?;
-
-    util::log_if_needed_and_error_out(log_level, output)?;
 
     Ok(())
 }
@@ -531,8 +527,6 @@ fn build_wix_app_installer(
     }
     data.insert("resources", to_json(resources_wix_string));
     data.insert("resource_file_ids", to_json(files_ids));
-
-    // TODO: how to include merge modules
 
     data.insert(
         "app_exe_source",

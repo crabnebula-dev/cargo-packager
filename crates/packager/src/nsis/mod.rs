@@ -11,6 +11,7 @@ use handlebars::{to_json, Handlebars};
 use crate::sign;
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal, LogLevel, NSISInstallerMode},
+    shell::CommandExt,
     util::{self, download, download_and_verify, extract_zip, HashAlgorithm},
 };
 
@@ -480,20 +481,17 @@ fn build_nsis_app_installer(
 
     let log_level = config.log_level.unwrap_or_default();
 
-    let output = nsis_cmd
+    nsis_cmd
         .arg(match log_level {
             LogLevel::Error => "/V1",
             LogLevel::Warn => "/V2",
             LogLevel::Info => "/V3",
-            LogLevel::Debug => "/V3",
             _ => "/V4",
         })
         .arg(installer_nsi_path)
         .current_dir(output_path)
-        .output()
+        .output_ok()
         .map_err(|e| crate::Error::NsisFailed(e.to_string()))?;
-
-    util::log_if_needed_and_error_out(log_level, output)?;
 
     std::fs::rename(nsis_output_path, &nsis_installer_path)?;
 

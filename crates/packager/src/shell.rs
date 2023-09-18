@@ -4,8 +4,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use log::debug;
-
 pub trait CommandExt {
     // The `piped` method sets the stdout and stderr to properly
     // show the command output in the Node.js wrapper.
@@ -18,14 +16,14 @@ impl CommandExt for Command {
         self.stdout(os_pipe::dup_stdout()?);
         self.stderr(os_pipe::dup_stderr()?);
         let program = self.get_program().to_string_lossy().into_owned();
-        debug!(action = "Running"; "Command `{} {}`", program, self.get_args().map(|arg| arg.to_string_lossy()).fold(String::new(), |acc, arg| format!("{acc} {arg}")));
+        log::debug!(action = "Running"; "Command `{} {}`", program, self.get_args().map(|arg| arg.to_string_lossy()).fold(String::new(), |acc, arg| format!("{acc} {arg}")));
 
         self.status().map_err(Into::into)
     }
 
     fn output_ok(&mut self) -> crate::Result<Output> {
         let program = self.get_program().to_string_lossy().into_owned();
-        debug!(action = "Running"; "Command `{} {}`", program, self.get_args().map(|arg| arg.to_string_lossy()).fold(String::new(), |acc, arg| format!("{} {}", acc, arg)));
+        log::debug!(action = "Running"; "Command `{} {}`", program, self.get_args().map(|arg| arg.to_string_lossy()).fold(String::new(), |acc, arg| format!("{} {}", acc, arg)));
 
         self.stdout(Stdio::piped());
         self.stderr(Stdio::piped());
@@ -44,7 +42,7 @@ impl CommandExt for Command {
                     Ok(s) if s == 0 => break,
                     _ => (),
                 }
-                debug!(action = "stdout"; "{buf}");
+                log::debug!(action = "stdout"; "{buf}");
                 lines.extend(buf.as_bytes().to_vec());
                 lines.push(b'\n');
             }
@@ -62,7 +60,7 @@ impl CommandExt for Command {
                     Ok(s) if s == 0 => break,
                     _ => (),
                 }
-                debug!(action = "stderr"; "{buf}");
+                log::debug!(action = "stderr"; "{buf}");
                 lines.extend(buf.as_bytes().to_vec());
                 lines.push(b'\n');
             }

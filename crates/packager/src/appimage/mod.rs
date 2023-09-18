@@ -9,6 +9,7 @@ use handlebars::{to_json, Handlebars};
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
+    shell::CommandExt,
     util,
 };
 
@@ -155,7 +156,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     // execute the shell script to build the appimage.
     Command::new(&sh_file)
         .current_dir(output_path)
-        .output()
+        .output_ok()
         .expect("error running appimage.sh");
 
     std::fs::remove_dir_all(&appimage_deb_dir)?;

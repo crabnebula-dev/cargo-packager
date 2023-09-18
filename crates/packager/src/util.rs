@@ -1,18 +1,37 @@
-use cargo_packager_config::LogLevel;
 use sha2::Digest;
 use std::{
     fs::File,
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
-    process::Output,
+    process::Command,
 };
 
 use zip::ZipArchive;
+
+use crate::shell::CommandExt;
 
 pub fn display_path<P: AsRef<Path>>(p: P) -> String {
     dunce::simplified(&p.as_ref().components().collect::<PathBuf>())
         .display()
         .to_string()
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct RustCfg {
+    target_arch: Option<String>,
+}
+
+fn parse_rust_cfg(cfg: String) -> RustCfg {
+    let target_line = "target_arch=\"";
+    let mut target_arch = None;
+    for line in cfg.split('\n') {
+        if line.starts_with(target_line) {
+            let len = target_line.len();
+            let arch = line.chars().skip(len).take(line.len() - len - 1).collect();
+            target_arch.replace(arch);
+        }
+    }
+    RustCfg { target_arch }
 }
 
 /// Try to determine the current target triple.
@@ -22,16 +41,29 @@ pub fn display_path<P: AsRef<Path>>(p: P) -> String {
 /// following values:
 /// `linux, mac, windows` -- `i686, x86, armv7` -- `gnu, musl, msvc`
 pub fn target_triple() -> crate::Result<String> {
-    let arch = if cfg!(target_arch = "x86") {
-        "i686"
-    } else if cfg!(target_arch = "x86_64") {
-        "x86_64"
-    } else if cfg!(target_arch = "arm") {
-        "armv7"
-    } else if cfg!(target_arch = "aarch64") {
-        "aarch64"
-    } else {
-        return Err(crate::Error::Architecture);
+    let arch_res = Command::new("rustc").args(["--print", "cfg"]).output_ok();
+
+    let arch = match arch_res {
+        Ok(output) => parse_rust_cfg(String::from_utf8_lossy(&output.stdout).into())
+            .target_arch
+            .expect("could not find `target_arch` when running `rustc --print cfg`."),
+        Err(err) => {
+            log:: warn!(
+                "failed to determine target arch using rustc, error: `{}`. The fallback is the architecture of the machine that compiled this crate.",
+                err,
+            );
+            if cfg!(target_arch = "x86") {
+                "i686".into()
+            } else if cfg!(target_arch = "x86_64") {
+                "x86_64".into()
+            } else if cfg!(target_arch = "arm") {
+                "armv7".into()
+            } else if cfg!(target_arch = "aarch64") {
+                "aarch64".into()
+            } else {
+                return Err(crate::Error::Architecture);
+            }
+        }
     };
 
     let os = if cfg!(target_os = "linux") {
@@ -173,31 +205,6 @@ pub(crate) fn os_bitness() -> crate::Result<Bitness> {
             _ => Bitness::Unknown,
         },
     )
-}
-
-pub(crate) fn log_if_needed_and_error_out(
-    log_level: LogLevel,
-    output: Output,
-) -> crate::Result<()> {
-    if output.status.success() && !output.stdout.is_empty() && log_level >= LogLevel::Debug {
-        log::debug!(action = "stdout"; "{}", String::from_utf8_lossy(&output.stdout))
-    } else if !output.status.success() && log_level >= LogLevel::Error {
-        let action = if !output.stderr.is_empty() {
-            "stderr"
-        } else {
-            "stdout"
-        };
-        let output = if !output.stderr.is_empty() {
-            &output.stderr
-        } else {
-            &output.stdout
-        };
-        log::error!(action = action; "{}", String::from_utf8_lossy(output));
-
-        return Err(crate::Error::CommandFailed);
-    }
-
-    Ok(())
 }
 
 /// Returns true if the path has a filename indicating that it is a high-density

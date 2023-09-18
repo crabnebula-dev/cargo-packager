@@ -1,3 +1,10 @@
+; Set the compression algorithm.
+!if "{{compression}}" == ""
+  SetCompressor /SOLID lzma
+!else
+  SetCompressor /SOLID "{{compression}}"
+!endif
+
 Unicode true
 
 !include MUI2.nsh
@@ -36,13 +43,6 @@ ${StrLoc}
 Name "${PRODUCTNAME}"
 BrandingText "${COPYRIGHT}"
 OutFile "${OUTFILE}"
-
-; Set the compression algorithm.
-!if "{{compression}}" == ""
-  SetCompressor /SOLID lzma
-!else
-  SetCompressor /SOLID "{{compression}}"
-!endif
 
 VIProductVersion "${VERSIONWITHBUILD}"
 VIAddVersionKey "ProductName" "${PRODUCTNAME}"
