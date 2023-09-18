@@ -883,6 +883,17 @@
           "description": "Whether to display a language selector dialog before the installer and uninstaller windows are rendered or not. By default the OS language is selected, with a fallback to the first language in the `languages` array.",
           "default": false,
           "type": "boolean"
+        },
+        "appdataPaths": {
+          "description": "List of paths where your app stores data. This options tells the uninstaller to provide the user with an option (disabled by default) whether they want to rmeove your app data or keep it.\n\nThe path should use a constant from https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant in addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your app data in `C:\\\\Users\\\\<user>\\\\AppData\\\\Local\\\\<your-company-name>\\\\<your-product-name>` you'd need to specify ```toml [package.metadata.packager.nsis] appdata-paths = [\"$LOCALAPPDATA/$PUBLISHER/$PRODUCTNAME\"] ```",
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false

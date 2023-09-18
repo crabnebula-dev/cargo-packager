@@ -55,6 +55,7 @@ libs = [
 "gtk" = "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
 
 [package.metadata.packager.nsis]
+appdata-paths = ["$LOCALAPPDATA/$IDENTIFIER"]
 preinstall-section = """
 ; Setup messages
 ; English

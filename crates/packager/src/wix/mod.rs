@@ -490,9 +490,9 @@ fn build_wix_app_installer(
 
     data.insert("product_name", to_json(&config.product_name));
     data.insert("version", to_json(&app_version));
-    let bundle_id = config.identifier();
+    let identifier = config.identifier();
     let manufacturer = config.publisher();
-    data.insert("bundle_id", to_json(bundle_id));
+    data.insert("identifier", to_json(identifier));
     data.insert("manufacturer", to_json(manufacturer));
     let upgrade_code = Uuid::new_v5(
         &Uuid::NAMESPACE_DNS,

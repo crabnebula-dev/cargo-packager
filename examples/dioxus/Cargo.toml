@@ -8,7 +8,6 @@ dioxus = "0.4"
 dioxus-desktop = "0.4"
 
 [package.metadata.packager]
-out-dir = "./dist"
 before-packaging-command = "dx build --platform desktop --release"
 product-name = "Dioxus example"
 identifier = "com.dioxus.example"

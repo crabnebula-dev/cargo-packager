@@ -29,7 +29,7 @@ ${StrLoc}
 !define HEADERIMAGE "{{header_image}}"
 !define MAINBINARYNAME "{{main_binary_name}}"
 !define MAINBINARYSRCPATH "{{main_binary_path}}"
-!define BUNDLEID "{{bundle_id}}"
+!define IDENTIFIER "{{identifier}}"
 !define COPYRIGHT "{{copyright}}"
 !define OUTFILE "{{out_file}}"
 !define ARCH "{{arch}}"
@@ -321,6 +321,7 @@ Var AppStartMenuFolder
 
 ; Uninstaller Pages
 ; 1. Confirm uninstall page
+{{#if appdata_paths}}
 Var DeleteAppDataCheckbox
 Var DeleteAppDataCheckboxState
 !define /ifndef WS_EX_LAYOUTRTL         0x00400000
@@ -340,6 +341,7 @@ FunctionEnd
 Function un.ConfirmLeave
     SendMessage $DeleteAppDataCheckbox ${BM_GETCHECK} 0 0 $DeleteAppDataCheckboxState
 FunctionEnd
+{{/if}}
 !insertmacro MUI_UNPAGE_CONFIRM
 
 ; 2. Uninstalling Page
@@ -617,13 +619,14 @@ Section Uninstall
   DeleteRegValue HKCU "${MANUPRODUCTKEY}" "Installer Language"
 
   ; Delete app data
+  {{#if appdata_paths}}
   ${If} $DeleteAppDataCheckboxState == 1
-    !if "${BUNDLEID}" != ""
       SetShellVarContext current
-      RmDir /r "$APPDATA\${BUNDLEID}"
-      RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
-    !endif
+      {{#each appdata_paths}}
+      RmDir /r "{{unescape_dollar_sign this}}"
+      {{/each}}
   ${EndIf}
+  {{/if}}
 
   ${GetOptions} $CMDLINE "/P" $R0
   IfErrors +2 0
@@ -642,11 +645,11 @@ FunctionEnd
 
 Function CreateDesktopShortcut
   CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
-  ApplicationID::Set "$DESKTOP\${PRODUCTNAME}.lnk" "${BUNDLEID}"
+  ApplicationID::Set "$DESKTOP\${PRODUCTNAME}.lnk" "${IDENTIFIER}"
 FunctionEnd
 
 Function CreateStartMenuShortcut
   CreateDirectory "$SMPROGRAMS\$AppStartMenuFolder"
   CreateShortcut "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
-  ApplicationID::Set "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk" "${BUNDLEID}"
+  ApplicationID::Set "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk" "${IDENTIFIER}"
 FunctionEnd

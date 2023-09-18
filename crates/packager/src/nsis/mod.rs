@@ -188,6 +188,18 @@ fn unescape_newlines(
     Ok(())
 }
 
+fn unescape_dollar_sign(
+    h: &handlebars::Helper<'_, '_>,
+    _: &Handlebars<'_>,
+    _: &handlebars::Context,
+    _: &mut handlebars::RenderContext<'_, '_>,
+    out: &mut dyn handlebars::Output,
+) -> handlebars::HelperResult {
+    let s = h.param(0).unwrap().render();
+    out.write(&s.replace("$$", "$"))?;
+    Ok(())
+}
+
 fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
     let version = semver::Version::parse(version_str)?;
     if !version.build.is_empty() {
@@ -288,12 +300,12 @@ fn build_nsis_app_installer(
         data.insert("additional_plugins_path", to_json(dir));
     }
 
-    let bundle_id = config.identifier();
+    let identifier = config.identifier();
     let manufacturer = config.publisher();
 
     data.insert("arch", to_json(arch));
-    data.insert("bundle_id", to_json(bundle_id));
-    data.insert("manufacturer", to_json(manufacturer));
+    data.insert("identifier", to_json(identifier));
+    data.insert("manufacturer", to_json(&manufacturer));
     data.insert("product_name", to_json(&config.product_name));
     data.insert("short_description", to_json(&config.description));
     data.insert("copyright", to_json(&config.copyright));
@@ -369,6 +381,17 @@ fn build_nsis_app_installer(
                 }),
             );
         }
+        if let Some(appdata_paths) = &nsis.appdata_paths {
+            let appdata_paths = appdata_paths
+                .iter()
+                .map(|p| {
+                    p.replace("$PUBLISHER", &manufacturer)
+                        .replace("$PRODUCTNAME", &config.product_name)
+                        .replace("$IDENTIFIER", config.identifier())
+                })
+                .collect::<Vec<_>>();
+            data.insert("appdata_paths", to_json(appdata_paths));
+        }
     }
 
     data.insert("install_mode", to_json(install_mode));
@@ -421,6 +444,7 @@ fn build_nsis_app_installer(
     handlebars.register_helper("or", Box::new(handlebars_or));
     handlebars.register_helper("association-description", Box::new(association_description));
     handlebars.register_helper("unescape_newlines", Box::new(unescape_newlines));
+    handlebars.register_helper("unescape_dollar_sign", Box::new(unescape_dollar_sign));
     handlebars.register_escape_fn(|s| {
         let mut output = String::new();
         for c in s.chars() {

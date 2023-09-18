@@ -432,6 +432,20 @@ pub struct NsisConfig {
         alias = "display_language_selector"
     )]
     pub display_language_selector: bool,
+    /// List of paths where your app stores data.
+    /// This options tells the uninstaller to provide the user with an option
+    /// (disabled by default) whether they want to rmeove your app data or keep it.
+    ///
+    /// The path should use a constant from https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant
+    /// in addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your
+    /// app data in `C:\\Users\\<user>\\AppData\\Local\\<your-company-name>\\<your-product-name>`
+    /// you'd need to specify
+    /// ```toml
+    /// [package.metadata.packager.nsis]
+    /// appdata-paths = ["$LOCALAPPDATA/$PUBLISHER/$PRODUCTNAME"]
+    /// ```
+    #[serde(default, alias = "appdata-paths", alias = "appdata_paths")]
+    pub appdata_paths: Option<Vec<String>>,
 }
 
 /// The Windows configuration.
