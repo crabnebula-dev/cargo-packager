@@ -292,13 +292,6 @@ pub struct WixConfig {
     /// The Merge element ids you want to reference from the fragments.
     #[serde(alias = "merge-refs", alias = "merge_refs")]
     pub merge_refs: Option<Vec<String>>,
-    /// Create an elevated update task within Windows Task Scheduler.
-    #[serde(
-        default,
-        alias = "enable-elevated-update-task",
-        alias = "enable_elevated_update_task"
-    )]
-    pub enable_elevated_update_task: bool,
     /// Path to a bitmap file to use as the installation user interface banner.
     /// This bitmap will appear at the top of all but the first page of the installer.
     ///

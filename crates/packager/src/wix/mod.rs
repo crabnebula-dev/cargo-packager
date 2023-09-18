@@ -549,7 +549,6 @@ fn build_wix_app_installer(
     let mut handlebars = Handlebars::new();
     handlebars.register_escape_fn(handlebars::no_escape);
     let mut custom_template_path = None;
-    let mut enable_elevated_update_task = false;
 
     if let Some(wix) = config.wix() {
         data.insert("component_group_refs", to_json(&wix.component_group_refs));
@@ -558,7 +557,6 @@ fn build_wix_app_installer(
         data.insert("feature_refs", to_json(&wix.feature_refs));
         data.insert("merge_refs", to_json(&wix.merge_refs));
         fragment_paths = wix.fragment_paths.clone().unwrap_or_default();
-        enable_elevated_update_task = wix.enable_elevated_update_task;
         custom_template_path = wix.template.clone();
 
         if let Some(banner_path) = &wix.banner_path {
@@ -600,58 +598,6 @@ fn build_wix_app_installer(
             .register_template_string("main.wxs", include_str!("./main.wxs"))
             .map_err(|e| e.to_string())
             .expect("Failed to setup handlebar template");
-    }
-
-    if enable_elevated_update_task {
-        // TODO: updater args
-        // data.insert(
-        //     "msiexec_args",
-        //     to_json(
-        //         config
-        //             .updater()
-        //             .and_then(|updater| updater.msiexec_args)
-        //             .map(|args| args.join(" "))
-        //             .unwrap_or_else(|| "/passive".to_string()),
-        //     ),
-        // );
-
-        // Create the update task XML
-        let mut skip_uac_task = Handlebars::new();
-        let xml = include_str!("./update-task.xml");
-        skip_uac_task
-            .register_template_string("update.xml", xml)
-            .map_err(|e| e.to_string())
-            .expect("Failed to setup Update Task handlebars");
-        let temp_xml_path = output_path.join("update.xml");
-        let update_content = skip_uac_task.render("update.xml", &data)?;
-        std::fs::write(temp_xml_path, update_content)?;
-
-        // Create the Powershell script to install the task
-        let mut skip_uac_task_installer = Handlebars::new();
-        skip_uac_task_installer.register_escape_fn(handlebars::no_escape);
-        let xml = include_str!("./install-task.ps1");
-        skip_uac_task_installer
-            .register_template_string("install-task.ps1", xml)
-            .map_err(|e| e.to_string())
-            .expect("Failed to setup Update Task Installer handlebars");
-        let temp_ps1_path = output_path.join("install-task.ps1");
-        let install_script_content = skip_uac_task_installer.render("install-task.ps1", &data)?;
-        std::fs::write(temp_ps1_path, install_script_content)?;
-
-        // Create the Powershell script to uninstall the task
-        let mut skip_uac_task_uninstaller = Handlebars::new();
-        skip_uac_task_uninstaller.register_escape_fn(handlebars::no_escape);
-        let xml = include_str!("./uninstall-task.ps1");
-        skip_uac_task_uninstaller
-            .register_template_string("uninstall-task.ps1", xml)
-            .map_err(|e| e.to_string())
-            .expect("Failed to setup Update Task Uninstaller handlebars");
-        let temp_ps1_path = output_path.join("uninstall-task.ps1");
-        let install_script_content =
-            skip_uac_task_uninstaller.render("uninstall-task.ps1", &data)?;
-        std::fs::write(temp_ps1_path, install_script_content)?;
-
-        data.insert("enable_elevated_update_task", to_json(true));
     }
 
     let main_wxs_path = output_path.join("main.wxs");
