@@ -677,6 +677,16 @@
             "null"
           ]
         },
+        "mergeModules": {
+          "description": "List of merge modules to include in your installer. For example, if you want to include [C++ Redis merge modules]\n\n[C++ Redis merge modules]: https://wixtoolset.org/docs/v3/howtos/redistributables_and_install_checks/install_vcredist/",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
         "fragmentPaths": {
           "description": "A list of paths to .wxs files with WiX fragments to use.",
           "type": [

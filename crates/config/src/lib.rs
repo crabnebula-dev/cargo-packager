@@ -274,6 +274,12 @@ pub struct WixConfig {
     /// By default, the packager uses an internal template.
     /// This option allows you to define your own wix file.
     pub template: Option<PathBuf>,
+    /// List of merge modules to include in your installer.
+    /// For example, if you want to include [C++ Redis merge modules]
+    ///
+    /// [C++ Redis merge modules]: https://wixtoolset.org/docs/v3/howtos/redistributables_and_install_checks/install_vcredist/
+    #[serde(alias = "merge-modules", alias = "merge_modules")]
+    pub merge_modules: Option<Vec<PathBuf>>,
     /// A list of paths to .wxs files with WiX fragments to use.
     #[serde(alias = "fragment-paths", alias = "fragment_paths")]
     pub fragment_paths: Option<Vec<PathBuf>>,

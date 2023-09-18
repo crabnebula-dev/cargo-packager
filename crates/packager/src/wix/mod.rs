@@ -322,9 +322,9 @@ fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
 }
 
 #[derive(Serialize)]
-struct MergeModule {
-    name: String,
-    path: String,
+struct MergeModule<'a> {
+    name: &'a str,
+    path: &'a PathBuf,
 }
 
 /// Copies the icon to the binary path, under the `resources` folder,
@@ -581,6 +581,20 @@ fn build_wix_app_installer(
                 "dialog_image_path",
                 to_json(copy_icon(config, &filename, dialog_image_path)?),
             );
+        }
+
+        if let Some(merge_modules) = &wix.merge_modules {
+            let merge_modules = merge_modules
+                .iter()
+                .map(|path| MergeModule {
+                    name: path
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or_default(),
+                    path,
+                })
+                .collect::<Vec<_>>();
+            data.insert("merge_modules", to_json(merge_modules));
         }
     }
 
