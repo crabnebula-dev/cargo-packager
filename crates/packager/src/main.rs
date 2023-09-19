@@ -150,7 +150,7 @@ pub(crate) struct Cli {
     #[clap(short, long, global = true, action = ArgAction::Count)]
     verbose: u8,
     /// Specify the package fromats to build.
-    #[clap(long, value_enum)]
+    #[clap(short, long, value_enum, action = ArgAction::Append, use_value_delimiter = true, value_delimiter = ',')]
     formats: Option<Vec<PackageFormat>>,
     /// Specify a configuration to read, which could be a JSON file,
     /// TOML file, or a raw JSON string. By default, cargo-pacakger

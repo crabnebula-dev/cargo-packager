@@ -41,34 +41,33 @@ pub mod util;
 #[cfg(windows)]
 mod wix;
 
-use std::{path::PathBuf, process::Command};
+use std::path::{Path, PathBuf};
 
+use config::ConfigExt;
 pub use config::{Config, PackageFormat};
 pub use error::{Error, Result};
 
+/// The packaging context info
+pub(crate) struct Context<'a> {
+    /// The config for the app we are packaging
+    pub(crate) config: &'a Config,
+    /// The intermediates path, which is `<out-dir>/.cargo-packager`
+    pub(crate) intermediates_path: &'a Path,
+    /// The global path which we store tools used by cargo-packager and usually is
+    /// `<cache-dir>/.cargo-packager`
+    pub(crate) tools_path: &'a Path,
+}
+
 /// Generated Package metadata.
 #[derive(Debug)]
-pub struct Package {
+pub struct PackageOuput {
     /// The package type.
     pub format: PackageFormat,
     /// All paths for this package.
     pub paths: Vec<PathBuf>,
 }
 
-fn cross_command(script: &str) -> Command {
-    #[cfg(windows)]
-    let mut cmd = Command::new("cmd");
-    #[cfg(windows)]
-    cmd.arg("/S").arg("/C").arg(script);
-    #[cfg(not(windows))]
-    let mut cmd = Command::new("sh");
-    cmd.current_dir(dunce::canonicalize(std::env::current_dir().unwrap()).unwrap());
-    #[cfg(not(windows))]
-    cmd.arg("-c").arg(script);
-    cmd
-}
-
-pub fn package(config: &Config) -> Result<Vec<Package>> {
+pub fn package(config: &Config) -> Result<Vec<PackageOuput>> {
     let mut packages = Vec::new();
 
     let mut formats = config
@@ -87,11 +86,11 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         if let Some(hook) = &config.before_packaging_command {
             let (mut cmd, script) = match hook {
                 cargo_packager_config::HookCommand::Script(script) => {
-                    let cmd = cross_command(script);
+                    let cmd = util::cross_command(script);
                     (cmd, script)
                 }
                 cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
-                    let mut cmd = cross_command(script);
+                    let mut cmd = util::cross_command(script);
                     if let Some(dir) = dir {
                         cmd.current_dir(dir);
                     }
@@ -114,15 +113,31 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
         }
     }
 
+    let tools_path = dirs::cache_dir()
+        .unwrap_or_else(|| config.out_dir())
+        .join(".cargo-packager");
+    if !tools_path.exists() {
+        std::fs::create_dir_all(&tools_path)?;
+    }
+
+    let intermediates_path = config.out_dir().join(".cargo-packager");
+    util::create_clean_dir(&intermediates_path)?;
+
+    let ctx = Context {
+        config,
+        tools_path: &tools_path,
+        intermediates_path: &intermediates_path,
+    };
+
     for format in &formats {
         if let Some(hook) = &config.before_each_package_command {
             let (mut cmd, script) = match hook {
                 cargo_packager_config::HookCommand::Script(script) => {
-                    let cmd = cross_command(script);
+                    let cmd = util::cross_command(script);
                     (cmd, script)
                 }
                 cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
-                    let mut cmd = cross_command(script);
+                    let mut cmd = util::cross_command(script);
                     if let Some(dir) = dir {
                         cmd.current_dir(dir);
                     }
@@ -147,25 +162,25 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
 
         let paths = match format {
             #[cfg(target_os = "macos")]
-            PackageFormat::App => app::package(config),
+            PackageFormat::App => app::package(&ctx),
             #[cfg(target_os = "macos")]
             PackageFormat::Dmg => {
                 // PackageFormat::App is required for the DMG bundle
                 if !packages
                     .iter()
-                    .any(|b: &Package| b.format == PackageFormat::App)
+                    .any(|b: &PackageOuput| b.format == PackageFormat::App)
                 {
-                    let paths = app::package(config)?;
-                    packages.push(Package {
+                    let paths = app::package(&ctx)?;
+                    packages.push(PackageOuput {
                         format: PackageFormat::App,
                         paths,
                     });
                 }
-                dmg::package(config)
+                dmg::package(&ctx)
             }
             #[cfg(target_os = "windows")]
-            PackageFormat::Wix => wix::package(config),
-            PackageFormat::Nsis => nsis::package(config),
+            PackageFormat::Wix => wix::package(&ctx),
+            PackageFormat::Nsis => nsis::package(&ctx),
             #[cfg(any(
                 target_os = "linux",
                 target_os = "dragonfly",
@@ -173,7 +188,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
                 target_os = "netbsd",
                 target_os = "openbsd"
             ))]
-            PackageFormat::Deb => deb::package(config),
+            PackageFormat::Deb => deb::package(&ctx),
             #[cfg(any(
                 target_os = "linux",
                 target_os = "dragonfly",
@@ -181,7 +196,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
                 target_os = "netbsd",
                 target_os = "openbsd"
             ))]
-            PackageFormat::AppImage => appimage::package(config),
+            PackageFormat::AppImage => appimage::package(&ctx),
 
             _ => {
                 log::warn!("ignoring {}", format.short_name());
@@ -189,7 +204,7 @@ pub fn package(config: &Config) -> Result<Vec<Package>> {
             }
         }?;
 
-        packages.push(Package {
+        packages.push(PackageOuput {
             format: *format,
             paths,
         });

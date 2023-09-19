@@ -10,10 +10,36 @@ use zip::ZipArchive;
 
 use crate::shell::CommandExt;
 
+#[inline]
+pub(crate) fn cross_command(script: &str) -> Command {
+    #[cfg(windows)]
+    let mut cmd = Command::new("cmd");
+    #[cfg(windows)]
+    cmd.arg("/S").arg("/C").arg(script);
+    #[cfg(not(windows))]
+    let mut cmd = Command::new("sh");
+    cmd.current_dir(dunce::canonicalize(std::env::current_dir().unwrap()).unwrap());
+    #[cfg(not(windows))]
+    cmd.arg("-c").arg(script);
+    cmd
+}
+
+#[inline]
 pub fn display_path<P: AsRef<Path>>(p: P) -> String {
     dunce::simplified(&p.as_ref().components().collect::<PathBuf>())
         .display()
         .to_string()
+}
+
+#[inline]
+/// Recursively create a directory and all of its parent components if they
+/// are missing after Deleting the existing directory (if it exists).
+pub fn create_clean_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
+    let path = path.as_ref();
+    if path.exists() {
+        std::fs::remove_dir_all(path)?;
+    }
+    std::fs::create_dir_all(path)
 }
 
 #[derive(Debug, PartialEq, Eq)]

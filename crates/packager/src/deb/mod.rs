@@ -15,7 +15,7 @@ use walkdir::WalkDir;
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
-    util,
+    util, Context,
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -28,9 +28,9 @@ pub struct DebIcon {
 
 /// Generate the icon files and store them under the `data_dir`.
 fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
-    let base_dir = data_dir.join("usr/share/icons/hicolor");
+    let hicolor_dir = data_dir.join("usr/share/icons/hicolor");
     let get_dest_path = |width: u32, height: u32, is_high_density: bool| {
-        base_dir.join(format!(
+        hicolor_dir.join(format!(
             "{}x{}{}/apps/{}.png",
             width,
             height,
@@ -138,12 +138,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
     Ok(())
 }
 
-pub fn generate_data(
-    config: &Config,
-    package_dir: &Path,
-) -> crate::Result<(PathBuf, BTreeSet<DebIcon>)> {
-    // Generate data files.
-    let data_dir = package_dir.join("data");
+pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let bin_dir = data_dir.join("usr/bin");
 
     log::debug!("copying binaries");
@@ -166,7 +161,7 @@ pub fn generate_data(
     log::debug!("generating desktop file");
     generate_desktop_file(config, &data_dir)?;
 
-    Ok((data_dir, icons))
+    Ok(icons)
 }
 
 pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
@@ -351,36 +346,40 @@ fn create_archive(srcs: Vec<PathBuf>, dest: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
+pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
+    let Context {
+        config,
+        intermediates_path,
+        ..
+    } = ctx;
+
     let arch = match config.target_arch()? {
         "x86" => "i386",
         "x86_64" => "amd64",
-        // ARM64 is detected differently, armel isn't supported, so armhf is the only reasonable choice here.
         "arm" => "armhf",
         "aarch64" => "arm64",
         other => other,
     };
 
-    let package_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
-    let package_name = format!("{package_base_name}.deb");
+    let intermediates_path = intermediates_path.join("deb");
+    util::create_clean_dir(&intermediates_path)?;
 
-    let base_dir = config.out_dir().join("deb");
+    let deb_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
+    let deb_name = format!("{deb_base_name}.deb");
 
-    let package_dir = base_dir.join(&package_base_name);
-    if package_dir.exists() {
-        std::fs::remove_dir_all(&package_dir)?;
-    }
-    let package_path = config.out_dir().join(&package_name);
+    let deb_dir = intermediates_path.join(&deb_base_name);
+    let deb_path = config.out_dir().join(&deb_name);
 
-    log::info!(action = "Pckaging"; "{} ({})", package_name, package_path.display());
+    log::info!(action = "Packaging"; "{} ({})", deb_name, deb_path.display());
 
     log::debug!("generating data");
-    let (data_dir, _) = generate_data(config, &package_dir)?;
+    let data_dir = deb_dir.join("data");
+    let _ = generate_data(config, &data_dir)?;
 
     log::debug!("copying files specifeid in `deb.files`");
     copy_custom_files(config, &data_dir)?;
 
-    let control_dir = package_dir.join("control");
+    let control_dir = deb_dir.join("control");
     log::debug!("generating control file");
     generate_control_file(config, arch, &control_dir, &data_dir)?;
 
@@ -390,7 +389,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     // Generate `debian-binary` file; see
     // http://www.tldp.org/HOWTO/Debian-Binary-Package-Building-HOWTO/x60.html#AEN66
     log::debug!("creating debian-binary file");
-    let debian_binary_path = package_dir.join("debian-binary");
+    let debian_binary_path = deb_dir.join("debian-binary");
     let mut file = util::create_file(&debian_binary_path)?;
     file.write_all(b"2.0\n")?;
     file.flush()?;
@@ -402,10 +401,10 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     log::debug!("tar_and_gzip data dir");
     let data_tar_gz_path = tar_and_gzip_dir(data_dir)?;
 
-    log::debug!("creating final archive: {}", package_path.display());
+    log::debug!("creating final archive: {}", deb_path.display());
     create_archive(
         vec![debian_binary_path, control_tar_gz_path, data_tar_gz_path],
-        &package_path,
+        &deb_path,
     )?;
-    Ok(vec![package_path])
+    Ok(vec![deb_path])
 }

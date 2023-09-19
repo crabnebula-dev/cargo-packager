@@ -16,7 +16,8 @@ use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
     shell::CommandExt,
     sign,
-    util::{display_path, download_and_verify, extract_zip, HashAlgorithm},
+    util::{self, display_path, download_and_verify, extract_zip, HashAlgorithm},
+    Context,
 };
 
 pub const WIX_URL: &str =
@@ -328,17 +329,6 @@ struct MergeModule<'a> {
     path: &'a PathBuf,
 }
 
-/// Copies the icon to the binary path, under the `resources` folder,
-/// and returns the path to the file.
-fn copy_icon(config: &Config, filename: &str, path: &Path) -> crate::Result<PathBuf> {
-    let resource_dir = config.out_dir().join("resources");
-    std::fs::create_dir_all(&resource_dir)?;
-    let icon_target_path = resource_dir.join(filename);
-    let icon_path = std::env::current_dir()?.join(path);
-    std::fs::copy(icon_path, &icon_target_path)?;
-    Ok(icon_target_path)
-}
-
 fn clear_env_for_wix(cmd: &mut Command) {
     cmd.env_clear();
     let required_vars: Vec<std::ffi::OsString> =
@@ -354,12 +344,11 @@ fn clear_env_for_wix(cmd: &mut Command) {
 /// Runs the Candle.exe executable for Wix. Candle parses the wxs file and generates the code for building the installer.
 fn run_candle(
     config: &Config,
+    wix_path: &Path,
+    intermediates_path: &Path,
     arch: &str,
-    wix_toolset_path: &Path,
-    cwd: &Path,
     wxs_file_path: PathBuf,
     extensions: Vec<PathBuf>,
-    log_level: LogLevel,
 ) -> crate::Result<()> {
     let main_binary = config.main_binary()?;
     let mut args = vec![
@@ -376,7 +365,7 @@ fn run_candle(
         args.push("-fips".into());
     }
 
-    let candle_exe = wix_toolset_path.join("candle.exe");
+    let candle_exe = wix_path.join("candle.exe");
 
     log::info!(action = "Running"; "candle for {:?}", wxs_file_path);
     let mut cmd = Command::new(candle_exe);
@@ -385,12 +374,12 @@ fn run_candle(
         cmd.arg(ext);
     }
     clear_env_for_wix(&mut cmd);
-    if log_level >= LogLevel::Debug {
+    if config.log_level.unwrap_or_default() >= LogLevel::Debug {
         cmd.arg("-v");
     }
 
     cmd.args(&args)
-        .current_dir(cwd)
+        .current_dir(intermediates_path)
         .output_ok()
         .map_err(|e| crate::Error::WixFailed("candle.exe".into(), e.to_string()))?;
 
@@ -399,14 +388,14 @@ fn run_candle(
 
 /// Runs the Light.exe file. Light takes the generated code from Candle and produces an MSI Installer.
 fn run_light(
-    wix_toolset_path: &Path,
-    build_path: &Path,
+    config: &Config,
+    wix_path: &Path,
+    intermediates_path: &Path,
     arguments: Vec<String>,
     extensions: &Vec<PathBuf>,
     output_path: &Path,
-    log_level: LogLevel,
 ) -> crate::Result<()> {
-    let light_exe = wix_toolset_path.join("light.exe");
+    let light_exe = wix_path.join("light.exe");
 
     let mut args: Vec<String> = vec!["-o".to_string(), display_path(output_path)];
 
@@ -418,11 +407,11 @@ fn run_light(
         cmd.arg(ext);
     }
     clear_env_for_wix(&mut cmd);
-    if log_level >= LogLevel::Debug {
+    if config.log_level.unwrap_or_default() >= LogLevel::Debug {
         cmd.arg("-v");
     }
     cmd.args(&args)
-        .current_dir(build_path)
+        .current_dir(intermediates_path)
         .output_ok()
         .map_err(|e| crate::Error::WixFailed("light.exe".into(), e.to_string()))?;
 
@@ -440,10 +429,13 @@ fn get_and_extract_wix(path: &Path) -> crate::Result<()> {
     extract_zip(&data, path)
 }
 
-fn build_wix_app_installer(
-    config: &Config,
-    wix_toolset_path: &Path,
-) -> crate::Result<Vec<PathBuf>> {
+fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<PathBuf>> {
+    let Context {
+        config,
+        intermediates_path,
+        ..
+    } = ctx;
+
     let arch = match config.target_arch()? {
         "x86_64" => "x64",
         "x86" => "x86",
@@ -456,37 +448,14 @@ fn build_wix_app_installer(
 
     sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
 
-    let output_path = config.out_dir().join("wix").join(arch);
-
-    if output_path.exists() {
-        std::fs::remove_dir_all(&output_path)?;
-    }
-    std::fs::create_dir_all(&output_path)?;
-
-    let app_version = convert_version(&config.version)?;
+    let intermediates_path = intermediates_path.join("wix").join(arch);
+    util::create_clean_dir(&intermediates_path)?;
 
     let mut data = BTreeMap::new();
 
     // TODO: webview2 logic
 
-    if let Some(license) = &config.license_file {
-        if license.ends_with(".rtf") {
-            data.insert("license", to_json(license));
-        } else {
-            let license_contents = std::fs::read_to_string(license)?;
-            let license_rtf = format!(
-                r#"{{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{{\fonttbl{{\f0\fnil\fcharset0 Calibri;}}}}
-{{\*\generator Riched20 10.0.18362}}\viewkind4\uc1
-\pard\sa200\sl276\slmult1\f0\fs22\lang9 {}\par
-}}
- "#,
-                license_contents.replace('\n', "\\par ")
-            );
-            let rtf_output_path = config.out_dir().join("wix").join("LICENSE.rtf");
-            std::fs::write(&rtf_output_path, license_rtf)?;
-            data.insert("license", to_json(rtf_output_path));
-        }
-    }
+    let app_version = convert_version(&config.version)?;
 
     data.insert("product_name", to_json(&config.product_name));
     data.insert("version", to_json(&app_version));
@@ -535,15 +504,33 @@ fn build_wix_app_installer(
 
     // copy icon from `settings.windows().icon_path` folder to resource folder near msi
     if let Some(icon) = config.find_ico() {
-        let icon_path = copy_icon(config, "icon.ico", &icon)?;
+        let icon_path = dunce::canonicalize(icon)?;
         data.insert("icon_path", to_json(icon_path));
+    }
+
+    if let Some(license) = &config.license_file {
+        if license.ends_with(".rtf") {
+            data.insert("license", to_json(license));
+        } else {
+            let license_contents = std::fs::read_to_string(license)?;
+            let license_rtf = format!(
+                r#"{{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{{\fonttbl{{\f0\fnil\fcharset0 Calibri;}}}}
+{{\*\generator Riched20 10.0.18362}}\viewkind4\uc1
+\pard\sa200\sl276\slmult1\f0\fs22\lang9 {}\par
+}}
+ "#,
+                license_contents.replace('\n', "\\par ")
+            );
+            let rtf_output_path = intermediates_path.join("LICENSE.rtf");
+            std::fs::write(&rtf_output_path, license_rtf)?;
+            data.insert("license", to_json(rtf_output_path));
+        }
     }
 
     let mut fragment_paths = Vec::new();
     let mut handlebars = Handlebars::new();
     handlebars.register_escape_fn(handlebars::no_escape);
     let mut custom_template_path = None;
-
     if let Some(wix) = config.wix() {
         data.insert("component_group_refs", to_json(&wix.component_group_refs));
         data.insert("component_refs", to_json(&wix.component_refs));
@@ -554,26 +541,13 @@ fn build_wix_app_installer(
         custom_template_path = wix.template.clone();
 
         if let Some(banner_path) = &wix.banner_path {
-            let filename = banner_path
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .into_owned();
-            data.insert(
-                "banner_path",
-                to_json(copy_icon(config, &filename, banner_path)?),
-            );
+            data.insert("banner_path", to_json(dunce::canonicalize(banner_path)?));
         }
 
         if let Some(dialog_image_path) = &wix.dialog_image_path {
-            let filename = dialog_image_path
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .into_owned();
             data.insert(
                 "dialog_image_path",
-                to_json(copy_icon(config, &filename, dialog_image_path)?),
+                to_json(dunce::canonicalize(dialog_image_path)?),
             );
         }
 
@@ -608,7 +582,7 @@ fn build_wix_app_installer(
             .expect("Failed to setup handlebar template");
     }
 
-    let main_wxs_path = output_path.join("main.wxs");
+    let main_wxs_path = intermediates_path.join("main.wxs");
     std::fs::write(&main_wxs_path, handlebars.render("main.wxs", &data)?)?;
 
     let mut candle_inputs = vec![(main_wxs_path, Vec::new())];
@@ -620,15 +594,15 @@ fn build_wix_app_installer(
         let fragment = std::fs::read_to_string(&fragment_path)?;
         let mut extensions = Vec::new();
         for cap in extension_regex.captures_iter(&fragment) {
-            extensions.push(wix_toolset_path.join(format!("Wix{}.dll", &cap[1])));
+            extensions.push(wix_path.join(format!("Wix{}.dll", &cap[1])));
         }
         candle_inputs.push((fragment_path, extensions));
     }
 
     let mut fragment_extensions = HashSet::new();
     //Default extensions
-    fragment_extensions.insert(wix_toolset_path.join("WixUIExtension.dll"));
-    fragment_extensions.insert(wix_toolset_path.join("WixUtilExtension.dll"));
+    fragment_extensions.insert(wix_path.join("WixUIExtension.dll"));
+    fragment_extensions.insert(wix_path.join("WixUtilExtension.dll"));
 
     for (path, extensions) in candle_inputs {
         for ext in &extensions {
@@ -636,12 +610,11 @@ fn build_wix_app_installer(
         }
         run_candle(
             config,
+            wix_path,
+            &intermediates_path,
             arch,
-            wix_toolset_path,
-            &output_path,
             path,
             extensions,
-            config.log_level.unwrap_or_default(),
         )?;
     }
 
@@ -696,7 +669,7 @@ fn build_wix_app_installer(
             "</WixLocalization>",
             &format!("{}</WixLocalization>", unset_locale_strings),
         );
-        let locale_path = output_path.join("locale.wxl");
+        let locale_path = intermediates_path.join("locale.wxl");
         {
             let mut fileout = File::create(&locale_path).expect("Failed to create locale file");
             fileout.write_all(locale_contents.as_bytes())?;
@@ -715,7 +688,7 @@ fn build_wix_app_installer(
             display_path(&locale_path),
             "*.wixobj".into(),
         ];
-        let msi_output_path = output_path.join("output.msi");
+        let msi_output_path = intermediates_path.join("output.msi");
         let msi_path = config.out_dir().join(format!(
             "{}_{}_{}_{}.msi",
             main_binary.filename, app_version, arch, language
@@ -725,12 +698,12 @@ fn build_wix_app_installer(
         log::info!(action = "Running"; "light.exe to produce {}", display_path(&msi_path));
 
         run_light(
-            wix_toolset_path,
-            &output_path,
+            config,
+            wix_path,
+            &intermediates_path,
             arguments,
             &(fragment_extensions.clone().into_iter().collect()),
             &msi_output_path,
-            config.log_level.unwrap_or_default(),
         )?;
         std::fs::rename(&msi_output_path, &msi_path)?;
         sign::try_sign(&msi_path, config)?;
@@ -740,8 +713,8 @@ fn build_wix_app_installer(
     Ok(output_paths)
 }
 
-pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
-    let wix_path = dirs::cache_dir().unwrap().join("cargo-packager/WixTools");
+pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
+    let wix_path = ctx.tools_path.join("WixTools");
     if !wix_path.exists() {
         get_and_extract_wix(&wix_path)?;
     } else if WIX_REQUIRED_FILES
@@ -753,5 +726,5 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         get_and_extract_wix(&wix_path)?;
     }
 
-    build_wix_app_installer(config, &wix_path)
+    build_wix_app_installer(ctx, &wix_path)
 }

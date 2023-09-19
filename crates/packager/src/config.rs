@@ -233,12 +233,12 @@ impl ConfigExtInternal for Config {
         if let Some(external_binaries) = &self.external_binaries {
             for src in external_binaries {
                 let src = dunce::canonicalize(PathBuf::from(src))?;
-                let dest = path.join(
-                    src.file_name()
-                        .expect("failed to extract external binary filename")
-                        .to_string_lossy()
-                        .replace(&format!("-{}", self.target_triple()), ""),
-                );
+                let file_name_no_triple = src
+                    .file_name()
+                    .expect("failed to extract external binary filename")
+                    .to_string_lossy()
+                    .replace(&format!("-{}", self.target_triple()), "");
+                let dest = path.join(file_name_no_triple);
                 std::fs::copy(src, dest)?;
             }
         }
