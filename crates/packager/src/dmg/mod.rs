@@ -1,7 +1,7 @@
 use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 
 use crate::{
-    config::{Config, ConfigExt},
+    config::ConfigExt,
     shell::CommandExt,
     sign,
     util::{self, download},
@@ -41,7 +41,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let dmg_tools_path = tools_path.join("DMG");
 
     let script_dir = dmg_tools_path.join("script");
-    std::fs::script_dir(&support_directory_path)?;
+    std::fs::create_dir_all(&script_dir)?;
 
     let create_dmg_script_path = script_dir.join("create-dmg");
 

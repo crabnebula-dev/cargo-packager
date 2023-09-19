@@ -156,10 +156,10 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
     config.copy_external_binaries(&bin_dir)?;
 
     log::debug!("generating icons");
-    let icons = generate_icon_files(config, &data_dir)?;
+    let icons = generate_icon_files(config, data_dir)?;
 
     log::debug!("generating desktop file");
-    generate_desktop_file(config, &data_dir)?;
+    generate_desktop_file(config, data_dir)?;
 
     Ok(icons)
 }
