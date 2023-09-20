@@ -9,5 +9,5 @@
 2. package the app
 
    ```sh
-   cargo r -p cargo-packager -- -p dioxus-example --relase
+   cargo r -p cargo-packager -- -p dioxus-example --release
    ```
