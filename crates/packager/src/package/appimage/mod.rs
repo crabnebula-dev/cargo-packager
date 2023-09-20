@@ -7,10 +7,11 @@ use std::{
 
 use handlebars::{to_json, Handlebars};
 
+use super::Context;
 use crate::{
     config::{ConfigExt, ConfigExtInternal},
     shell::CommandExt,
-    util, Context,
+    util,
 };
 
 fn donwload_dependencies(

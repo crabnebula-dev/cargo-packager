@@ -59,7 +59,7 @@ pub enum Error {
     /// Non-numeric build metadata in app version.
     #[error("optional build metadata in app version must be numeric-only {}", .0.clone().unwrap_or_default())]
     NonNumericBuildMetadata(Option<String>),
-    /// Invalid app version when building [crate::PackageFormat::Msi]
+    /// Invalid app version when building [crate::PackageFormat::Wix]
     #[error("invalid app version: {0}")]
     InvalidAppVersion(String),
     /// Handlebars render error.

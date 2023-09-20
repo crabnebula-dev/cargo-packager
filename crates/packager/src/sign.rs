@@ -1,5 +1,5 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
-use minisign::{sign, KeyPair as KP, SecretKey, SecretKeyBox};
+//! File singing and signing keys creation and decoding.
+
 use std::{
     fs::OpenOptions,
     io::{BufReader, Write},
@@ -7,6 +7,9 @@ use std::{
     str,
     time::{SystemTime, UNIX_EPOCH},
 };
+
+use base64::{engine::general_purpose::STANDARD, Engine};
+use minisign::{sign, KeyPair as KP, SecretKey, SecretKeyBox};
 
 use crate::util;
 
@@ -16,6 +19,9 @@ pub struct KeyPair {
     pub sk: String,
 }
 
+/// Generates a new signing key. If `password` is `None`, it will prompt
+/// the user for a password, so if you want to skip the prompt, specify and
+/// empty string as the password.
 pub fn generate_key(password: Option<String>) -> crate::Result<KeyPair> {
     let KP { pk, sk } = KP::generate_encrypted_keypair(password).unwrap();
 
@@ -31,11 +37,12 @@ pub fn generate_key(password: Option<String>) -> crate::Result<KeyPair> {
     })
 }
 
-pub fn decode_base64(base64_key: &str) -> crate::Result<String> {
+fn decode_base64(base64_key: &str) -> crate::Result<String> {
     let decoded_str = &base64::engine::general_purpose::STANDARD.decode(base64_key)?[..];
     Ok(String::from(str::from_utf8(decoded_str)?))
 }
 
+/// Decodes a private key using the specified password.
 pub fn decode_private_key(private_key: &str, password: Option<&str>) -> crate::Result<SecretKey> {
     let decoded_secret = decode_base64(private_key)?;
     let sk_box = SecretKeyBox::from_string(&decoded_secret)?;
@@ -43,6 +50,7 @@ pub fn decode_private_key(private_key: &str, password: Option<&str>) -> crate::R
     Ok(sk)
 }
 
+/// Saves a [`KeyPair`] to disk.
 pub fn save_keypair<P: AsRef<Path>>(
     keypair: &KeyPair,
     path: P,
@@ -88,9 +96,17 @@ pub struct SigningConfig {
     pub password: Option<String>,
 }
 
+/// Signs a specified file using the specified signing configuration.
 pub fn sign_file<P: AsRef<Path>>(config: &SigningConfig, path: P) -> crate::Result<PathBuf> {
     let secret_key = decode_private_key(&config.private_key, config.password.as_deref())?;
+    sign_file_with_secret_key(&secret_key, path)
+}
 
+/// Signs a specified file using an already decoded secret key.
+pub fn sign_file_with_secret_key<P: AsRef<Path>>(
+    secret_key: &SecretKey,
+    path: P,
+) -> crate::Result<PathBuf> {
     let path = path.as_ref();
     let extension = path.extension().unwrap_or_default().to_string_lossy();
     let signature_path = path.with_extension(format!("{}.sig", extension));
@@ -110,10 +126,10 @@ pub fn sign_file<P: AsRef<Path>>(config: &SigningConfig, path: P) -> crate::Resu
 
     let signature_box = sign(
         None,
-        &secret_key,
+        secret_key,
         file_reader,
         Some(trusted_comment.as_str()),
-        Some("signature from tauri secret key"),
+        Some("signature from cargo-pacakger secret key"),
     )?;
 
     let encoded_signature = STANDARD.encode(signature_box.to_string());

@@ -1,9 +1,10 @@
 use std::path::{Path, PathBuf};
 
+use super::Context;
 use crate::{
     codesign,
     config::{Config, ConfigExt, ConfigExtInternal},
-    sign, util, Context,
+    sign, util,
 };
 
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {

@@ -12,12 +12,12 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::Context;
 use crate::{
     codesign,
     config::{Config, ConfigExt, ConfigExtInternal},
     shell::CommandExt,
     util::{self, display_path, download_and_verify, extract_zip, HashAlgorithm},
-    Context,
 };
 
 pub const WIX_URL: &str =
