@@ -31,9 +31,9 @@ pub fn display_path<P: AsRef<Path>>(p: P) -> String {
         .to_string()
 }
 
-#[inline]
 /// Recursively create a directory and all of its parent components if they
 /// are missing after Deleting the existing directory (if it exists).
+#[inline]
 pub fn create_clean_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
     let path = path.as_ref();
     if path.exists() {
@@ -254,13 +254,7 @@ pub(crate) fn is_retina<P: AsRef<Path>>(path: P) -> bool {
 }
 
 /// Creates a new file at the given path, creating any parent directories as needed.
-#[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
-))]
+#[inline]
 pub(crate) fn create_file(path: &Path) -> crate::Result<std::io::BufWriter<File>> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;

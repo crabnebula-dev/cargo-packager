@@ -526,18 +526,6 @@ impl Default for WindowsConfig {
     }
 }
 
-/// The package sigining configuration. This only signs
-/// the resulting pacakge file itself and generates a signatue file
-/// so your users can verify the downloaded file or when [`cargo-packager-updater`]
-/// downloads an update.
-///
-/// [`cargo-packager-updater`]: https://docs.rs/cargo-packager-updater
-#[derive(Deserialize, Serialize, Debug, Clone, JsonSchema)]
-pub struct SigningConfig {
-    /// Signature public key.
-    pub pubkey: String,
-}
-
 /// An enum representing the available verbosity levels of the logger.
 #[derive(Deserialize, Serialize)]
 #[repr(usize)]
@@ -709,8 +697,6 @@ pub struct Config {
     /// <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>
     #[serde(alias = "external-binaries", alias = "external_binaries")]
     pub external_binaries: Option<Vec<String>>,
-    /// Signing configuration.
-    pub signing: Option<SigningConfig>,
     /// Debian-specific settings.
     pub deb: Option<DebianConfig>,
     /// Debian-specific settings.

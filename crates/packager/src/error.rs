@@ -176,6 +176,21 @@ pub enum Error {
     /// Couldn't find a square icon to use as AppImage icon
     #[error("couldn't find a square icon to use as AppImage icon")]
     AppImageSquareIcon,
+    /// Base64 decoding error.
+    #[error(transparent)]
+    Base64DecodeError(#[from] base64::DecodeError),
+    /// Utf8 parsing error.
+    #[error(transparent)]
+    Utf8Error(#[from] std::str::Utf8Error),
+    /// minisign errors.
+    #[error(transparent)]
+    Minisign(#[from] minisign::PError),
+    /// System time errors.
+    #[error(transparent)]
+    SystemTimeError(#[from] std::time::SystemTimeError),
+    /// Signing keys generation error.
+    #[error("Key generation aborted, {0} already exists and force overrwite wasnot desired.")]
+    SigningKeyExists(PathBuf),
 }
 
 /// Convenient type alias of Result type for cargo-packager.

@@ -8,7 +8,7 @@ use cargo_packager_config::NsisCompression;
 use handlebars::{to_json, Handlebars};
 
 #[cfg(windows)]
-use crate::sign;
+use crate::codesign;
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal, LogLevel, NSISInstallerMode},
     shell::CommandExt,
@@ -229,7 +229,7 @@ fn get_and_extract_nsis(
     {
         let data = download_and_verify("nsis-3.09.zip", NSIS_URL, NSIS_SHA1, HashAlgorithm::Sha1)?;
         log::info!(action = "Extracting"; "nsis-3.09.zip");
-        extract_zip(&data, ctx.tools_path)?;
+        extract_zip(&data, &ctx.tools_path)?;
         std::fs::rename(ctx.tools_path.join("nsis-3.09"), nsis_toolset_path)?;
     }
 
@@ -278,7 +278,7 @@ fn build_nsis_app_installer(
     {
         let main_binary = config.main_binary()?;
         let app_exe_source = config.binary_path(main_binary);
-        sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
+        codesign::try_sign(&app_exe_source.with_extension("exe"), config)?;
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -318,9 +318,12 @@ fn build_nsis_app_installer(
 
     #[cfg(target_os = "windows")]
     {
-        use sign::ConfigSignExt;
+        use codesign::ConfigSignExt;
         if config.can_sign() {
-            let sign_cmd = format!("{:?}", sign::sign_command("%1", &config.sign_params())?.0);
+            let sign_cmd = format!(
+                "{:?}",
+                codesign::sign_command("%1", &config.sign_params())?.0
+            );
             data.insert("uninstaller_sign_cmd", to_json(sign_cmd));
         }
     }
@@ -512,7 +515,7 @@ fn build_nsis_app_installer(
     std::fs::rename(nsis_output_path, &installer_path)?;
 
     #[cfg(target_os = "windows")]
-    sign::try_sign(&installer_path, config)?;
+    codesign::try_sign(&installer_path, config)?;
     #[cfg(not(target_os = "windows"))]
     log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the installer...");
 

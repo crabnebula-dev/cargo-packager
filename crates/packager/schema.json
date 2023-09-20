@@ -194,17 +194,6 @@
         "type": "string"
       }
     },
-    "signing": {
-      "description": "Signing configuration.",
-      "anyOf": [
-        {
-          "$ref": "#/definitions/SigningConfig"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
     "deb": {
       "description": "Debian-specific settings.",
       "anyOf": [
@@ -565,19 +554,6 @@
           }
         }
       ]
-    },
-    "SigningConfig": {
-      "description": "The package sigining configuration. This only signs the resulting pacakge file itself and generates a signatue file so your users can verify the downloaded file or when [`cargo-packager-updater`] downloads an update.\n\n[`cargo-packager-updater`]: https://docs.rs/cargo-packager-updater",
-      "type": "object",
-      "required": [
-        "pubkey"
-      ],
-      "properties": {
-        "pubkey": {
-          "description": "Signature public key.",
-          "type": "string"
-        }
-      }
     },
     "DebianConfig": {
       "description": "The Linux debian configuration.",
