@@ -13,9 +13,10 @@ use relative_path::PathExt;
 use serde::Serialize;
 use walkdir::WalkDir;
 
+use super::Context;
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
-    util, Context,
+    util,
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]

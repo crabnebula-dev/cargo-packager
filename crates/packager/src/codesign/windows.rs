@@ -1,12 +1,11 @@
 #![cfg(windows)]
 
-// signing code forked from https://github.com/forbjok/rust-codesign
-
-use once_cell::sync::Lazy;
 use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+
+use once_cell::sync::Lazy;
 use winreg::{
     enums::{HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_32KEY},
     RegKey,

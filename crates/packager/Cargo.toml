@@ -5,10 +5,18 @@ description = "Rust executable packager and bundler."
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 
-
 [features]
 default = ["cli"]
 cli = ["env_logger", "clap", "cargo-packager-config/clap"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "doc_cfg"]
+default-target = "x86_64-unknown-linux-gnu"
+targets = [
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+]
 
 [build-dependencies]
 cargo-packager-config.workspace = true

@@ -187,7 +187,7 @@ impl Display for BundleTypeRole {
 pub struct FileAssociation {
     /// File extensions to associate with this app. e.g. 'png'
     pub ext: Vec<String>,
-    /// The name. Maps to `CFBundleTypeName` on macOS. Default to ext[0]
+    /// The name. Maps to `CFBundleTypeName` on macOS. Default to the first item in `ext`
     pub name: Option<String>,
     /// The association description. **Windows-only**. It is displayed on the `Type` column on Windows Explorer.
     pub description: Option<String>,
@@ -211,7 +211,7 @@ pub struct DebianConfig {
     ///
     /// Default file contents:
     /// ```text
-    #[doc = include_str!("../../packager/src/deb/main.desktop")]
+    #[doc = include_str!("../../packager/src/package/deb/main.desktop")]
     /// ```
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
@@ -468,7 +468,7 @@ pub struct NsisConfig {
     /// This options tells the uninstaller to provide the user with an option
     /// (disabled by default) whether they want to rmeove your app data or keep it.
     ///
-    /// The path should use a constant from https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant
+    /// The path should use a constant from <https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant>
     /// in addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your
     /// app data in `C:\\Users\\<user>\\AppData\\Local\\<your-company-name>\\<your-product-name>`
     /// you'd need to specify

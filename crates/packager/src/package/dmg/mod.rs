@@ -1,11 +1,11 @@
 use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 
+use super::Context;
 use crate::{
     codesign,
     config::ConfigExt,
     shell::CommandExt,
     util::{self, download},
-    Context,
 };
 
 const CREATE_DMG_URL: &str =

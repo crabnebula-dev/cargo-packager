@@ -1,145 +1,21 @@
+//! The cli entry point
+
 #![cfg(feature = "cli")]
 
-use std::{
-    fmt::Write as FmtWrite,
-    io::Write,
-    path::{Path, PathBuf},
-};
-
-use crate::{
-    config::{Binary, Config, LogLevel, PackageFormat},
-    package, sign_outputs, util, Result, SigningConfig,
-};
+use std::{fmt::Write as FmtWrite, io::Write, path::PathBuf};
 
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 use env_logger::fmt::Color;
 use log::{log_enabled, Level};
 
+use self::config::{find_config_files, load_configs_from_cargo_workspace, parse_config_file};
+use crate::{
+    config::{Config, LogLevel, PackageFormat},
+    package, sign_outputs, util, Result, SigningConfig,
+};
+
+mod config;
 mod signer;
-
-fn parse_config_file<P: AsRef<Path>>(path: P) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
-    let path = path.as_ref().to_path_buf().canonicalize()?;
-    let content = std::fs::read_to_string(&path)?;
-    let configs = match path.extension().and_then(|e| e.to_str()) {
-        Some("toml") => {
-            if let Ok(cs) = toml::from_str::<Vec<Config>>(&content) {
-                cs.into_iter().map(|c| (Some(path.clone()), c)).collect()
-            } else {
-                vec![(Some(path), toml::from_str::<Config>(&content)?)]
-            }
-        }
-        _ => {
-            if let Ok(cs) = serde_json::from_str::<Vec<Config>>(&content) {
-                cs.into_iter().map(|c| (Some(path.clone()), c)).collect()
-            } else {
-                vec![(Some(path), serde_json::from_str::<Config>(&content)?)]
-            }
-        }
-    };
-
-    Ok(configs)
-}
-
-fn find_config_files() -> Vec<PathBuf> {
-    let opts = glob::MatchOptions {
-        case_sensitive: false,
-        ..Default::default()
-    };
-
-    [
-        glob::glob_with("**/packager.toml", opts)
-            .unwrap()
-            .flatten()
-            .collect::<Vec<_>>(),
-        glob::glob_with("**/packager.json", opts)
-            .unwrap()
-            .flatten()
-            .collect::<Vec<_>>(),
-    ]
-    .concat()
-}
-
-fn load_configs_from_cargo_workspace(
-    release: bool,
-    profile: Option<String>,
-    manifest_path: Option<PathBuf>,
-    packages: Option<Vec<String>>,
-) -> Result<Vec<(Option<PathBuf>, Config)>> {
-    let profile = if release {
-        "release"
-    } else if let Some(profile) = &profile {
-        profile.as_str()
-    } else {
-        "debug"
-    };
-
-    let mut metadata_cmd = cargo_metadata::MetadataCommand::new();
-    if let Some(manifest_path) = &manifest_path {
-        metadata_cmd.manifest_path(manifest_path);
-    }
-    let metadata = metadata_cmd.exec()?;
-
-    let mut configs = Vec::new();
-    for package in metadata.workspace_packages().iter() {
-        // skip if this package was not specified in the explicit packages to build
-        if packages
-            .as_ref()
-            .map(|packages| !packages.contains(&package.name))
-            .unwrap_or(false)
-        {
-            continue;
-        }
-
-        if let Some(config) = package.metadata.get("packager") {
-            let mut config: Config = serde_json::from_value(config.to_owned())?;
-            if config.product_name.is_empty() {
-                config.product_name = package.name.clone();
-            }
-            if config.version.is_empty() {
-                config.version = package.version.to_string();
-            }
-            if config.out_dir.as_os_str().is_empty() {
-                config.out_dir = metadata
-                    .target_directory
-                    .as_std_path()
-                    .to_path_buf()
-                    .join(profile);
-            }
-            if config.description.is_none() {
-                config.description = package.description.clone();
-            }
-            if config.authors.is_empty() {
-                config.authors = package.authors.clone();
-            }
-            if config.license_file.is_none() {
-                config.license_file = package
-                    .license_file
-                    .as_ref()
-                    .map(|p| p.as_std_path().to_owned());
-            }
-            let targets = package
-                .targets
-                .iter()
-                .filter(|t| t.is_bin())
-                .collect::<Vec<_>>();
-            for target in &targets {
-                config.binaries.push(Binary {
-                    filename: target.name.clone(),
-                    main: match targets.len() {
-                        1 => true,
-                        _ => target.name == package.name,
-                    },
-                })
-            }
-            configs.push((
-                Some(package.manifest_path.as_std_path().to_path_buf()),
-                config,
-            ));
-        }
-    }
-
-    Ok(configs)
-}
 
 #[derive(Debug, Clone, Subcommand)]
 enum Commands {
@@ -308,6 +184,7 @@ fn run(cli: Cli) -> Result<()> {
     Ok(())
 }
 
+/// Run the packager CLI
 pub fn try_run() -> crate::Result<()> {
     // prepare cli args
     let args = std::env::args_os().skip(1);
