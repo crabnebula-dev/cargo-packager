@@ -38,6 +38,10 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     log::info!(action = "Packaging"; "{} ({})", dmg_name, dmg_path.display());
 
+    if dmg_path.exists() {
+        std::fs::remove_file(&dmg_path)?;
+    }
+
     let dmg_tools_path = tools_path.join("DMG");
 
     let script_dir = dmg_tools_path.join("script");
