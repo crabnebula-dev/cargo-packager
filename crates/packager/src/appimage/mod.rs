@@ -8,14 +8,14 @@ use std::{
 use handlebars::{to_json, Handlebars};
 
 use crate::{
-    config::{Config, ConfigExt, ConfigExtInternal},
+    config::{ConfigExt, ConfigExtInternal},
     shell::CommandExt,
-    util,
+    util, Context,
 };
 
 fn donwload_dependencies(
-    config: &Config,
-    packager_tools_path: &Path,
+    ctx: &Context,
+    appimage_tools_path: &Path,
     arch: &str,
     linuxdeploy_arch: &str,
 ) -> crate::Result<()> {
@@ -30,7 +30,8 @@ fn donwload_dependencies(
         ),
     ];
 
-    let user_deps = config
+    let user_deps = ctx
+        .config
         .appimage()
         .and_then(|a| a.linuxdeploy_plugins.clone())
         .unwrap_or_default()
@@ -42,7 +43,7 @@ fn donwload_dependencies(
         .collect();
 
     for (path, url) in [internal_deps, user_deps].concat() {
-        let path = packager_tools_path.join(path);
+        let path = appimage_tools_path.join(path);
         if !path.exists() {
             let data = util::download(&url)?;
             log::debug!(action = "Writing"; "{} and setting its permissions to 764", path.display());
@@ -54,7 +55,14 @@ fn donwload_dependencies(
     Ok(())
 }
 
-pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
+pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
+    let Context {
+        config,
+        intermediates_path,
+        tools_path,
+        ..
+    } = ctx;
+
     // generate the deb binary name
     let (arch, linuxdeploy_arch) = match config.target_arch()? {
         "x86" => ("i686", "i386"),
@@ -62,32 +70,24 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         other => (other, other),
     };
 
-    let out_dir = config.out_dir();
-    let output_path = out_dir.join("appimage");
-    if output_path.exists() {
-        std::fs::remove_dir_all(&output_path)?;
-    }
-    std::fs::create_dir_all(&output_path)?;
+    let appimage_tools_path = tools_path.join("AppImage");
+    std::fs::create_dir_all(&appimage_tools_path)?;
 
-    let packager_tools_path = dirs::cache_dir()
-        .map(|p| p.join("cargo-pacakger"))
-        .unwrap_or_else(|| output_path.clone());
-    std::fs::create_dir_all(&packager_tools_path)?;
+    donwload_dependencies(ctx, &appimage_tools_path, arch, linuxdeploy_arch)?;
 
-    donwload_dependencies(config, &packager_tools_path, arch, linuxdeploy_arch)?;
-
-    let appimage_deb_dir = config.out_dir().join("appimage_deb");
+    let appimage_deb_data_dir = intermediates_path.join("appimage_deb").join("data");
+    let intermediates_path = intermediates_path.join("appimage");
 
     // generate deb_folder structure
     log::debug!("generating data");
-    let (_, icons) = super::deb::generate_data(config, &appimage_deb_dir)?;
+    let icons = super::deb::generate_data(config, &appimage_deb_data_dir)?;
     let icons: Vec<super::deb::DebIcon> = icons.into_iter().collect();
 
     let main_binary_name = config.main_binary_name()?;
     let upcase_app_name = main_binary_name.to_uppercase();
-    let app_dir_path = output_path.join(format!("{}.AppDir", &main_binary_name));
+    let app_dir_path = intermediates_path.join(format!("{}.AppDir", &main_binary_name));
     let appimage_filename = format!("{}_{}_{}.AppImage", main_binary_name, config.version, arch);
-    let appimage_path = out_dir.join(&appimage_filename);
+    let appimage_path = config.out_dir().join(&appimage_filename);
 
     std::fs::create_dir_all(app_dir_path)?;
 
@@ -100,7 +100,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
     sh_map.insert("appimage_path", to_json(&appimage_path));
     sh_map.insert(
         "packager_tools_path",
-        to_json(packager_tools_path.display().to_string()),
+        to_json(appimage_tools_path.display().to_string()),
     );
 
     let libs = config
@@ -132,7 +132,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         .ok_or(crate::Error::AppImageSquareIcon)?;
     let larger_icon_path = larger_icon
         .path
-        .strip_prefix(appimage_deb_dir.join("data"))
+        .strip_prefix(appimage_deb_data_dir)
         .unwrap()
         .to_string_lossy()
         .to_string();
@@ -145,7 +145,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         .register_template_string("appimage", include_str!("appimage"))
         .expect("Failed to register template for handlebars");
     let template = handlebars.render("appimage", &sh_map)?;
-    let sh_file = output_path.join("build_appimage.sh");
+    let sh_file = intermediates_path.join("build_appimage.sh");
 
     log::debug!(action = "Writing"; "{template} and setting its permissions to 764");
     std::fs::write(&sh_file, template)?;
@@ -155,10 +155,9 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
 
     // execute the shell script to build the appimage.
     Command::new(&sh_file)
-        .current_dir(output_path)
+        .current_dir(intermediates_path)
         .output_ok()
         .expect("error running appimage.sh");
 
-    std::fs::remove_dir_all(&appimage_deb_dir)?;
     Ok(vec![appimage_path])
 }

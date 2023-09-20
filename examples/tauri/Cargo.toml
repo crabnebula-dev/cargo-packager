@@ -7,7 +7,7 @@ edition = "2021"
 tauri-build = { version = "=2.0.0-alpha.6", features = [] }
 
 [dependencies]
-tauri = { version = "=2.0.0-alpha.10", features = ["system-tray"] }
+tauri = { version = "=2.0.0-alpha.10", features = [] }
 tauri-utils = { version = "=2.0.0-alpha.6", features = [] }
 tauri-macros = "=2.0.0-alpha.6"
 serde.workspace = true

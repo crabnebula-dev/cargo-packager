@@ -400,7 +400,7 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
                     if let Some(home_dir) = dirs::home_dir() {
                         search_paths.push(home_dir.join("private_keys"));
                         search_paths.push(home_dir.join(".private_keys"));
-                        search_paths.push(home_dir.join(".appstoreconnect").join("private_keys"));
+                        search_paths.push(home_dir.join(".appstoreconnect/private_keys"));
                     }
 
                     for folder in search_paths {

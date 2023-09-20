@@ -13,6 +13,7 @@ use crate::{
     config::{Config, ConfigExt, ConfigExtInternal, LogLevel, NSISInstallerMode},
     shell::CommandExt,
     util::{self, download, download_and_verify, extract_zip, HashAlgorithm},
+    Context,
 };
 
 // URLS for the NSIS toolchain.
@@ -221,30 +222,28 @@ fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
 }
 
 fn get_and_extract_nsis(
+    #[allow(unused)] ctx: &Context,
     nsis_toolset_path: &Path,
-    _packager_tools_path: &Path,
 ) -> crate::Result<()> {
     #[cfg(target_os = "windows")]
     {
         let data = download_and_verify("nsis-3.09.zip", NSIS_URL, NSIS_SHA1, HashAlgorithm::Sha1)?;
         log::info!(action = "Extracting"; "nsis-3.09.zip");
-        extract_zip(&data, _packager_tools_path)?;
-        std::fs::rename(_packager_tools_path.join("nsis-3.09"), nsis_toolset_path)?;
+        extract_zip(&data, ctx.tools_path)?;
+        std::fs::rename(ctx.tools_path.join("nsis-3.09"), nsis_toolset_path)?;
     }
 
     let nsis_plugins = nsis_toolset_path.join("Plugins");
 
+    let unicode_plugins = nsis_plugins.join("x86-unicode");
+    std::fs::create_dir_all(&unicode_plugins)?;
+
     let data = download(NSIS_APPLICATIONID_URL)?;
     log::info!(action = "Extracting"; "NSIS ApplicationID plugin");
     extract_zip(&data, &nsis_plugins)?;
-
-    std::fs::create_dir_all(nsis_plugins.join("x86-unicode"))?;
-
     std::fs::copy(
-        nsis_plugins
-            .join("ReleaseUnicode")
-            .join("ApplicationID.dll"),
-        nsis_plugins.join("x86-unicode").join("ApplicationID.dll"),
+        nsis_plugins.join("ReleaseUnicode/ApplicationID.dll"),
+        unicode_plugins.join("ApplicationID.dll"),
     )?;
 
     let data = download_and_verify(
@@ -253,21 +252,21 @@ fn get_and_extract_nsis(
         NSIS_TAURI_UTILS_SHA1,
         HashAlgorithm::Sha1,
     )?;
-    std::fs::write(
-        nsis_plugins
-            .join("x86-unicode")
-            .join("nsis_tauri_utils.dll"),
-        data,
-    )?;
+    std::fs::write(unicode_plugins.join("nsis_tauri_utils.dll"), data)?;
 
     Ok(())
 }
 
 fn build_nsis_app_installer(
-    config: &Config,
-    _nsis_toolset_path: &Path,
-    _packager_tools_path: &Path,
+    ctx: &Context,
+    #[allow(unused)] nsis_path: &Path,
 ) -> crate::Result<Vec<PathBuf>> {
+    let Context {
+        config,
+        intermediates_path,
+        ..
+    } = ctx;
+
     let arch = match config.target_arch()? {
         "x86_64" => "x64",
         "x86" => "x86",
@@ -285,18 +284,16 @@ fn build_nsis_app_installer(
     #[cfg(not(target_os = "windows"))]
     log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the main binary...");
 
-    let output_path = config.out_dir().join("nsis").join(arch);
-    if output_path.exists() {
-        std::fs::remove_dir_all(&output_path)?;
-    }
-    std::fs::create_dir_all(&output_path)?;
+    let intermediates_path = intermediates_path.join("nsis").join(arch);
+    util::create_clean_dir(&intermediates_path)?;
 
     let mut data = BTreeMap::new();
 
     #[cfg(not(target_os = "windows"))]
     {
-        let mut dir = dirs::cache_dir().unwrap();
-        dir.extend(["cargo-packager", "NSIS", "Plugins", "x86-unicode"]);
+        let dir = dirs::cache_dir()
+            .unwrap()
+            .join("cargo-packager/NSIS/Plugins/x86-unicode");
         data.insert("additional_plugins_path", to_json(dir));
     }
 
@@ -323,13 +320,8 @@ fn build_nsis_app_installer(
     {
         use sign::ConfigSignExt;
         if config.can_sign() {
-            data.insert(
-                "uninstaller_sign_cmd",
-                to_json(format!(
-                    "{:?}",
-                    sign::sign_command("%1", &config.sign_params())?.0
-                )),
-            );
+            let sign_cmd = format!("{:?}", sign::sign_command("%1", &config.sign_params())?.0);
+            data.insert("uninstaller_sign_cmd", to_json(sign_cmd));
         }
     }
 
@@ -473,11 +465,11 @@ fn build_nsis_app_installer(
     }
 
     write_ut16_le_with_bom(
-        &output_path.join("FileAssociation.nsh"),
+        &intermediates_path.join("FileAssociation.nsh"),
         include_str!("./FileAssociation.nsh"),
     )?;
 
-    let installer_nsi_path = output_path.join("installer.nsi");
+    let installer_nsi_path = intermediates_path.join("installer.nsi");
     write_ut16_le_with_bom(
         &installer_nsi_path,
         handlebars.render("installer.nsi", &data)?.as_str(),
@@ -485,21 +477,21 @@ fn build_nsis_app_installer(
 
     for (lang, data) in languages_data.iter() {
         if let Some(content) = data {
-            write_ut16_le_with_bom(output_path.join(lang).with_extension("nsh"), content)?;
+            write_ut16_le_with_bom(intermediates_path.join(lang).with_extension("nsh"), content)?;
         }
     }
 
-    let nsis_output_path = output_path.join(out_file);
-    let nsis_installer_path = config.out_dir().join(format!(
+    let nsis_output_path = intermediates_path.join(out_file);
+
+    let installer_path = config.out_dir().join(format!(
         "{}_{}_{}-setup.exe",
         main_binary.filename, config.version, arch
     ));
-    std::fs::create_dir_all(nsis_installer_path.parent().unwrap())?;
+    std::fs::create_dir_all(installer_path.parent().unwrap())?;
 
-    log::info!(action = "Running"; "makensis.exe to produce {}", util::display_path(&nsis_installer_path));
-
+    log::info!(action = "Running"; "makensis.exe to produce {}", util::display_path(&installer_path));
     #[cfg(target_os = "windows")]
-    let mut nsis_cmd = Command::new(_nsis_toolset_path.join("makensis.exe"));
+    let mut nsis_cmd = Command::new(nsis_path.join("makensis.exe"));
     #[cfg(not(target_os = "windows"))]
     let mut nsis_cmd = Command::new("makensis");
 
@@ -513,34 +505,33 @@ fn build_nsis_app_installer(
             _ => "/V4",
         })
         .arg(installer_nsi_path)
-        .current_dir(output_path)
+        .current_dir(intermediates_path)
         .output_ok()
         .map_err(|e| crate::Error::NsisFailed(e.to_string()))?;
 
-    std::fs::rename(nsis_output_path, &nsis_installer_path)?;
+    std::fs::rename(nsis_output_path, &installer_path)?;
 
     #[cfg(target_os = "windows")]
-    sign::try_sign(&nsis_installer_path, config)?;
+    sign::try_sign(&installer_path, config)?;
     #[cfg(not(target_os = "windows"))]
     log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the installer...");
 
-    Ok(vec![nsis_installer_path])
+    Ok(vec![installer_path])
 }
 
-pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
-    let packager_tools_path = dirs::cache_dir().unwrap().join("cargo-packager");
-    let nsis_toolset_path = packager_tools_path.join("NSIS");
+pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
+    let nsis_toolset_path = ctx.tools_path.join("NSIS");
 
     if !nsis_toolset_path.exists() {
-        get_and_extract_nsis(&nsis_toolset_path, &packager_tools_path)?;
+        get_and_extract_nsis(ctx, &nsis_toolset_path)?;
     } else if NSIS_REQUIRED_FILES
         .iter()
         .any(|p| !nsis_toolset_path.join(p).exists())
     {
-        log::warn!("NSIS directory is missing some files. Recreating it.");
+        log::warn!("NSIS directory is missing some files. Recreating it...");
         std::fs::remove_dir_all(&nsis_toolset_path)?;
-        get_and_extract_nsis(&nsis_toolset_path, &packager_tools_path)?;
+        get_and_extract_nsis(ctx, &nsis_toolset_path)?;
     }
 
-    build_nsis_app_installer(config, &nsis_toolset_path, &packager_tools_path)
+    build_nsis_app_installer(ctx, &nsis_toolset_path)
 }

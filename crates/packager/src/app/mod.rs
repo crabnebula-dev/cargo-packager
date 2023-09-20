@@ -2,10 +2,11 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     config::{Config, ConfigExt, ConfigExtInternal},
-    sign, util,
+    sign, util, Context,
 };
 
-pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
+pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
+    let Context { config, .. } = ctx;
     // we should use the bundle name (App name) as a MacOS standard.
     // version or platform shouldn't be included in the App name.
     let app_product_name = format!("{}.app", config.product_name);

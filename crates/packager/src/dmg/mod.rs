@@ -1,19 +1,27 @@
 use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 
 use crate::{
-    config::{Config, ConfigExt},
+    config::ConfigExt,
     shell::CommandExt,
     sign,
-    util::{create_icns_file, download},
+    util::{self, download},
+    Context,
 };
 
 const CREATE_DMG_URL: &str =
     "https://raw.githubusercontent.com/create-dmg/create-dmg/28867ba3563ddef62f55dcf130677103b4296c42/create-dmg";
 
-pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
-    // get the target path
+pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
+    let Context {
+        config,
+        tools_path,
+        intermediates_path,
+        ..
+    } = ctx;
+
     let out_dir = config.out_dir();
-    let intermediates_out_dir = out_dir.join("dmg");
+    let intermediates_path = intermediates_path.join("dmg");
+    util::create_clean_dir(&intermediates_path)?;
 
     let package_base_name = format!(
         "{}_{}_{}",
@@ -24,24 +32,25 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
             other => other,
         }
     );
+    let app_bundle_file_name = format!("{}.app", config.product_name);
     let dmg_name = format!("{}.dmg", &package_base_name);
     let dmg_path = out_dir.join(&dmg_name);
-    let app_bundle_file_name = format!("{}.app", config.product_name);
 
     log::info!(action = "Packaging"; "{} ({})", dmg_name, dmg_path.display());
 
-    std::fs::create_dir_all(&intermediates_out_dir)?;
     if dmg_path.exists() {
         std::fs::remove_file(&dmg_path)?;
     }
 
-    let packager_tools_path = dirs::cache_dir().unwrap().join("cargo-packager");
-    let dmg_tools_path = packager_tools_path.join("DMG");
-    let create_dmg_script_path = dmg_tools_path.join("create-dmg");
-    let support_directory_path = packager_tools_path
-        .join("share")
-        .join("create-dmg")
-        .join("support");
+    let dmg_tools_path = tools_path.join("DMG");
+
+    let script_dir = dmg_tools_path.join("script");
+    std::fs::create_dir_all(&script_dir)?;
+
+    let create_dmg_script_path = script_dir.join("create-dmg");
+
+    let support_directory_path = dmg_tools_path.join("share/create-dmg/support");
+    std::fs::create_dir_all(&support_directory_path)?;
 
     if !dmg_tools_path.exists() {
         std::fs::create_dir_all(&dmg_tools_path)?;
@@ -56,7 +65,6 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
             std::fs::Permissions::from_mode(0o764),
         )?;
     }
-    std::fs::create_dir_all(&support_directory_path)?;
 
     log::debug!(action = "Writing"; "template.applescript");
     std::fs::write(
@@ -87,7 +95,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PathBuf>> {
         &app_bundle_file_name,
     ];
 
-    let icns_icon_path = create_icns_file(&intermediates_out_dir, config)?
+    let icns_icon_path = util::create_icns_file(&intermediates_path, config)?
         .map(|path| path.to_string_lossy().to_string());
     if let Some(icon) = &icns_icon_path {
         args.push("--volicon");
