@@ -275,7 +275,7 @@ fn run(cli: Cli) -> Result<()> {
 
         // sign the packages
         if let Some(signing_config) = &signing_config {
-            let s = sign_outputs(&signing_config, &packages)?;
+            let s = sign_outputs(signing_config, &packages)?;
             signatures.extend(s);
         }
 
