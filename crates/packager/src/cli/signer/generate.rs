@@ -8,6 +8,7 @@ pub struct Options {
     /// Set a password for the new signing key.
     #[clap(long, env = "CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD")]
     password: Option<String>,
+    #[clap(long)]
     /// A path where the private key will be stored.
     path: Option<PathBuf>,
     /// Overwrite the private key even if it exists on the specified path.
