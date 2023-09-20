@@ -126,7 +126,7 @@ pub fn sign_file_with_secret_key<P: AsRef<Path>>(
 
     let signature_box = sign(
         None,
-        &secret_key,
+        secret_key,
         file_reader,
         Some(trusted_comment.as_str()),
         Some("signature from cargo-pacakger secret key"),
