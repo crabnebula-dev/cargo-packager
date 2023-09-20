@@ -4,7 +4,7 @@ use super::Context;
 use crate::{
     codesign,
     config::{Config, ConfigExt, ConfigExtInternal},
-    sign, util,
+    util,
 };
 
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
