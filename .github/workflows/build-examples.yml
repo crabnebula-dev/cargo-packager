@@ -43,5 +43,5 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo install tauri-cli --version "2.0.0-alpha.10" --locked
       - run: cargo install dioxus-cli --locked
-      - run: cargo r --package cargo-packager -- signer generate --password "" ./signing-key
+      - run: cargo r --package cargo-packager -- signer generate --password "" --path ./signing-key
       - run: cargo r --package cargo-packager -- --release --private-key ./signing-key --password "" --formats all
