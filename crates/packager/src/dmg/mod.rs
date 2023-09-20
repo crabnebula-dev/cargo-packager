@@ -1,9 +1,9 @@
 use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 
 use crate::{
+    codesign,
     config::ConfigExt,
     shell::CommandExt,
-    sign,
     util::{self, download},
     Context,
 };
@@ -136,7 +136,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        sign::try_sign(&dmg_path, identity, config, false)?;
+        codesign::try_sign(&dmg_path, identity, config, false)?;
     }
 
     Ok(vec![dmg_path])

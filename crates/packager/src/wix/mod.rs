@@ -13,9 +13,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
+    codesign,
     config::{Config, ConfigExt, ConfigExtInternal},
     shell::CommandExt,
-    sign,
     util::{self, display_path, download_and_verify, extract_zip, HashAlgorithm},
     Context,
 };
@@ -446,7 +446,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let main_binary = config.main_binary()?;
     let app_exe_source = config.binary_path(main_binary);
 
-    sign::try_sign(&app_exe_source.with_extension("exe"), config)?;
+    codesign::try_sign(&app_exe_source.with_extension("exe"), config)?;
 
     let intermediates_path = intermediates_path.join("wix").join(arch);
     util::create_clean_dir(&intermediates_path)?;
@@ -706,7 +706,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             &msi_output_path,
         )?;
         std::fs::rename(&msi_output_path, &msi_path)?;
-        sign::try_sign(&msi_path, config)?;
+        codesign::try_sign(&msi_path, config)?;
         output_paths.push(msi_path);
     }
 

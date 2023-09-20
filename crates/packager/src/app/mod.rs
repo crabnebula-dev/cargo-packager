@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::{
+    codesign,
     config::{Config, ConfigExt, ConfigExtInternal},
     sign, util, Context,
 };
@@ -41,11 +42,11 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        sign::try_sign(&app_bundle_path, identity, config, true)?;
+        codesign::try_sign(&app_bundle_path, identity, config, true)?;
         // notarization is required for distribution
-        match sign::notarize_auth() {
+        match codesign::notarize_auth() {
             Ok(auth) => {
-                sign::notarize(app_bundle_path.clone(), auth, config)?;
+                codesign::notarize(app_bundle_path.clone(), auth, config)?;
             }
             Err(e) => {
                 log::warn!("skipping app notarization, {}", e.to_string());
