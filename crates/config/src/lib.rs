@@ -17,6 +17,14 @@ pub use category::AppCategory;
 #[value(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum PackageFormat {
+    /// All available package formats for the current platform.
+    ///
+    /// See [`PackageFornat::platform_all`]
+    All,
+    /// The default list of package formats for the current platform.
+    ///
+    /// See [`PackageFornat::platform_default`]
+    Default,
     /// The macOS application bundle (.app).
     App,
     /// The macOS DMG package (.dmg).
@@ -56,6 +64,8 @@ impl PackageFormat {
     /// Gets the short name of this [PackageFormat].
     pub fn short_name(&self) -> &'static str {
         match *self {
+            PackageFormat::All => "all",
+            PackageFormat::Default => "default",
             PackageFormat::App => "app",
             PackageFormat::Dmg => "dmg",
             PackageFormat::Wix => "wix",
@@ -66,8 +76,37 @@ impl PackageFormat {
     }
 
     /// Gets the list of the possible package types on the current OS.
-    pub fn all() -> &'static [PackageFormat] {
-        ALL_PACKAGE_TYPES
+    ///
+    /// - **macOS**: App, Dmg
+    /// - **Windows**: Nsis, Wix
+    /// - **Linux**: Deb, AppImage
+    pub fn platform_all() -> &'static [PackageFormat] {
+        &[
+            #[cfg(target_os = "macos")]
+            PackageFormat::App,
+            #[cfg(target_os = "macos")]
+            PackageFormat::Dmg,
+            #[cfg(target_os = "windows")]
+            PackageFormat::Wix,
+            #[cfg(target_os = "windows")]
+            PackageFormat::Nsis,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Deb,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::AppImage,
+        ]
     }
 
     /// Returns the default list of targets this platform
@@ -75,7 +114,7 @@ impl PackageFormat {
     /// - **macOS**: App, Dmg
     /// - **Windows**: Nsis
     /// - **Linux**: Deb, AppImage
-    pub fn platform_defaults() -> &'static [PackageFormat] {
+    pub fn platform_default() -> &'static [PackageFormat] {
         &[
             #[cfg(target_os = "macos")]
             PackageFormat::App,
@@ -110,6 +149,8 @@ impl PackageFormat {
     /// The lower the number, the higher the priority
     pub fn priority(&self) -> u32 {
         match self {
+            PackageFormat::All => 0,
+            PackageFormat::Default => 0,
             PackageFormat::App => 0,
             PackageFormat::Wix => 0,
             PackageFormat::Nsis => 0,
@@ -119,33 +160,6 @@ impl PackageFormat {
         }
     }
 }
-
-const ALL_PACKAGE_TYPES: &[PackageFormat] = &[
-    #[cfg(target_os = "macos")]
-    PackageFormat::App,
-    #[cfg(target_os = "macos")]
-    PackageFormat::Dmg,
-    #[cfg(target_os = "windows")]
-    PackageFormat::Wix,
-    #[cfg(target_os = "windows")]
-    PackageFormat::Nsis,
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    PackageFormat::Deb,
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    PackageFormat::AppImage,
-];
 
 /// **macOS-only**. Corresponds to CFBundleTypeRole
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, JsonSchema)]
