@@ -9,6 +9,7 @@ dioxus-desktop = "0.4"
 
 [package.metadata.packager]
 before-packaging-command = "dx build --platform desktop --release"
+out-dir = "./dist"
 product-name = "Dioxus example"
 identifier = "com.dioxus.example"
 resources = ["src/**/*", "Cargo.toml", "README.md"]
