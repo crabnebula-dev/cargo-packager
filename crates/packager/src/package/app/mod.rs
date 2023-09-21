@@ -43,6 +43,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     dbg!(&std::fs::read_dir(config.out_dir())?
         .map(|res| res.map(|e| e.path()))
         .collect::<Result<Vec<_>, std::io::Error>>()?
+        .into_iter()
         .flatten());
     for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
@@ -50,6 +51,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         dbg!(&std::fs::read_dir(bin_path.parent().unwrap())?
             .map(|res| res.map(|e| e.path()))
             .collect::<Result<Vec<_>, std::io::Error>>()?
+            .into_iter()
             .flatten());
         std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
     }

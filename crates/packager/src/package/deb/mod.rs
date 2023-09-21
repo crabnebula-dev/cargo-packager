@@ -148,6 +148,7 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
     dbg!(&std::fs::read_dir(config.out_dir())?
         .map(|res| res.map(|e| e.path()))
         .collect::<Result<Vec<_>, std::io::Error>>()?
+        .into_iter()
         .flatten());
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
@@ -155,6 +156,7 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
         dbg!(&std::fs::read_dir(bin_path.parent().unwrap())?
             .map(|res| res.map(|e| e.path()))
             .collect::<Result<Vec<_>, std::io::Error>>()?
+            .into_iter()
             .flatten());
         std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
     }
