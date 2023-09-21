@@ -370,3 +370,25 @@ fn make_icns_image(img: image::DynamicImage) -> std::io::Result<icns::Image> {
     };
     icns::Image::from_data(pixel_format, img.width(), img.height(), img.into_bytes())
 }
+
+/// Writes a tar file to the given writer containing the given directory.
+pub fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> crate::Result<W> {
+    let src_dir = src_dir.as_ref();
+    let mut tar_builder = tar::Builder::new(dest_file);
+    for entry in walkdir::WalkDir::new(src_dir) {
+        let entry = entry?;
+        let src_path = entry.path();
+        if src_path == src_dir {
+            continue;
+        }
+        let dest_path = src_path.strip_prefix(src_dir)?;
+        if entry.file_type().is_dir() {
+            tar_builder.append_dir(dest_path, src_path)?;
+        } else {
+            let mut src_file = std::fs::File::open(src_path)?;
+            tar_builder.append_file(dest_path, &mut src_file)?;
+        }
+    }
+    let dest_file = tar_builder.into_inner()?;
+    Ok(dest_file)
+}

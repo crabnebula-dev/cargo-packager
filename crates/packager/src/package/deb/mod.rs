@@ -300,28 +300,6 @@ fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-/// Writes a tar file to the given writer containing the given directory.
-fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> crate::Result<W> {
-    let src_dir = src_dir.as_ref();
-    let mut tar_builder = tar::Builder::new(dest_file);
-    for entry in WalkDir::new(src_dir) {
-        let entry = entry?;
-        let src_path = entry.path();
-        if src_path == src_dir {
-            continue;
-        }
-        let dest_path = src_path.strip_prefix(src_dir)?;
-        if entry.file_type().is_dir() {
-            tar_builder.append_dir(dest_path, src_path)?;
-        } else {
-            let mut src_file = std::fs::File::open(src_path)?;
-            tar_builder.append_file(dest_path, &mut src_file)?;
-        }
-    }
-    let dest_file = tar_builder.into_inner()?;
-    Ok(dest_file)
-}
-
 /// Creates a `.tar.gz` file from the given directory (placing the new file
 /// within the given directory's parent directory), then deletes the original
 /// directory and returns the path to the new file.
@@ -330,7 +308,7 @@ fn tar_and_gzip_dir<P: AsRef<Path>>(src_dir: P) -> crate::Result<PathBuf> {
     let dest_path = src_dir.with_extension("tar.gz");
     let dest_file = util::create_file(&dest_path)?;
     let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
-    let gzip_encoder = create_tar_from_dir(src_dir, gzip_encoder)?;
+    let gzip_encoder = util::create_tar_from_dir(src_dir, gzip_encoder)?;
     let mut dest_file = gzip_encoder.finish().into_result()?;
     dest_file.flush()?;
     Ok(dest_path)
