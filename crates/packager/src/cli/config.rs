@@ -2,10 +2,36 @@ use std::path::{Path, PathBuf};
 
 use crate::{config::Binary, Config};
 
+fn find_nearset_pkg_name(path: &Path) -> crate::Result<Option<String>> {
+    fn find_nearset_pkg_name_inner() -> crate::Result<Option<String>> {
+        if let Ok(contents) = std::fs::read_to_string("Cargo.toml") {
+            let toml = toml::from_str::<toml::Table>(&contents)?;
+            if let Some(name) = toml.get("package").and_then(|p| p.get("name")) {
+                return Ok(Some(name.to_string()));
+            }
+        }
+
+        if let Ok(contents) = std::fs::read("package.json") {
+            let json = serde_json::from_slice::<serde_json::Value>(&contents)?;
+            if let Some(name) = json.get("name") {
+                return Ok(Some(name.to_string()));
+            }
+        }
+
+        Ok(None)
+    }
+
+    let cwd = std::env::current_dir()?;
+    std::env::set_current_dir(path)?;
+    let res = find_nearset_pkg_name_inner();
+    std::env::set_current_dir(cwd)?;
+    res
+}
+
 pub fn parse_config_file<P: AsRef<Path>>(path: P) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
     let path = path.as_ref().to_path_buf().canonicalize()?;
     let content = std::fs::read_to_string(&path)?;
-    let configs = match path.extension().and_then(|e| e.to_str()) {
+    let mut configs = match path.extension().and_then(|e| e.to_str()) {
         Some("toml") => {
             if let Ok(cs) = toml::from_str::<Vec<Config>>(&content) {
                 cs.into_iter().map(|c| (Some(path.clone()), c)).collect()
@@ -21,6 +47,17 @@ pub fn parse_config_file<P: AsRef<Path>>(path: P) -> crate::Result<Vec<(Option<P
             }
         }
     };
+
+    for (path, config) in &mut configs {
+        // fill config.name if unset
+        if config.name.is_none() {
+            // and config wasn't passed using `--config` cli arg
+            if let Some(path) = &path {
+                let name = find_nearset_pkg_name(path)?;
+                config.name = name;
+            }
+        }
+    }
 
     Ok(configs)
 }
@@ -48,7 +85,6 @@ pub fn load_configs_from_cargo_workspace(
     release: bool,
     profile: Option<String>,
     manifest_path: Option<PathBuf>,
-    packages: Option<Vec<String>>,
 ) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
     let profile = if release {
         "release"
@@ -66,17 +102,11 @@ pub fn load_configs_from_cargo_workspace(
 
     let mut configs = Vec::new();
     for package in metadata.workspace_packages().iter() {
-        // skip if this package was not specified in the explicit packages to build
-        if packages
-            .as_ref()
-            .map(|packages| !packages.contains(&package.name))
-            .unwrap_or(false)
-        {
-            continue;
-        }
-
         if let Some(config) = package.metadata.get("packager") {
             let mut config: Config = serde_json::from_value(config.to_owned())?;
+            if config.name.is_none() {
+                config.name.replace(package.name.clone());
+            }
             if config.product_name.is_empty() {
                 config.product_name = package.name.clone();
             }

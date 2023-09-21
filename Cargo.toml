@@ -1,5 +1,6 @@
 [workspace]
-members = ["crates/*", "examples/tauri", "examples/dioxus"]
+members = ["crates/*", "examples/*"]
+exclude = ["examples/deno"]
 resolver = "2"
 
 [workspace.dependencies]
