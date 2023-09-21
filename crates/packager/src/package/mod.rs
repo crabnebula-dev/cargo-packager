@@ -44,10 +44,18 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
     let mut formats = config
         .formats
         .clone()
-        .unwrap_or_else(|| PackageFormat::platform_defaults().to_vec());
+        .unwrap_or_else(|| PackageFormat::platform_default().to_vec());
 
     if formats.is_empty() {
         return Ok(Vec::new());
+    }
+
+    if formats.contains(&PackageFormat::Default) {
+        formats = PackageFormat::platform_default().to_vec();
+    }
+
+    if formats.contains(&PackageFormat::All) {
+        formats = PackageFormat::platform_all().to_vec();
     }
 
     formats.sort_by_key(|f| f.priority());

@@ -1,0 +1,47 @@
+name: Build examples
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-examples.yml"
+      - "crates/**"
+      - "examples/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-examples.yml"
+      - "crates/**"
+      - "examples/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: install webkit2gtk
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.36 # lock this for now until `deno compile --output` is fixed
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install tauri-cli --version "2.0.0-alpha.10" --locked
+      - run: cargo install dioxus-cli --locked
+      - run: cargo r --package cargo-packager -- signer generate --password '123' --path ./signing-key -vvv
+      - run: cargo r --package cargo-packager -- --release --private-key ./signing-key --password '123' --formats all -vvv

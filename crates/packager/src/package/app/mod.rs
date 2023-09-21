@@ -4,7 +4,7 @@ use super::Context;
 use crate::{
     codesign,
     config::{Config, ConfigExt, ConfigExtInternal},
-    sign, util,
+    util,
 };
 
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
@@ -37,16 +37,24 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     config.copy_external_binaries(&bin_dir)?;
 
     log::debug!("copying binaries");
-    copy_binaries_to_bundle(&contents_directory, config)?;
+    let bin_dir = contents_directory.join("MacOS");
+    std::fs::create_dir_all(&bin_dir)?;
+    for bin in &config.binaries {
+        let bin_path = config.binary_path(bin);
+        std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
+    }
 
     if let Some(identity) = config
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
+        log::debug!(action = "Codesigning"; "{}", app_bundle_path.display());
         codesign::try_sign(&app_bundle_path, identity, config, true)?;
+
         // notarization is required for distribution
         match codesign::notarize_auth() {
             Ok(auth) => {
+                log::debug!(action = "Notarizing"; "{}", app_bundle_path.display());
                 codesign::notarize(app_bundle_path.clone(), auth, config)?;
             }
             Err(e) => {
@@ -56,19 +64,6 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     }
 
     Ok(vec![app_bundle_path])
-}
-
-// Copies the app's binaries to the bundle.
-fn copy_binaries_to_bundle(contents_directory: &Path, config: &Config) -> crate::Result<()> {
-    let bin_dir = contents_directory.join("MacOS");
-    std::fs::create_dir_all(&bin_dir)?;
-
-    for bin in &config.binaries {
-        let bin_path = config.binary_path(bin);
-        std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
-    }
-
-    Ok(())
 }
 
 // Creates the Info.plist file.

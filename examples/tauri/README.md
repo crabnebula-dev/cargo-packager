@@ -9,5 +9,5 @@
 2. package the app
 
    ```sh
-   cargo r -p cargo-packager -- -p tauri-example --relase
+   cargo r -p cargo-packager -- -p tauri-example --release
    ```

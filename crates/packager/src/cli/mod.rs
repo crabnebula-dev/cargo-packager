@@ -36,7 +36,7 @@ pub(crate) struct Cli {
     #[clap(short, long, global = true, action = ArgAction::Count)]
     verbose: u8,
     /// Specify the package fromats to build.
-    #[clap(short, long, value_enum, action = ArgAction::Append, use_value_delimiter = true, value_delimiter = ',')]
+    #[clap(short, long, value_enum, value_delimiter = ',')]
     formats: Option<Vec<PackageFormat>>,
     /// Specify a configuration to read, which could be a JSON file,
     /// TOML file, or a raw JSON string.
