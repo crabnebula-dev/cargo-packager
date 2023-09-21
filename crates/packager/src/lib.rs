@@ -42,7 +42,12 @@ pub fn sign_outputs(
     for package in packages {
         for path in &package.paths.clone() {
             let path = if path.is_dir() {
-                let zip = path.with_extension("tar.gz");
+                let extension = path.extension().unwrap_or_default().to_string_lossy();
+                let zip = path.with_extension(format!(
+                    "{}{}tar.gz",
+                    extension,
+                    if extension.is_empty() { "." } else { "" }
+                ));
                 let dest_file = util::create_file(&zip)?;
                 let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
                 util::create_tar_from_dir(path, gzip_encoder)?;
