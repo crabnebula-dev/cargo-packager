@@ -145,14 +145,14 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
     log::debug!("copying binaries");
     std::fs::create_dir_all(&bin_dir)?;
     dbg!(&bin_dir);
-    dbg!(&std::fs::read_dir(config.out_dir())
+    dbg!(&std::fs::read_dir(config.out_dir())?
         .map(|res| res.map(|e| e.path()))
         .collect::<Result<Vec<_>, std::io::Error>>()?
         .flatten());
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
         dbg!(&bin_path);
-        dbg!(&std::fs::read_dir(bin_path.parent().unwrap())
+        dbg!(&std::fs::read_dir(bin_path.parent().unwrap())?
             .map(|res| res.map(|e| e.path()))
             .collect::<Result<Vec<_>, std::io::Error>>()?
             .flatten());
