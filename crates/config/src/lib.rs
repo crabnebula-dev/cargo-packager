@@ -657,7 +657,7 @@ pub struct Config {
     ///
     /// if not present, we'll use the PackageType list for the target OS.
     pub formats: Option<Vec<PackageFormat>>,
-    /// the directory where the `binaries` exist and where the packages will be placed.
+    /// The directory where the `binaries` exist and where the packages will be placed.
     #[serde(default, alias = "out-dir", alias = "out_dir")]
     pub out_dir: PathBuf,
     /// The target triple. Defaults to the current OS target triple.

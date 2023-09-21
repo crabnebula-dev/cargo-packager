@@ -54,6 +54,8 @@ pub(crate) struct Cli {
     /// Specify which packages to use from the current workspace.
     #[clap(short, long, value_delimiter = ',')]
     packages: Option<Vec<String>>,
+    /// Specify The directory where the `binaries` exist and where the packages will be placed.
+    out_dir: Option<PathBuf>,
 
     /// Package the release version of your app.
     /// Ignored when `--config` is used.
@@ -125,7 +127,13 @@ fn run(cli: Cli) -> Result<()> {
         log::warn!("Couldn't detect a valid configuration file! Nothing to do here.")
     }
 
+    let cli_out_dir = cli.out_dir.as_ref().map(dunce::canonicalize).transpose()?;
+
     for (_, config) in &mut configs {
+        if let Some(dir) = &cli_out_dir {
+            config.out_dir = dir.clone()
+        }
+
         if let Some(formats) = &cli.formats {
             config.formats.replace(formats.clone());
         }

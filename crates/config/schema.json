@@ -64,7 +64,7 @@
       }
     },
     "outDir": {
-      "description": "the directory where the `binaries` exist and where the packages will be placed.",
+      "description": "The directory where the `binaries` exist and where the packages will be placed.",
       "default": "",
       "type": "string"
     },
