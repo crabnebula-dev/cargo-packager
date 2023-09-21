@@ -1,7 +1,7 @@
 {
   "$schema": "../../crates/config/schema.json",
   "outDir": "./dist",
-  "beforePackagingCommand": "deno compile deno-example.js --output dist/deno-example",
+  "beforePackagingCommand": "deno compile deno-example.js --output dist/deno-example && echo $PWD && ls -lah && ls -lah dist",
   "productName": "Deno example",
   "version": "0.0.0",
   "identifier": "com.deno.example",
