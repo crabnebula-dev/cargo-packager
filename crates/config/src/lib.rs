@@ -604,8 +604,20 @@ pub enum HookCommand {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Config {
     /// The JSON schema for the config.
+    ///
+    /// Setting this field has no effect, this just exists so
+    /// we can parse the JSON correct when it has `$schema` field set.
     #[serde(rename = "$schema")]
     pub schema: Option<String>,
+    /// The app name, this is just an identifier that could be used
+    /// to filter which app to package using `--pacakges` cli arg when there is multiple apps in the
+    /// workspace or in the same config.
+    ///
+    /// This field resembles, the `name` field in `Cargo.toml` and `package.json`
+    ///
+    /// If `unset`, the CLI will try to auto-detect it from `Cargo.toml` or
+    /// `package.json` otherwise, it will keep it as null.
+    pub name: Option<String>,
     /// Specify a command to run before starting to package an application.
     ///
     /// This runs only once.

@@ -51,6 +51,9 @@ pub(crate) struct Cli {
     /// The password for the signing private key.
     #[clap(long, env = "CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD")]
     password: Option<String>,
+    /// Specify which packages to use from the current workspace.
+    #[clap(short, long, value_delimiter = ',')]
+    packages: Option<Vec<String>>,
 
     /// Package the release version of your app.
     /// Ignored when `--config` is used.
@@ -60,10 +63,6 @@ pub(crate) struct Cli {
     /// Ignored when `--config` is used.
     #[clap(long, group = "cargo-profile")]
     profile: Option<String>,
-    /// Specify the cargo packages to use from the current workspace.
-    /// Ignored when `--config` is used.
-    #[clap(short, long)]
-    packages: Option<Vec<String>>,
     /// Specify the manifest path to use for reading the configuration.
     /// Ignored when `--config` is used.
     #[clap(long)]
@@ -94,20 +93,32 @@ fn run(cli: Cli) -> Result<()> {
         // if a path to config file
         Some(c) => parse_config_file(c)?,
         // fallback to config files and cargo workspaces configs
-        _ => [
-            find_config_files()
+        _ => {
+            let config_files = find_config_files()
                 .into_iter()
                 .filter_map(|c| parse_config_file(c).ok())
                 .collect::<Vec<_>>()
-                .concat(),
-            load_configs_from_cargo_workspace(
-                cli.release,
-                cli.profile,
-                cli.manifest_path,
-                cli.packages,
-            )?,
-        ]
-        .concat(),
+                .concat();
+            let cargo_configs =
+                load_configs_from_cargo_workspace(cli.release, cli.profile, cli.manifest_path)?;
+            [config_files, cargo_configs]
+                .concat()
+                .into_iter()
+                .filter(|(_, c)| {
+                    // skip if this package was not specified in the explicit packages to build
+                    // otherwise we should package it if `cli_packages` was `None`
+                    cli.packages
+                        .as_ref()
+                        .map(|p| {
+                            c.name
+                                .as_ref()
+                                .map(|name| p.contains(name))
+                                .unwrap_or(false)
+                        })
+                        .unwrap_or(true)
+                })
+                .collect()
+        }
     };
 
     if configs.is_empty() {
