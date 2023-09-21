@@ -46,7 +46,7 @@ pub fn sign_outputs(
                 let zip = path.with_extension(format!(
                     "{}{}tar.gz",
                     extension,
-                    if extension.is_empty() { "." } else { "" }
+                    if extension.is_empty() { "" } else { "." }
                 ));
                 let dest_file = util::create_file(&zip)?;
                 let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
