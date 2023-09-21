@@ -40,8 +40,10 @@ pub fn sign_outputs(
 ) -> crate::Result<Vec<PathBuf>> {
     let mut signatures = Vec::new();
     for package in packages {
-        for path in &package.paths {
-            signatures.push(sign::sign_file(config, path)?);
+        if !matches!(package.format, PackageFormat::App) {
+            for path in &package.paths {
+                signatures.push(sign::sign_file(config, path)?);
+            }
         }
     }
 
