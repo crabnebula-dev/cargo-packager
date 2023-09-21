@@ -445,8 +445,9 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
 
     let main_binary = config.main_binary()?;
     let app_exe_source = config.binary_path(main_binary);
-
-    codesign::try_sign(&app_exe_source.with_extension("exe"), config)?;
+    let signing_path = app_exe_source.with_extension("exe");
+    log::debug!(action = "Codesigning"; "{}", signing_path.display());
+    codesign::try_sign(&signing_path, config)?;
 
     let intermediates_path = intermediates_path.join("wix").join(arch);
     util::create_clean_dir(&intermediates_path)?;
@@ -706,6 +707,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             &msi_output_path,
         )?;
         std::fs::rename(&msi_output_path, &msi_path)?;
+        log::debug!(action = "Codesigning"; "{}", msi_path.display());
         codesign::try_sign(&msi_path, config)?;
         output_paths.push(msi_path);
     }

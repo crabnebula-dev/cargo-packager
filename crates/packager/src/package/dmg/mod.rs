@@ -136,6 +136,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
+        log::debug!(action = "Codesigning"; "{}", dmg_path.display());
         codesign::try_sign(&dmg_path, identity, config, false)?;
     }
 

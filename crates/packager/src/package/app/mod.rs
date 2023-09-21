@@ -48,10 +48,13 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
+        log::debug!(action = "Codesigning"; "{}", app_bundle_path.display());
         codesign::try_sign(&app_bundle_path, identity, config, true)?;
+
         // notarization is required for distribution
         match codesign::notarize_auth() {
             Ok(auth) => {
+                log::debug!(action = "Notarizing"; "{}", app_bundle_path.display());
                 codesign::notarize(app_bundle_path.clone(), auth, config)?;
             }
             Err(e) => {

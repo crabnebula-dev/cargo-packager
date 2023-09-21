@@ -278,7 +278,9 @@ fn build_nsis_app_installer(
     {
         let main_binary = config.main_binary()?;
         let app_exe_source = config.binary_path(main_binary);
-        codesign::try_sign(&app_exe_source.with_extension("exe"), config)?;
+        let signing_path = app_exe_source.with_extension("exe");
+        log::debug!(action = "Codesigning"; "{}", signing_path.display());
+        codesign::try_sign(&signing_path, config)?;
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -515,7 +517,10 @@ fn build_nsis_app_installer(
     std::fs::rename(nsis_output_path, &installer_path)?;
 
     #[cfg(target_os = "windows")]
-    codesign::try_sign(&installer_path, config)?;
+    {
+        log::debug!(action = "Codesigning"; "{}", installer_path.display());
+        codesign::try_sign(&installer_path, config)?;
+    }
     #[cfg(not(target_os = "windows"))]
     log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the installer...");
 
