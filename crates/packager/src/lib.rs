@@ -45,7 +45,7 @@ pub fn sign_outputs(
                 let zip = path.with_extension("tar.gz");
                 let dest_file = util::create_file(&zip)?;
                 let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
-                util::create_tar_from_dir(&path, gzip_encoder)?;
+                util::create_tar_from_dir(path, gzip_encoder)?;
                 package.paths.push(zip);
                 package.paths.last().unwrap()
             } else {
