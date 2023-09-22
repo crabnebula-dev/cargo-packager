@@ -166,11 +166,11 @@ fn run(cli: Cli) -> Result<()> {
         }
 
         // create the packages
-        let packages = package(&config)?;
+        let mut packages = package(&config)?;
 
         // sign the packages
         if let Some(signing_config) = &signing_config {
-            let s = sign_outputs(signing_config, &packages)?;
+            let s = sign_outputs(signing_config, &mut packages)?;
             signatures.extend(s);
         }
 
