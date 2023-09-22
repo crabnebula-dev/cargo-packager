@@ -177,13 +177,20 @@ fn run(cli: Cli) -> Result<()> {
         outputs.extend(packages);
     }
 
+    // flatten paths
+    let outputs = outputs
+        .into_iter()
+        .map(|o| o.paths)
+        .flatten()
+        .collect::<Vec<_>>();
+
     // print information when finished
     let len = outputs.len();
     if len >= 1 {
         let pluralised = if len == 1 { "package" } else { "packages" };
         let mut printable_paths = String::new();
         for p in outputs {
-            for path in &p.paths {
+            for path in &p {
                 writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
             }
         }
