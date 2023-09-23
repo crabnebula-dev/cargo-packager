@@ -180,8 +180,7 @@ fn run(cli: Cli) -> Result<()> {
     // flatten paths
     let outputs = outputs
         .into_iter()
-        .map(|o| o.paths)
-        .flatten()
+        .flat_map(|o| o.paths)
         .collect::<Vec<_>>();
 
     // print information when finished
