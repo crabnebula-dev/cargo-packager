@@ -188,10 +188,8 @@ fn run(cli: Cli) -> Result<()> {
     if len >= 1 {
         let pluralised = if len == 1 { "package" } else { "packages" };
         let mut printable_paths = String::new();
-        for p in outputs {
-            for path in &p {
-                writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
-            }
+        for path in outputs {
+            writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
         }
         log::info!(action = "Finished"; "packaging {} {} at:\n{}", len, pluralised, printable_paths);
     }

@@ -1,0 +1,14 @@
+[package]
+name = "wry-example"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+wry = "0.28"
+
+[package.metadata.packager]
+before-packaging-command = "cargo build --release"
+product-name = "WRY example"
+identifier = "com.wry.example"
+resources = ["Cargo.toml", "src", "32x32.png"]
+icons = ["32x32.png"]

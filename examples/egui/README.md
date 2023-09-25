@@ -1,4 +1,4 @@
-## Tauri example
+## EGUI example
 
 1. package the app
 
