@@ -1,3 +1,3 @@
-### cargo-packager-config
+# cargo-packager-config
 
-A crate that hosts the configuration file for [`cargo-packager`](../packager/).
+Config types for [`cargo-packager`](../packager/).
