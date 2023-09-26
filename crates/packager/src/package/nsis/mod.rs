@@ -322,10 +322,7 @@ fn build_nsis_app_installer(
     {
         use codesign::ConfigSignExt;
         if config.can_sign() {
-            let sign_cmd = format!(
-                "{:?}",
-                codesign::sign_command("%1", &config.sign_params())?.0
-            );
+            let sign_cmd = format!("{:?}", codesign::sign_command("%1", &config.sign_params())?);
             data.insert("uninstaller_sign_cmd", to_json(sign_cmd));
         }
     }

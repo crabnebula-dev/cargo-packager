@@ -34,6 +34,9 @@ pub use sign::SigningConfig;
 pub use package::{package, PackageOuput};
 
 /// Sign the specified packages and return the signatures paths.
+///
+/// If `packages` contain a directory in the case of [`PackageFormat::App`]
+/// it will zip the directory before signing and appends it to `packages`.
 pub fn sign_outputs(
     config: &SigningConfig,
     packages: &mut Vec<PackageOuput>,

@@ -14,7 +14,7 @@ use winreg::{
 use crate::{
     config::{Config, ConfigExt},
     shell::CommandExt,
-    util::{self, Bitness},
+    util::{self, display_path, Bitness},
 };
 
 pub struct SignParams {
@@ -90,8 +90,7 @@ fn locate_signtool() -> Option<PathBuf> {
     (*SIGN_TOOL).as_ref().ok().cloned()
 }
 
-pub fn sign_command(path: &str, params: &SignParams) -> crate::Result<(Command, PathBuf)> {
-    // Construct SignTool command
+pub fn sign_command<P: AsRef<Path>>(path: P, params: &SignParams) -> crate::Result<Command> {
     let signtool = locate_signtool().ok_or(crate::Error::SignToolNotFound)?;
 
     let mut cmd = Command::new(&signtool);
@@ -109,9 +108,9 @@ pub fn sign_command(path: &str, params: &SignParams) -> crate::Result<(Command, 
         }
     }
 
-    cmd.arg(path);
+    cmd.arg(path.as_ref());
 
-    Ok((cmd, signtool))
+    Ok(cmd)
 }
 
 pub(crate) trait ConfigSignExt {
@@ -149,14 +148,13 @@ impl ConfigSignExt for Config {
 }
 
 pub fn sign<P: AsRef<Path>>(path: P, params: &SignParams) -> crate::Result<()> {
-    // Convert path to string reference, as we need to pass it as a command-line parameter to signtool
-    let path_str = path.as_ref().to_str().unwrap();
+    let signtool = locate_signtool().ok_or(crate::Error::SignToolNotFound)?;
+    let path = path.as_ref();
 
-    log::info!(action = "Signing"; "{} with identity \"{}\"", path_str, params.certificate_thumbprint);
+    log::info!(action = "Signing"; "{} with identity \"{}\"", display_path(path), params.certificate_thumbprint);
 
-    let (mut cmd, signtool) = sign_command(path_str, params)?;
     log::debug!("Running signtool {:?}", signtool);
-
+    let mut cmd = sign_command(path, params)?;
     let output = cmd.output_ok()?;
     let stdout = String::from_utf8_lossy(output.stdout.as_slice()).into_owned();
     log::info!("{:?}", stdout);
