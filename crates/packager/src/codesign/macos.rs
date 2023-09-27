@@ -235,7 +235,7 @@ pub fn notarize(
 ) -> crate::Result<()> {
     let bundle_stem = app_bundle_path
         .file_stem()
-        .ok_or_else(|| crate::Error::FailedToExtractFilename(app_bundle_path.clone()));
+        .ok_or_else(|| crate::Error::FailedToExtractFilename(app_bundle_path.clone()))?;
 
     let tmp_dir = tempfile::tempdir()?;
     let zip_path = tmp_dir
@@ -254,7 +254,7 @@ pub fn notarize(
     // this remove almost 99% of false alarm in notarization
     Command::new("ditto")
         .args(zip_args)
-        .output_ok
+        .output_ok()
         .map_err(crate::Error::FailedToRunDitto)?;
 
     // sign the zip file
@@ -315,10 +315,10 @@ fn staple_app(app_bundle_path: PathBuf) -> crate::Result<()> {
 
     let app_bundle_path_dir = app_bundle_path
         .parent()
-        .ok_or_else(|| crate::Error::ParentDirNotFound(app_bundle_path.clone()));
+        .ok_or_else(|| crate::Error::ParentDirNotFound(app_bundle_path.clone()))?;
 
     Command::new("xcrun")
-        .args(vec!["stapler", "staple", "-v", filename])
+        .args(vec!["stapler", "staple", "-v", &filename])
         .current_dir(app_bundle_path_dir)
         .output_ok()
         .map_err(crate::Error::FailedToRunXcrun)?;
@@ -326,6 +326,7 @@ fn staple_app(app_bundle_path: PathBuf) -> crate::Result<()> {
     Ok(())
 }
 
+#[derive(Debug)]
 pub enum NotarizeAuth {
     AppleId {
         apple_id: String,
