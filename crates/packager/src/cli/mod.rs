@@ -2,11 +2,9 @@
 
 #![cfg(feature = "cli")]
 
-use std::{fmt::Write as FmtWrite, io::Write, path::PathBuf};
+use std::{fmt::Write, path::PathBuf};
 
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
-use env_logger::fmt::Color;
-use log::{log_enabled, Level};
 
 use self::config::{find_config_files, load_configs_from_cargo_workspace, parse_config_file};
 use crate::{
@@ -22,7 +20,7 @@ enum Commands {
     Signer(signer::Options),
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(
     author,
     version,
@@ -35,6 +33,10 @@ pub(crate) struct Cli {
     /// Enables verbose logging.
     #[clap(short, long, global = true, action = ArgAction::Count)]
     verbose: u8,
+    /// Disables logging
+    #[clap(short, long)]
+    quite: bool,
+
     /// Specify the package fromats to build.
     #[clap(short, long, value_enum, value_delimiter = ',')]
     formats: Option<Vec<PackageFormat>>,
@@ -74,7 +76,8 @@ pub(crate) struct Cli {
     command: Option<Commands>,
 }
 
-fn run(cli: Cli) -> Result<()> {
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+fn try_run(cli: Cli) -> Result<()> {
     // run subcommand and exit if one was specified,
     // otherwise run the default packaging command
     if let Some(command) = cli.command {
@@ -96,7 +99,7 @@ fn run(cli: Cli) -> Result<()> {
         Some(c) => parse_config_file(c)?,
         // fallback to config files and cargo workspaces configs
         _ => {
-            let config_files = find_config_files()
+            let config_files = find_config_files()?
                 .into_iter()
                 .filter_map(|c| parse_config_file(c).ok())
                 .collect::<Vec<_>>()
@@ -124,7 +127,8 @@ fn run(cli: Cli) -> Result<()> {
     };
 
     if configs.is_empty() {
-        log::warn!("Couldn't detect a valid configuration file! Nothing to do here.")
+        tracing::warn!("Couldn't detect a valid configuration file! Nothing to do here.");
+        return Ok(());
     }
 
     let cli_out_dir = cli.out_dir.as_ref().map(dunce::canonicalize).transpose()?;
@@ -138,12 +142,15 @@ fn run(cli: Cli) -> Result<()> {
             config.formats.replace(formats.clone());
         }
 
-        if config.log_level.is_none() {
-            config.log_level.replace(match cli.verbose {
-                0 => LogLevel::Info,
-                1 => LogLevel::Debug,
-                2.. => LogLevel::Trace,
-            });
+        if config.log_level.is_none() && !cli.quite {
+            let level = match parse_log_level(cli.verbose) {
+                tracing::Level::ERROR => LogLevel::Error,
+                tracing::Level::WARN => LogLevel::Warn,
+                tracing::Level::INFO => LogLevel::Info,
+                tracing::Level::DEBUG => LogLevel::Debug,
+                tracing::Level::TRACE => LogLevel::Trace,
+            };
+            config.log_level.replace(level);
         }
     }
 
@@ -162,7 +169,10 @@ fn run(cli: Cli) -> Result<()> {
         if let Some(path) = config_dir {
             // change the directory to the config being built
             // so paths will be read relative to it
-            std::env::set_current_dir(path.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
+            std::env::set_current_dir(
+                path.parent()
+                    .ok_or_else(|| crate::Error::ParentDirNotFound(path.clone()))?,
+            )?;
         }
 
         // create the packages
@@ -189,9 +199,14 @@ fn run(cli: Cli) -> Result<()> {
         let pluralised = if len == 1 { "package" } else { "packages" };
         let mut printable_paths = String::new();
         for path in outputs {
-            writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
+            let _ = writeln!(printable_paths, "        {}", util::display_path(path));
         }
-        log::info!(action = "Finished"; "packaging {} {} at:\n{}", len, pluralised, printable_paths);
+        tracing::info!(
+            "Finished packaging {} {} at:\n{}",
+            len,
+            pluralised,
+            printable_paths
+        );
     }
 
     let len = signatures.len();
@@ -199,16 +214,33 @@ fn run(cli: Cli) -> Result<()> {
         let pluralised = if len == 1 { "signature" } else { "signatures" };
         let mut printable_paths = String::new();
         for path in signatures {
-            writeln!(printable_paths, "        {}", util::display_path(path)).unwrap();
+            let _ = writeln!(printable_paths, "        {}", util::display_path(path));
         }
-        log::info!(action = "Finished"; "signing packages, {} {} at:\n{}", len, pluralised, printable_paths);
+        tracing::info!(
+            "Finished signing packages, {} {} at:\n{}",
+            len,
+            pluralised,
+            printable_paths
+        );
     }
 
     Ok(())
 }
 
+fn parse_log_level(verbose: u8) -> tracing::Level {
+    match verbose {
+        0 => tracing_subscriber::EnvFilter::builder()
+            .from_env_lossy()
+            .max_level_hint()
+            .and_then(|l| l.into_level())
+            .unwrap_or(tracing::Level::INFO),
+        1 => tracing::Level::DEBUG,
+        2.. => tracing::Level::TRACE,
+    }
+}
+
 /// Run the packager CLI
-pub fn try_run() -> crate::Result<()> {
+pub fn run() {
     // prepare cli args
     let args = std::env::args_os().skip(1);
     let cli = Cli::command();
@@ -219,53 +251,23 @@ pub fn try_run() -> crate::Result<()> {
         Err(e) => e.exit(),
     };
 
-    // setup logger
-    let filter_level = match cli.verbose {
-        0 => Level::Info,
-        1 => Level::Debug,
-        2.. => Level::Trace,
-    }
-    .to_level_filter();
-    let mut builder = env_logger::Builder::from_default_env();
-    let logger_init_res = builder
-        .format_indent(Some(12))
-        .filter(None, filter_level)
-        .format(|f, record| {
-            let mut is_command_output = false;
-            if let Some(action) = record.key_values().get("action".into()) {
-                let action = action.to_str().unwrap();
-                is_command_output = action == "stdout" || action == "stderr";
-                if !is_command_output {
-                    let mut action_style = f.style();
-                    action_style.set_color(Color::Green).set_bold(true);
-                    write!(f, "{:>12} ", action_style.value(action))?;
-                }
-            } else {
-                let mut level_style = f.default_level_style(record.level());
-                level_style.set_bold(true);
-                let level = match record.level() {
-                    Level::Error => "Error",
-                    Level::Warn => "Warn",
-                    Level::Info => "Info",
-                    Level::Debug => "Debug",
-                    Level::Trace => "Trace",
-                };
-                write!(f, "{:>12} ", level_style.value(level))?;
-            }
+    if !cli.quite {
+        let level = parse_log_level(cli.verbose);
 
-            if !is_command_output && log_enabled!(Level::Debug) {
-                let mut target_style = f.style();
-                target_style.set_color(Color::Black);
-                write!(f, "[{}] ", target_style.value(record.target()))?;
-            }
+        let debug = level == tracing::Level::DEBUG;
+        let tracing = level == tracing::Level::TRACE;
 
-            writeln!(f, "{}", record.args())
-        })
-        .try_init();
-
-    if let Err(err) = logger_init_res {
-        eprintln!("Failed to attach logger: {err}");
+        tracing_subscriber::fmt()
+            .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
+            .without_time()
+            .with_target(debug)
+            .with_line_number(tracing)
+            .with_file(tracing)
+            .init();
     }
 
-    run(cli)
+    if let Err(e) = try_run(cli) {
+        tracing::error!("{}", e);
+        std::process::exit(1);
+    }
 }

@@ -1,6 +1,7 @@
 #![cfg(windows)]
 
 use std::{
+    fmt::Debug,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -17,6 +18,7 @@ use crate::{
     util::{self, display_path, Bitness},
 };
 
+#[derive(Debug)]
 pub struct SignParams {
     pub product_name: String,
     pub digest_algorithm: String,
@@ -26,6 +28,7 @@ pub struct SignParams {
 }
 
 static SIGN_TOOL: Lazy<crate::Result<PathBuf>> = Lazy::new(|| {
+    let _s = tracing::span!(tracing::Level::TRACE, "locate_signtool");
     const INSTALLED_ROOTS_REGKEY_PATH: &str = r"SOFTWARE\Microsoft\Windows Kits\Installed Roots";
     const KITS_ROOT_REGVALUE_NAME: &str = r"KitsRoot10";
 
@@ -86,14 +89,18 @@ static SIGN_TOOL: Lazy<crate::Result<PathBuf>> = Lazy::new(|| {
     Err(crate::Error::SignToolNotFound)
 });
 
-fn locate_signtool() -> Option<PathBuf> {
+fn signtool() -> Option<PathBuf> {
     (*SIGN_TOOL).as_ref().ok().cloned()
 }
 
-pub fn sign_command<P: AsRef<Path>>(path: P, params: &SignParams) -> crate::Result<Command> {
-    let signtool = locate_signtool().ok_or(crate::Error::SignToolNotFound)?;
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+pub fn sign_command<P: AsRef<Path> + Debug>(
+    path: P,
+    params: &SignParams,
+) -> crate::Result<Command> {
+    let signtool = signtool().ok_or(crate::Error::SignToolNotFound)?;
 
-    let mut cmd = Command::new(&signtool);
+    let mut cmd = Command::new(signtool);
     cmd.arg("sign");
     cmd.args(["/fd", &params.digest_algorithm]);
     cmd.args(["/sha1", &params.certificate_thumbprint]);
@@ -147,21 +154,27 @@ impl ConfigSignExt for Config {
     }
 }
 
-pub fn sign<P: AsRef<Path>>(path: P, params: &SignParams) -> crate::Result<()> {
-    let signtool = locate_signtool().ok_or(crate::Error::SignToolNotFound)?;
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+pub fn sign<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Result<()> {
+    let signtool = signtool().ok_or(crate::Error::SignToolNotFound)?;
     let path = path.as_ref();
 
-    log::info!(action = "Signing"; "{} with identity \"{}\"", display_path(path), params.certificate_thumbprint);
+    tracing::info!(
+        "Signing {} with identity \"{}\"",
+        display_path(path),
+        params.certificate_thumbprint
+    );
 
-    log::debug!("Running signtool {:?}", signtool);
+    tracing::debug!("Running signtool {:?}", signtool);
     let mut cmd = sign_command(path, params)?;
-    let output = cmd.output_ok()?;
+    let output = cmd.output_ok().map_err(crate::Error::SignToolFailed)?;
     let stdout = String::from_utf8_lossy(output.stdout.as_slice()).into_owned();
-    log::info!("{:?}", stdout);
+    tracing::info!("{:?}", stdout);
 
     Ok(())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn try_sign(
     file_path: &std::path::PathBuf,
     config: &crate::config::Config,
@@ -170,7 +183,7 @@ pub fn try_sign(
     if let Some(certificate_thumbprint) =
         windows_config.and_then(|c| c.certificate_thumbprint.as_ref())
     {
-        log::info!(action = "Signing"; "{}", util::display_path(file_path));
+        tracing::info!("Signing {}", util::display_path(file_path));
         sign(
             file_path,
             &SignParams {

@@ -1,6 +1,7 @@
 //! File singing and signing keys creation and decoding.
 
 use std::{
+    fmt::Debug,
     fs::OpenOptions,
     io::{BufReader, Write},
     path::{Path, PathBuf},
@@ -22,11 +23,12 @@ pub struct KeyPair {
 /// Generates a new signing key. If `password` is `None`, it will prompt
 /// the user for a password, so if you want to skip the prompt, specify and
 /// empty string as the password.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn generate_key(password: Option<String>) -> crate::Result<KeyPair> {
-    let KP { pk, sk } = KP::generate_encrypted_keypair(password).unwrap();
+    let KP { pk, sk } = KP::generate_encrypted_keypair(password)?;
 
-    let pk_box_str = pk.to_box().unwrap().to_string();
-    let sk_box_str = sk.to_box(None).unwrap().to_string();
+    let pk_box_str = pk.to_box()?.to_string();
+    let sk_box_str = sk.to_box(None)?.to_string();
 
     let encoded_pk = base64::engine::general_purpose::STANDARD.encode(pk_box_str);
     let encoded_sk = base64::engine::general_purpose::STANDARD.encode(sk_box_str);
@@ -43,6 +45,7 @@ fn decode_base64(base64_key: &str) -> crate::Result<String> {
 }
 
 /// Decodes a private key using the specified password.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn decode_private_key(private_key: &str, password: Option<&str>) -> crate::Result<SecretKey> {
     let decoded_secret = decode_base64(private_key)?;
     let sk_box = SecretKeyBox::from_string(&decoded_secret)?;
@@ -51,7 +54,8 @@ pub fn decode_private_key(private_key: &str, password: Option<&str>) -> crate::R
 }
 
 /// Saves a [`KeyPair`] to disk.
-pub fn save_keypair<P: AsRef<Path>>(
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+pub fn save_keypair<P: AsRef<Path> + Debug>(
     keypair: &KeyPair,
     path: P,
     force: bool,
@@ -97,13 +101,18 @@ pub struct SigningConfig {
 }
 
 /// Signs a specified file using the specified signing configuration.
-pub fn sign_file<P: AsRef<Path>>(config: &SigningConfig, path: P) -> crate::Result<PathBuf> {
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+pub fn sign_file<P: AsRef<Path> + Debug>(
+    config: &SigningConfig,
+    path: P,
+) -> crate::Result<PathBuf> {
     let secret_key = decode_private_key(&config.private_key, config.password.as_deref())?;
     sign_file_with_secret_key(&secret_key, path)
 }
 
 /// Signs a specified file using an already decoded secret key.
-pub fn sign_file_with_secret_key<P: AsRef<Path>>(
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     secret_key: &SecretKey,
     path: P,
 ) -> crate::Result<PathBuf> {
@@ -118,7 +127,9 @@ pub fn sign_file_with_secret_key<P: AsRef<Path>>(
     let trusted_comment = format!(
         "timestamp:{}\tfile:{}",
         since_epoch,
-        path.file_name().unwrap().to_string_lossy()
+        path.file_name()
+            .ok_or_else(|| crate::Error::FailedToExtractFilename(path.to_path_buf()))?
+            .to_string_lossy()
     );
 
     let file = OpenOptions::new().read(true).open(path)?;

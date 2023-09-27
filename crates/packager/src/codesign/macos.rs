@@ -20,17 +20,20 @@ const KEYCHAIN_PWD: &str = "cargo-packager";
 // Then use the value of the base64 in APPLE_CERTIFICATE env variable.
 // You need to set APPLE_CERTIFICATE_PASSWORD to the password you set when you exported your certificate.
 // https://help.apple.com/xcode/mac/current/#/dev154b28f09 see: `Export a signing certificate`
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn setup_keychain(
     certificate_encoded: OsString,
     certificate_password: OsString,
 ) -> crate::Result<()> {
     // we delete any previous version of our keychain if present
     delete_keychain();
-    log::info!("setting up keychain from environment variables...");
+
+    tracing::info!("Setting up keychain from environment variables...");
 
     let keychain_list_output = Command::new("security")
         .args(["list-keychain", "-d", "user"])
-        .output()?;
+        .output()
+        .map_err(crate::Error::FailedToListKeyChain)?;
 
     let tmp_dir = tempfile::tempdir()?;
 
@@ -61,15 +64,18 @@ pub fn setup_keychain(
 
     Command::new("base64")
         .args(["--decode", "-i", &cert_path_tmp, "-o", &cert_path])
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToDecodeCert)?;
 
     Command::new("security")
         .args(["create-keychain", "-p", KEYCHAIN_PWD, KEYCHAIN_ID])
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToCreateKeyChain)?;
 
     Command::new("security")
         .args(["unlock-keychain", "-p", KEYCHAIN_PWD, KEYCHAIN_ID])
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToUnlockKeyChain)?;
 
     Command::new("security")
         .args([
@@ -86,11 +92,13 @@ pub fn setup_keychain(
             "-T",
             "/usr/bin/productbuild",
         ])
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToImportCert)?;
 
     Command::new("security")
         .args(["set-keychain-settings", "-t", "3600", "-u", KEYCHAIN_ID])
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToSetKeychainSettings)?;
 
     Command::new("security")
         .args([
@@ -102,7 +110,8 @@ pub fn setup_keychain(
             KEYCHAIN_PWD,
             KEYCHAIN_ID,
         ])
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToSetKeyPartitionList)?;
 
     let current_keychains = String::from_utf8_lossy(&keychain_list_output.stdout)
         .split('\n')
@@ -117,11 +126,13 @@ pub fn setup_keychain(
         .args(["list-keychain", "-d", "user", "-s"])
         .args(current_keychains)
         .arg(KEYCHAIN_ID)
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToListKeyChain)?;
 
     Ok(())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn delete_keychain() {
     // delete keychain if needed and skip any error
     let _ = Command::new("security")
@@ -130,13 +141,18 @@ pub fn delete_keychain() {
         .output_ok();
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn try_sign(
     path_to_sign: &Path,
     identity: &str,
     config: &Config,
     is_an_executable: bool,
 ) -> crate::Result<()> {
-    log::info!(action = "Signing"; "{} with identity \"{}\"", path_to_sign.display(), identity);
+    tracing::info!(
+        "Signing {} with identity \"{}\"",
+        path_to_sign.display(),
+        identity
+    );
 
     let packager_keychain = if let (Some(certificate_encoded), Some(certificate_password)) = (
         std::env::var_os("APPLE_CERTIFICATE"),
@@ -166,6 +182,7 @@ pub fn try_sign(
     res
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn sign(
     path_to_sign: &Path,
     identity: &str,
@@ -197,18 +214,20 @@ fn sign(
     Command::new("codesign")
         .args(args)
         .arg(path_to_sign)
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToRunCodesign)?;
 
     Ok(())
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct NotarytoolSubmitOutput {
     id: String,
     status: String,
     message: String,
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn notarize(
     app_bundle_path: PathBuf,
     auth: NotarizeAuth,
@@ -216,28 +235,30 @@ pub fn notarize(
 ) -> crate::Result<()> {
     let bundle_stem = app_bundle_path
         .file_stem()
-        .expect("failed to get bundle filename");
+        .ok_or_else(|| crate::Error::FailedToExtractFilename(app_bundle_path.clone()))?;
 
     let tmp_dir = tempfile::tempdir()?;
     let zip_path = tmp_dir
         .path()
         .join(format!("{}.zip", bundle_stem.to_string_lossy()));
+
+    let app_bundle_path_str = app_bundle_path.to_string_lossy().to_string();
+    let zip_path_str = zip_path.to_string_lossy().to_string();
     let zip_args = vec![
         "-c",
         "-k",
         "--keepParent",
         "--sequesterRsrc",
-        app_bundle_path
-            .to_str()
-            .expect("failed to convert bundle_path to string"),
-        zip_path
-            .to_str()
-            .expect("failed to convert zip_path to string"),
+        &app_bundle_path_str,
+        &zip_path_str,
     ];
 
     // use ditto to create a PKZip almost identical to Finder
     // this remove almost 99% of false alarm in notarization
-    Command::new("ditto").args(zip_args).output_ok()?;
+    Command::new("ditto")
+        .args(zip_args)
+        .output_ok()
+        .map_err(crate::Error::FailedToRunDitto)?;
 
     // sign the zip file
     if let Some(identity) = &config
@@ -247,23 +268,24 @@ pub fn notarize(
         try_sign(&zip_path, identity, config, false)?;
     };
 
+    let zip_path_str = zip_path.to_string_lossy().to_string();
+
     let notarize_args = vec![
         "notarytool",
         "submit",
-        zip_path
-            .to_str()
-            .expect("failed to convert zip_path to string"),
+        &zip_path_str,
         "--wait",
         "--output-format",
         "json",
     ];
 
-    log::info!(action = "Notarizing"; "{}", app_bundle_path.display());
+    tracing::info!("Notarizing {}", app_bundle_path.display());
 
     let output = Command::new("xcrun")
         .args(notarize_args)
         .notarytool_args(&auth)
-        .output_ok()?;
+        .output_ok()
+        .map_err(crate::Error::FailedToRunXcrun)?;
 
     if !output.status.success() {
         return Err(Error::FailedToNotarize);
@@ -276,7 +298,7 @@ pub fn notarize(
             submit_output.status, submit_output.id, submit_output.message
         );
         if submit_output.status == "Accepted" {
-            log::info!(action = "Notarizing"; "{}", log_message);
+            tracing::info!("Notarizing {}", log_message);
             staple_app(app_bundle_path)?;
             Ok(())
         } else {
@@ -289,24 +311,27 @@ pub fn notarize(
     }
 }
 
-fn staple_app(mut app_bundle_path: PathBuf) -> crate::Result<()> {
-    let app_bundle_path_clone = app_bundle_path.clone();
-    let filename = app_bundle_path_clone
+fn staple_app(app_bundle_path: PathBuf) -> crate::Result<()> {
+    let filename = app_bundle_path
         .file_name()
-        .expect("failed to get bundle filename")
-        .to_str()
-        .expect("failed to convert bundle filename to string");
+        .ok_or_else(|| crate::Error::FailedToExtractFilename(app_bundle_path.clone()))?
+        .to_string_lossy()
+        .to_string();
 
-    app_bundle_path.pop();
+    let app_bundle_path_dir = app_bundle_path
+        .parent()
+        .ok_or_else(|| crate::Error::ParentDirNotFound(app_bundle_path.clone()))?;
 
     Command::new("xcrun")
-        .args(vec!["stapler", "staple", "-v", filename])
-        .current_dir(app_bundle_path)
-        .output_ok()?;
+        .args(vec!["stapler", "staple", "-v", &filename])
+        .current_dir(app_bundle_path_dir)
+        .output_ok()
+        .map_err(crate::Error::FailedToRunXcrun)?;
 
     Ok(())
 }
 
+#[derive(Debug)]
 pub enum NotarizeAuth {
     AppleId {
         apple_id: String,
@@ -346,6 +371,7 @@ impl NotarytoolCmdExt for Command {
     }
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
     match (
         std::env::var_os("APPLE_ID"),

@@ -14,6 +14,7 @@ use crate::{
     util,
 };
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn donwload_dependencies(
     ctx: &Context,
     appimage_tools_path: &Path,
@@ -47,7 +48,10 @@ fn donwload_dependencies(
         let path = appimage_tools_path.join(path);
         if !path.exists() {
             let data = util::download(&url)?;
-            log::debug!(action = "Writing"; "{} and setting its permissions to 764", path.display());
+            tracing::debug!(
+                "Writing {} and setting its permissions to 764",
+                path.display()
+            );
             std::fs::write(&path, data)?;
             std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o764))?;
         }
@@ -56,6 +60,7 @@ fn donwload_dependencies(
     Ok(())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -80,7 +85,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let intermediates_path = intermediates_path.join("appimage");
 
     // generate deb_folder structure
-    log::debug!("generating data");
+    tracing::debug!("Generating data");
     let icons = super::deb::generate_data(config, &appimage_deb_data_dir)?;
     let icons: Vec<super::deb::DebIcon> = icons.into_iter().collect();
 
@@ -144,21 +149,28 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     handlebars.register_escape_fn(handlebars::no_escape);
     handlebars
         .register_template_string("appimage", include_str!("appimage"))
-        .expect("Failed to register template for handlebars");
+        .map_err(Box::new)?;
     let template = handlebars.render("appimage", &sh_map)?;
-    let sh_file = intermediates_path.join("build_appimage.sh");
 
-    log::debug!(action = "Writing"; "{template} and setting its permissions to 764");
+    let sh_file = intermediates_path.join("build_appimage.sh");
+    tracing::debug!(
+        "Writing {} and setting its permissions to 764",
+        sh_file.display()
+    );
     std::fs::write(&sh_file, template)?;
     std::fs::set_permissions(&sh_file, std::fs::Permissions::from_mode(0o764))?;
 
-    log::info!(action = "Packaging"; "{} ({})", appimage_filename, appimage_path.display());
+    tracing::info!(
+        "Packaging {} ({})",
+        appimage_filename,
+        appimage_path.display()
+    );
 
     // execute the shell script to build the appimage.
     Command::new(&sh_file)
         .current_dir(intermediates_path)
         .output_ok()
-        .expect("error running appimage.sh");
+        .map_err(crate::Error::AppImageScriptFailed)?;
 
     Ok(vec![appimage_path])
 }

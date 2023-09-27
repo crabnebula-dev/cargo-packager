@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
+    fmt::Debug,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -49,6 +50,8 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
 
 type DirectoriesSet = BTreeSet<PathBuf>;
 type ResourcesMap = Vec<(PathBuf, PathBuf)>;
+
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, ResourcesMap)> {
     let mut directories = BTreeSet::new();
     let mut resources_map = Vec::new();
@@ -66,19 +69,20 @@ fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, Res
 
 /// BTreeMap<OriginalPath, TargetFileName>
 type BinariesMap = BTreeMap<PathBuf, String>;
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
     let mut binaries = BinariesMap::new();
     let cwd = std::env::current_dir()?;
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
-            let binary_path = dunce::canonicalize(cwd.join(src))?;
-            let dest_filename = binary_path
+            let bin_path = dunce::canonicalize(cwd.join(src))?;
+            let dest_filename = bin_path
                 .file_name()
-                .expect("failed to extract external binary filename")
+                .ok_or_else(|| crate::Error::FailedToExtractFilename(bin_path.clone()))?
                 .to_string_lossy()
                 .replace(&format!("-{}", config.target_triple()), "");
-            binaries.insert(binary_path, dest_filename);
+            binaries.insert(bin_path, dest_filename);
         }
     }
 
@@ -87,7 +91,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
             let bin_path = config.binary_path(bin);
             let dest_filename = bin_path
                 .file_name()
-                .expect("failed to extract binary filename")
+                .ok_or_else(|| crate::Error::FailedToExtractFilename(bin_path.clone()))?
                 .to_string_lossy()
                 .to_string();
             binaries.insert(bin_path, dest_filename);
@@ -97,6 +101,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
     Ok(binaries)
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn get_lang_data(
     lang: &str,
     custom_lang_files: Option<&HashMap<String, PathBuf>>,
@@ -128,7 +133,10 @@ fn get_lang_data(
     Ok(Some((lang_path, lang_content)))
 }
 
-fn write_ut16_le_with_bom<P: AsRef<Path>>(path: P, content: &str) -> crate::Result<()> {
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+fn write_ut16_le_with_bom<P: AsRef<Path> + Debug>(path: P, content: &str) -> crate::Result<()> {
+    tracing::debug!("Writing {path:?} in UTF-16 LE encoding");
+
     use std::fs::File;
     use std::io::{BufWriter, Write};
 
@@ -221,6 +229,7 @@ fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
     ))
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn get_and_extract_nsis(
     #[allow(unused)] ctx: &Context,
     nsis_toolset_path: &Path,
@@ -228,7 +237,7 @@ fn get_and_extract_nsis(
     #[cfg(target_os = "windows")]
     {
         let data = download_and_verify("nsis-3.09.zip", NSIS_URL, NSIS_SHA1, HashAlgorithm::Sha1)?;
-        log::info!(action = "Extracting"; "nsis-3.09.zip");
+        tracing::info!("Extracting nsis-3.09.zip");
         extract_zip(&data, &ctx.tools_path)?;
         std::fs::rename(ctx.tools_path.join("nsis-3.09"), nsis_toolset_path)?;
     }
@@ -239,7 +248,7 @@ fn get_and_extract_nsis(
     std::fs::create_dir_all(&unicode_plugins)?;
 
     let data = download(NSIS_APPLICATIONID_URL)?;
-    log::info!(action = "Extracting"; "NSIS ApplicationID plugin");
+    tracing::info!("ExtractingNSIS ApplicationID plugin");
     extract_zip(&data, &nsis_plugins)?;
     std::fs::copy(
         nsis_plugins.join("ReleaseUnicode/ApplicationID.dll"),
@@ -257,10 +266,8 @@ fn get_and_extract_nsis(
     Ok(())
 }
 
-fn build_nsis_app_installer(
-    ctx: &Context,
-    #[allow(unused)] nsis_path: &Path,
-) -> crate::Result<Vec<PathBuf>> {
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
         intermediates_path,
@@ -279,12 +286,12 @@ fn build_nsis_app_installer(
         let main_binary = config.main_binary()?;
         let app_exe_source = config.binary_path(main_binary);
         let signing_path = app_exe_source.with_extension("exe");
-        log::debug!(action = "Codesigning"; "{}", signing_path.display());
+        tracing::debug!("Codesigning {}", signing_path.display());
         codesign::try_sign(&signing_path, config)?;
     }
 
     #[cfg(not(target_os = "windows"))]
-    log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the main binary...");
+    tracing::warn!("Codesigning is currently only supported on Windows hosts, skipping signing the main binary...");
 
     let intermediates_path = intermediates_path.join("nsis").join(arch);
     util::create_clean_dir(&intermediates_path)?;
@@ -293,9 +300,7 @@ fn build_nsis_app_installer(
 
     #[cfg(not(target_os = "windows"))]
     {
-        let dir = dirs::cache_dir()
-            .unwrap()
-            .join("cargo-packager/NSIS/Plugins/x86-unicode");
+        let dir = nsis_path.join("Plugins/x86-unicode");
         data.insert("additional_plugins_path", to_json(dir));
     }
 
@@ -395,7 +400,7 @@ fn build_nsis_app_installer(
         if let Some(data) = get_lang_data(lang, custom_language_files.as_ref())? {
             languages_data.push(data);
         } else {
-            log::warn!("Custom cargo-packager messages for {lang} are not translated.\nIf it is a valid language listed on <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files>, please open a cargo-packager feature request\n or you can provide a custom language file for it in ` nsis.custom_language_files`");
+            tracing::warn!("Custom cargo-packager messages for {lang} are not translated.\nIf it is a valid language listed on <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files>, please open a cargo-packager feature request\n or you can provide a custom language file for it in ` nsis.custom_language_files`");
         }
     }
     data.insert("languages", to_json(languages.clone()));
@@ -457,13 +462,11 @@ fn build_nsis_app_installer(
     if let Some(path) = custom_template_path {
         handlebars
             .register_template_string("installer.nsi", std::fs::read_to_string(path)?)
-            .map_err(|e| e.to_string())
-            .expect("Failed to setup custom handlebar template");
+            .map_err(Box::new)?;
     } else {
         handlebars
             .register_template_string("installer.nsi", include_str!("./installer.nsi"))
-            .map_err(|e| e.to_string())
-            .expect("Failed to setup handlebar template");
+            .map_err(Box::new)?;
     }
 
     write_ut16_le_with_bom(
@@ -489,41 +492,50 @@ fn build_nsis_app_installer(
         "{}_{}_{}-setup.exe",
         main_binary.filename, config.version, arch
     ));
-    std::fs::create_dir_all(installer_path.parent().unwrap())?;
+    std::fs::create_dir_all(
+        installer_path
+            .parent()
+            .ok_or_else(|| crate::Error::ParentDirNotFound(installer_path.clone()))?,
+    )?;
 
-    log::info!(action = "Running"; "makensis.exe to produce {}", util::display_path(&installer_path));
+    tracing::info!(
+        "Running makensis.exe to produce {}",
+        util::display_path(&installer_path)
+    );
     #[cfg(target_os = "windows")]
     let mut nsis_cmd = Command::new(nsis_path.join("makensis.exe"));
     #[cfg(not(target_os = "windows"))]
     let mut nsis_cmd = Command::new("makensis");
 
-    let log_level = config.log_level.unwrap_or_default();
+    if let Some(level) = config.log_level {
+        nsis_cmd.arg(match level {
+            LogLevel::Error => "/V1",
+            LogLevel::Warn | LogLevel::Info => "/V2",
+            LogLevel::Debug => "/V3",
+            _ => "/V4",
+        });
+    }
 
     nsis_cmd
-        .arg(match log_level {
-            LogLevel::Error => "/V1",
-            LogLevel::Warn => "/V2",
-            LogLevel::Info => "/V3",
-            _ => "/V4",
-        })
         .arg(installer_nsi_path)
         .current_dir(intermediates_path)
         .output_ok()
-        .map_err(|e| crate::Error::NsisFailed(e.to_string()))?;
+        .map_err(crate::Error::NsisFailed)?;
 
     std::fs::rename(nsis_output_path, &installer_path)?;
 
     #[cfg(target_os = "windows")]
     {
-        log::debug!(action = "Codesigning"; "{}", installer_path.display());
+        tracing::debug!("Codesigning {}", installer_path.display());
         codesign::try_sign(&installer_path, config)?;
     }
     #[cfg(not(target_os = "windows"))]
-    log::warn!("Code signing is currently only supported on Windows hosts, skipping signing the installer...");
+    tracing::warn!("Codesigning is currently only supported on Windows hosts, skipping signing the installer...");
 
     Ok(vec![installer_path])
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let nsis_toolset_path = ctx.tools_path.join("NSIS");
 
@@ -533,7 +545,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .iter()
         .any(|p| !nsis_toolset_path.join(p).exists())
     {
-        log::warn!("NSIS directory is missing some files. Recreating it...");
+        tracing::warn!("NSIS directory is missing some files. Recreating it...");
         std::fs::remove_dir_all(&nsis_toolset_path)?;
         get_and_extract_nsis(ctx, &nsis_toolset_path)?;
     }

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{util, Config, PackageFormat};
+use crate::{shell::CommandExt, util, Config, PackageFormat};
 
 use self::context::Context;
 
@@ -40,6 +40,7 @@ pub struct PackageOuput {
 }
 
 /// Package an app using the specified config.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
     let mut formats = config
         .formats
@@ -117,7 +118,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
             PackageFormat::AppImage => appimage::package(&ctx),
 
             _ => {
-                log::warn!("ignoring {}", format.short_name());
+                tracing::warn!("ignoring {}", format.short_name());
                 continue;
             }
         }?;
@@ -139,7 +140,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
                 .map(|b| b.paths)
             {
                 for path in &app_bundle_paths {
-                    log::debug!(action = "Cleaning"; "{}", path.display());
+                    tracing::debug!("Cleaning {}", path.display());
                     match path.is_dir() {
                         true => std::fs::remove_dir_all(path)?,
                         false => std::fs::remove_file(path)?,
@@ -172,17 +173,24 @@ fn run_before_each_packaging_command_hook(
             }
         };
 
-        log::info!(action = "Running"; "[\x1b[34m{}\x1b[0m] beforeEachPackageCommand `{}`", format, script);
-        let status = cmd
+        tracing::info!("Running beforeEachPackageCommand [{format}] `{script}`");
+        let output = cmd
             .env("CARGO_PACKAGER_FORMATS", formats_comma_separated)
             .env("CARGO_PACKAGER_FORMAT", format)
-            .status()?;
+            .output_ok()
+            .map_err(|e| {
+                crate::Error::HookCommandFailure(
+                    "beforeEachPackageCommand".into(),
+                    script.into(),
+                    e,
+                )
+            })?;
 
-        if !status.success() {
-            return Err(crate::Error::HookCommandFailure(
+        if !output.status.success() {
+            return Err(crate::Error::HookCommandFailureWithExitCode(
                 "beforeEachPackageCommand".into(),
                 script.into(),
-                status.code().unwrap_or_default(),
+                output.status.code().unwrap_or_default(),
             ));
         }
     }
@@ -209,16 +217,19 @@ fn run_before_packaging_command_hook(
             }
         };
 
-        log::info!(action = "Running"; "beforePackagingCommand `{}`", script);
-        let status = cmd
+        tracing::info!("Running beforePackageCommand `{script}`");
+        let output = cmd
             .env("CARGO_PACKAGER_FORMATS", formats_comma_separated)
-            .status()?;
+            .output_ok()
+            .map_err(|e| {
+                crate::Error::HookCommandFailure("beforePackagingCommand".into(), script.into(), e)
+            })?;
 
-        if !status.success() {
-            return Err(crate::Error::HookCommandFailure(
+        if !output.status.success() {
+            return Err(crate::Error::HookCommandFailureWithExitCode(
                 "beforePackagingCommand".into(),
                 script.into(),
-                status.code().unwrap_or_default(),
+                output.status.code().unwrap_or_default(),
             ));
         }
     }

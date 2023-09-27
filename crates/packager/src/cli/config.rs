@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Debug,
+    path::{Path, PathBuf},
+};
 
 use crate::{config::Binary, Config};
 
@@ -28,7 +31,10 @@ fn find_nearset_pkg_name(path: &Path) -> crate::Result<Option<String>> {
     res
 }
 
-pub fn parse_config_file<P: AsRef<Path>>(path: P) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+pub fn parse_config_file<P: AsRef<Path> + Debug>(
+    path: P,
+) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
     let path = path.as_ref().to_path_buf().canonicalize()?;
     let content = std::fs::read_to_string(&path)?;
     let mut configs = match path.extension().and_then(|e| e.to_str()) {
@@ -62,25 +68,25 @@ pub fn parse_config_file<P: AsRef<Path>>(path: P) -> crate::Result<Vec<(Option<P
     Ok(configs)
 }
 
-pub fn find_config_files() -> Vec<PathBuf> {
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+pub fn find_config_files() -> crate::Result<Vec<PathBuf>> {
     let opts = glob::MatchOptions {
         case_sensitive: false,
         ..Default::default()
     };
 
-    [
-        glob::glob_with("**/packager.toml", opts)
-            .unwrap()
+    Ok([
+        glob::glob_with("**/packager.toml", opts)?
             .flatten()
             .collect::<Vec<_>>(),
-        glob::glob_with("**/packager.json", opts)
-            .unwrap()
+        glob::glob_with("**/packager.json", opts)?
             .flatten()
             .collect::<Vec<_>>(),
     ]
-    .concat()
+    .concat())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn load_configs_from_cargo_workspace(
     release: bool,
     profile: Option<String>,

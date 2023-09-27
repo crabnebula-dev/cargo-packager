@@ -7,6 +7,7 @@ use crate::{
     util,
 };
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context { config, .. } = ctx;
     // we should use the bundle name (App name) as a MacOS standard.
@@ -14,7 +15,11 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let app_product_name = format!("{}.app", config.product_name);
     let app_bundle_path = config.out_dir().join(&app_product_name);
 
-    log::info!(action = "Packaging"; "{} ({})", app_product_name, app_bundle_path.display());
+    tracing::info!(
+        "Packaging {} ({})",
+        app_product_name,
+        app_bundle_path.display()
+    );
 
     let contents_directory = app_bundle_path.join("Contents");
     std::fs::create_dir_all(&contents_directory)?;
@@ -24,19 +29,19 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
 
-    log::debug!("creating Info.plist");
+    tracing::debug!("Creating Info.plist");
     create_info_plist(&contents_directory, bundle_icon_file, config)?;
 
-    log::debug!("copying frameworks");
+    tracing::debug!("Copying frameworks");
     copy_frameworks_to_bundle(&contents_directory, config)?;
 
-    log::debug!("copying resources");
+    tracing::debug!("Copying resources");
     config.copy_resources(&resources_dir)?;
 
-    log::debug!("copying external binaries");
+    tracing::debug!("Copying external binaries");
     config.copy_external_binaries(&bin_dir)?;
 
-    log::debug!("copying binaries");
+    tracing::debug!("Copying binaries");
     let bin_dir = contents_directory.join("MacOS");
     std::fs::create_dir_all(&bin_dir)?;
     for bin in &config.binaries {
@@ -48,17 +53,17 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        log::debug!(action = "Codesigning"; "{}", app_bundle_path.display());
+        tracing::debug!("Codesigning {}", app_bundle_path.display());
         codesign::try_sign(&app_bundle_path, identity, config, true)?;
 
         // notarization is required for distribution
         match codesign::notarize_auth() {
             Ok(auth) => {
-                log::debug!(action = "Notarizing"; "{}", app_bundle_path.display());
+                tracing::debug!("Notarizing {}", app_bundle_path.display());
                 codesign::notarize(app_bundle_path.clone(), auth, config)?;
             }
             Err(e) => {
-                log::warn!("skipping app notarization, {}", e.to_string());
+                tracing::warn!("Skipping app notarization, {}", e.to_string());
             }
         }
     }
@@ -67,6 +72,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 }
 
 // Creates the Info.plist file.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn create_info_plist(
     contents_directory: &Path,
     bundle_icon_file: Option<PathBuf>,
@@ -92,7 +98,7 @@ fn create_info_plist(
         plist.insert(
             "CFBundleIconFile".into(),
             path.file_name()
-                .expect("No file name")
+                .ok_or_else(|| crate::Error::FailedToExtractFilename(path.clone()))?
                 .to_string_lossy()
                 .into_owned()
                 .into(),
@@ -197,6 +203,7 @@ fn create_info_plist(
     Ok(())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
     if !from.exists() {
         return Err(crate::Error::AlreadyExists(from.to_path_buf()));
@@ -208,7 +215,9 @@ fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
         return Err(crate::Error::AlreadyExists(to.to_path_buf()));
     }
 
-    let parent = to.parent().expect("No data in parent");
+    let parent = to
+        .parent()
+        .ok_or_else(|| crate::Error::ParentDirNotFound(to.to_path_buf()))?;
     std::fs::create_dir_all(parent)?;
     for entry in walkdir::WalkDir::new(from) {
         let entry = entry?;
@@ -228,6 +237,7 @@ fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
 }
 
 // Copies the framework under `{src_dir}/{framework}.framework` to `{dest_dir}/{framework}.framework`.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crate::Result<bool> {
     let src_name = format!("{}.framework", framework);
     let src_path = src_dir.join(&src_name);
@@ -240,6 +250,7 @@ fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crat
 }
 
 // Copies the macOS application bundle frameworks to the .app
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crate::Result<()> {
     if let Some(frameworks) = config.macos().and_then(|m| m.frameworks.as_ref()) {
         let dest_dir = contents_directory.join("Frameworks");
@@ -250,7 +261,7 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                 let src_path = PathBuf::from(framework);
                 let src_name = src_path
                     .file_name()
-                    .expect("Couldn't get framework filename");
+                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
                 copy_dir(&src_path, &dest_dir.join(src_name))?;
                 continue;
             } else if framework.ends_with(".dylib") {
@@ -258,7 +269,9 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                 if !src_path.exists() {
                     return Err(crate::Error::FrameworkNotFound(framework.to_string()));
                 }
-                let src_name = src_path.file_name().expect("Couldn't get library filename");
+                let src_name = src_path
+                    .file_name()
+                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
                 std::fs::create_dir_all(&dest_dir)?;
                 std::fs::copy(&src_path, dest_dir.join(src_name))?;
                 continue;
