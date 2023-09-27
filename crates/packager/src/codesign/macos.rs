@@ -243,7 +243,7 @@ pub fn notarize(
         .join(format!("{}.zip", bundle_stem.to_string_lossy()));
 
     let app_bundle_path_str = app_bundle_path.to_string_lossy().to_string();
-    let zip_path_str = zip_path.to_string_lossy().to_string().as_str();
+    let zip_path_str = zip_path.to_string_lossy().to_string();
     let zip_args = vec![
         "-c",
         "-k",
