@@ -11,7 +11,7 @@ dunce = "1"
 schemars = { version = "0.8", features = ["url", "preserve_order", "derive"] }
 cargo-packager-config = { path = "crates/config", version = "0.0.0" }
 clap = { version = "4.4", features = ["derive"] }
-log = "0.4"
 dirs = "5.0"
 semver = "1"
 base64 = "0.21"
+tracing = "0.1"

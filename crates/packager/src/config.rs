@@ -64,9 +64,9 @@ impl ConfigExt for Config {
     }
 
     fn target_triple(&self) -> String {
-        self.target_triple
-            .clone()
-            .unwrap_or_else(|| util::target_triple().unwrap())
+        self.target_triple.clone().unwrap_or_else(|| {
+            util::target_triple().expect("Failed to detect current target triple")
+        })
     }
 
     fn target_arch(&self) -> crate::Result<&str> {
@@ -154,9 +154,9 @@ impl ConfigExtInternal for Config {
     #[inline]
     fn resources_from_glob(glob: &str) -> crate::Result<Vec<IResource>> {
         let mut out = Vec::new();
-        for src in glob::glob(glob).unwrap() {
+        for src in glob::glob(glob)? {
             let src = dunce::canonicalize(src?)?;
-            let target = PathBuf::from(src.file_name().unwrap());
+            let target = PathBuf::from(src.file_name().unwrap_or_default());
             out.push(IResource { src, target })
         }
         Ok(out)
@@ -170,7 +170,7 @@ impl ConfigExtInternal for Config {
                     Resource::Single(src) => {
                         let src_dir = PathBuf::from(src);
                         if src_dir.is_dir() {
-                            let target_dir = Path::new(src_dir.file_name().unwrap());
+                            let target_dir = Path::new(src_dir.file_name().unwrap_or_default());
                             out.extend(Self::resources_from_dir(&src_dir, target_dir)?);
                         } else {
                             out.extend(Self::resources_from_glob(src)?);
@@ -223,7 +223,10 @@ impl ConfigExtInternal for Config {
     fn copy_resources(&self, path: &Path) -> crate::Result<()> {
         for resource in self.resources()? {
             let dest = path.join(resource.target);
-            std::fs::create_dir_all(dest.parent().ok_or(crate::Error::ParentDirNotFound)?)?;
+            std::fs::create_dir_all(
+                dest.parent()
+                    .ok_or_else(|| crate::Error::ParentDirNotFound(dest.to_path_buf()))?,
+            )?;
             std::fs::copy(resource.src, dest)?;
         }
         Ok(())
@@ -235,7 +238,7 @@ impl ConfigExtInternal for Config {
                 let src = dunce::canonicalize(PathBuf::from(src))?;
                 let file_name_no_triple = src
                     .file_name()
-                    .expect("failed to extract external binary filename")
+                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
                     .to_string_lossy()
                     .replace(&format!("-{}", self.target_triple()), "");
                 let dest = path.join(file_name_no_triple);

@@ -20,7 +20,7 @@ pub fn command(options: Options) -> crate::Result<()> {
         Some(path) if PathBuf::from(&path).exists() => std::fs::read_to_string(path)?,
         Some(key) => key,
         None => {
-            log::error!("--private-key was not specified, aborting signign.");
+            tracing::error!("--private-key was not specified, aborting signign.");
             std::process::exit(1);
         }
     };
@@ -31,7 +31,10 @@ pub fn command(options: Options) -> crate::Result<()> {
     };
     let signature_path = crate::sign::sign_file(&config, options.file)?;
 
-    log::info!(action="Signed"; "the file successfully! find the signature at: {}" , signature_path.display());
+    tracing::info!(
+        "Signed the file successfully! find the signature at: {}",
+        signature_path.display()
+    );
 
     Ok(())
 }

@@ -28,15 +28,17 @@ pub struct DebIcon {
 }
 
 /// Generate the icon files and store them under the `data_dir`.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let hicolor_dir = data_dir.join("usr/share/icons/hicolor");
+    let main_binary_name = config.main_binary_name()?;
     let get_dest_path = |width: u32, height: u32, is_high_density: bool| {
         hicolor_dir.join(format!(
             "{}x{}{}/apps/{}.png",
             width,
             height,
             if is_high_density { "@2" } else { "" },
-            config.main_binary_name().unwrap()
+            main_binary_name
         ))
     };
     let mut icons_set = BTreeSet::new();
@@ -65,7 +67,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
                     deb_icon
                         .path
                         .parent()
-                        .ok_or(crate::Error::ParentDirNotFound)?,
+                        .ok_or_else(|| crate::Error::ParentDirNotFound(deb_icon.path.clone()))?,
                 )?;
                 std::fs::copy(&icon_path, &deb_icon.path)?;
                 icons_set.insert(deb_icon);
@@ -76,6 +78,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
 }
 
 /// Generate the application desktop file and store it under the `data_dir`.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> {
     let bin_name = config.main_binary_name()?;
     let desktop_file_name = format!("{}.desktop", bin_name);
@@ -139,27 +142,28 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
     Ok(())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let bin_dir = data_dir.join("usr/bin");
 
-    log::debug!("copying binaries");
+    tracing::debug!("Copying binaries");
     std::fs::create_dir_all(&bin_dir)?;
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
         std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
     }
 
-    log::debug!("copying resources");
+    tracing::debug!("Copying resources");
     let resource_dir = data_dir.join("usr/lib").join(config.main_binary_name()?);
     config.copy_resources(&resource_dir)?;
 
-    log::debug!("copying external binaries");
+    tracing::debug!("Copying external binaries");
     config.copy_external_binaries(&bin_dir)?;
 
-    log::debug!("generating icons");
+    tracing::debug!("Generating icons");
     let icons = generate_icon_files(config, data_dir)?;
 
-    log::debug!("generating desktop file");
+    tracing::debug!("Generating desktop file");
     generate_desktop_file(config, data_dir)?;
 
     Ok(icons)
@@ -186,6 +190,7 @@ pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
 }
 
 /// Copies user-defined files to the deb package.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn copy_custom_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
     if let Some(files) = config.deb().and_then(|d| d.files.as_ref()) {
         for (src, target) in files.iter() {
@@ -199,7 +204,9 @@ fn copy_custom_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
 
             if src.is_file() {
                 let dest = data_dir.join(target);
-                let parent = dest.parent().ok_or(crate::Error::ParentDirNotFound)?;
+                let parent = dest
+                    .parent()
+                    .ok_or_else(|| crate::Error::ParentDirNotFound(dest.clone()))?;
                 std::fs::create_dir_all(parent)?;
                 std::fs::copy(src, dest)?;
             } else if src.is_dir() {
@@ -221,6 +228,7 @@ fn copy_custom_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
 }
 
 /// Generates the debian control file and stores it under the `control_dir`.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_control_file(
     config: &Config,
     arch: &str,
@@ -275,6 +283,7 @@ fn generate_control_file(
 
 /// Create an `md5sums` file in the `control_dir` containing the MD5 checksums
 /// for each file within the `data_dir`.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
     let md5sums_path = control_dir.join("md5sums");
     let mut md5sums_file = util::create_file(&md5sums_path)?;
@@ -325,6 +334,7 @@ fn create_archive(srcs: Vec<PathBuf>, dest: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -349,38 +359,38 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let deb_dir = intermediates_path.join(&deb_base_name);
     let deb_path = config.out_dir().join(&deb_name);
 
-    log::info!(action = "Packaging"; "{} ({})", deb_name, deb_path.display());
+    tracing::info!("Packaging {} ({})", deb_name, deb_path.display());
 
-    log::debug!("generating data");
+    tracing::debug!("Generating data");
     let data_dir = deb_dir.join("data");
     let _ = generate_data(config, &data_dir)?;
 
-    log::debug!("copying files specifeid in `deb.files`");
+    tracing::debug!("Copying files specifeid in `deb.files`");
     copy_custom_files(config, &data_dir)?;
 
     let control_dir = deb_dir.join("control");
-    log::debug!("generating control file");
+    tracing::debug!("Generating control file");
     generate_control_file(config, arch, &control_dir, &data_dir)?;
 
-    log::debug!("generating md5sums");
+    tracing::debug!("Generating md5sums");
     generate_md5sums(&control_dir, &data_dir)?;
 
     // Generate `debian-binary` file; see
     // http://www.tldp.org/HOWTO/Debian-Binary-Package-Building-HOWTO/x60.html#AEN66
-    log::debug!("creating debian-binary file");
+    tracing::debug!("Creating debian-binary file");
     let debian_binary_path = deb_dir.join("debian-binary");
     let mut file = util::create_file(&debian_binary_path)?;
     file.write_all(b"2.0\n")?;
     file.flush()?;
 
     // Apply tar/gzip/ar to create the final package file.
-    log::debug!("tar_and_gzip control dir");
+    tracing::debug!("Zipping control dir using tar and gzip");
     let control_tar_gz_path = tar_and_gzip_dir(control_dir)?;
 
-    log::debug!("tar_and_gzip data dir");
+    tracing::debug!("Zipping data dir using tar and gzip");
     let data_tar_gz_path = tar_and_gzip_dir(data_dir)?;
 
-    log::debug!("creating final archive: {}", deb_path.display());
+    tracing::debug!("Creating final archive: {}", deb_path.display());
     create_archive(
         vec![debian_binary_path, control_tar_gz_path, data_tar_gz_path],
         &deb_path,

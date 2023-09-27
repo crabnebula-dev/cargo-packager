@@ -31,7 +31,7 @@ pub enum Error {
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
     /// Failed to validate downloaded file hash.
-    #[error("hash mismatch of downloaded file")]
+    #[error("Hash mismatch of downloaded file")]
     HashError,
     /// Zip error.
     #[error(transparent)]
@@ -40,7 +40,7 @@ pub enum Error {
     #[error(transparent)]
     DownloadError(#[from] Box<ureq::Error>),
     /// Unsupported OS bitness.
-    #[error("unsupported OS bitness")]
+    #[error("Unsupported OS bitness")]
     UnsupportedBitness,
     /// Windows SignTool not found.
     #[error("SignTool not found")]
@@ -51,16 +51,17 @@ pub enum Error {
     /// Unsupported architecture.
     #[error("Unsupported architecture for \"{0}\" target triple: {0}")]
     UnsupportedArch(String, String),
-    #[error("Couldn't find the main binary in list of provided binaries")]
+    /// Could not find the main binary in list of provided binaries.
+    #[error("Could not find the main binary in list of provided binaries")]
     MainBinaryNotFound,
     /// Semver parsing error
     #[error(transparent)]
     Semver(#[from] semver::Error),
     /// Non-numeric build metadata in app version.
-    #[error("optional build metadata in app version must be numeric-only {}", .0.clone().unwrap_or_default())]
+    #[error("Optional build metadata in app version must be numeric-only {}", .0.clone().unwrap_or_default())]
     NonNumericBuildMetadata(Option<String>),
     /// Invalid app version when building [crate::PackageFormat::Wix]
-    #[error("invalid app version: {0}")]
+    #[error("Invalid app version: {0}")]
     InvalidAppVersion(String),
     /// Handlebars render error.
     #[error(transparent)]
@@ -69,16 +70,29 @@ pub enum Error {
     #[error(transparent)]
     HandleBarsTemplateError(#[from] Box<handlebars::TemplateError>),
     /// Nsis error
-    #[error("error running makensis.exe: {0}")]
-    NsisFailed(String),
+    #[error("Error running makensis.exe: {0}")]
+    NsisFailed(std::io::Error),
     /// Nsis error
-    #[error("error running {0}: {0}")]
-    WixFailed(String, String),
+    #[error("Error running {0}: {0}")]
+    WixFailed(String, std::io::Error),
+    /// create-dmg script error
+    #[error("Error running create-dmg script: {0}")]
+    CreateDmgFailed(std::io::Error),
+    /// create-dmg script error
+    #[error("Error running signtool.exe: {0}")]
+    SignToolFailed(std::io::Error),
+    /// bundle_appimage script error
+    #[error("Error running bundle_appimage.sh script: {0}")]
+    AppImageScriptFailed(std::io::Error),
     /// Failed to get parent directory of a path
-    #[error("Failed to get parent directory of a path")]
-    ParentDirNotFound,
+    #[error("Failed to get parent directory of {0}")]
+    ParentDirNotFound(std::path::PathBuf),
+    /// A hook, for example `beforePackagaingCommand`, has failed.
+    #[error("{0} `{1}` failed: {2}")]
+    HookCommandFailure(String, String, std::io::Error),
+    /// A hook, for example `beforePackagaingCommand`, has failed with an exit code.
     #[error("{0} `{1}` failed with exit code {2}")]
-    HookCommandFailure(String, String, i32),
+    HookCommandFailureWithExitCode(String, String, i32),
     /// Regex error.
     #[cfg(windows)]
     #[error(transparent)]
@@ -90,17 +104,19 @@ pub enum Error {
     #[error(transparent)]
     Glob(#[from] glob::GlobError),
     /// Unsupported WiX language
-    #[error("Language {0} not found. It must be one of {1}")]
+    #[cfg(windows)]
+    #[error("Wix language {0} not found. It must be one of {1}")]
     UnsupportedWixLanguage(String, String),
-    /// image crate errors.
-    #[error(transparent)]
+    /// Image crate errors.
     #[cfg(any(
+        target_os = "macos",
         target_os = "linux",
         target_os = "dragonfly",
         target_os = "freebsd",
         target_os = "netbsd",
         target_os = "openbsd"
     ))]
+    #[error(transparent)]
     ImageError(#[from] image::ImageError),
     /// walkdir crate errors.
     #[error(transparent)]
@@ -108,59 +124,74 @@ pub enum Error {
     /// Path prefix strip error.
     #[error(transparent)]
     StripPrefixError(#[from] std::path::StripPrefixError),
-    /// std::process::Command program failed
-    #[error("Command failed")]
-    CommandFailed,
     /// Relative paths errors
     #[error(transparent)]
     RelativeToError(#[from] relative_path::RelativeToError),
     /// Time error.
-    #[cfg(target_os = "macos")]
     #[error("`{0}`")]
+    #[cfg(target_os = "macos")]
     TimeError(#[from] time::error::Error),
     /// Plist error.
-    #[cfg(target_os = "macos")]
     #[error(transparent)]
+    #[cfg(target_os = "macos")]
     Plist(#[from] plist::Error),
     /// Framework not found.
-    #[cfg(target_os = "macos")]
-    #[error("framework {0} not found")]
+    #[error("Framework {0} not found")]
     FrameworkNotFound(String),
     /// Invalid framework.
-    #[cfg(target_os = "macos")]
-    #[error("invalid framework {framework}: {reason}")]
+    #[error("Invalid framework {framework}: {reason}")]
     InvalidFramework {
         framework: String,
         reason: &'static str,
     },
-    /// Image error.
-    #[cfg(target_os = "macos")]
-    #[error(transparent)]
-    ImageError(#[from] image::ImageError),
     /// Invalid icons.
-    #[cfg(target_os = "macos")]
-    #[error("could not find a valid icon")]
+    #[error("Could not find a valid icon")]
     InvalidIconList,
     /// Failed to notarize.
-    #[cfg(target_os = "macos")]
-    #[error("failed to notarize app")]
+    #[error("Failed to notarize app")]
     FailedToNotarize,
     /// Rejected on notarize.
-    #[cfg(target_os = "macos")]
-    #[error("failed to notarize app: {0}")]
+    #[error("Failed to notarize app: {0}")]
     NotarizeRejected(String),
     /// Failed to parse notarytool output.
-    #[cfg(target_os = "macos")]
-    #[error("failed to parse notarytool output as JSON: `{0}`")]
+    #[error("Failed to parse notarytool output as JSON: `{0}`")]
     FailedToParseNotarytoolOutput(String),
     /// Failed to find API key file.
-    #[cfg(target_os = "macos")]
-    #[error("could not find API key file. Please set the APPLE_API_KEY_PATH environment variables to the path to the {filename} file")]
+    #[error("Could not find API key file. Please set the APPLE_API_KEY_PATH environment variables to the path to the {filename} file")]
     ApiKeyMissing { filename: String },
     /// Missing notarize environment variables.
-    #[cfg(target_os = "macos")]
-    #[error("no APPLE_ID & APPLE_PASSWORD or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
+    #[error("Could not find APPLE_ID & APPLE_PASSWORD or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
     MissingNotarizeAuthVars,
+    /// Failed to list keychains
+    #[error("Failed to list keychains: {0}")]
+    FailedToListKeyChain(std::io::Error),
+    /// Failed to decode certficate as base64
+    #[error("Failed to decode certficate as base64: {0}")]
+    FailedToDecodeCert(std::io::Error),
+    /// Failed to create keychain.
+    #[error("Failed to create keychain: {0}")]
+    FailedToCreateKeyChain(std::io::Error),
+    /// Failed to create keychain.
+    #[error("Failed to unlock keychain: {0}")]
+    FailedToUnlockKeyChain(std::io::Error),
+    /// Failed to import certificate.
+    #[error("Failed to import certificate: {0}")]
+    FailedToImportCert(std::io::Error),
+    /// Failed to set keychain settings.
+    #[error("Failed to set keychain settings: {0}")]
+    FailedToSetKeychainSettings(std::io::Error),
+    /// Failed to set key partition list.
+    #[error("Failed to set key partition list: {0}")]
+    FailedToSetKeyPartitionList(std::io::Error),
+    /// Failed to run codesign utility.
+    #[error("Failed to run codesign utility: {0}")]
+    FailedToRunCodesign(std::io::Error),
+    /// Failed to run ditto utility.
+    #[error("Failed to run ditto utility: {0}")]
+    FailedToRunDitto(std::io::Error),
+    /// Failed to run xcrun utility.
+    #[error("Failed to run xcrun utility: {0}")]
+    FailedToRunXcrun(std::io::Error),
     /// Path already exists.
     #[error("{0} already exists")]
     AlreadyExists(PathBuf),
@@ -170,11 +201,8 @@ pub enum Error {
     /// Path is not a directory.
     #[error("{0} is not a directory")]
     IsNotDirectory(PathBuf),
-    /// Failed to run command.
-    #[error("failed to run command {0}")]
-    FailedToRunCommand(String),
-    /// Couldn't find a square icon to use as AppImage icon
-    #[error("couldn't find a square icon to use as AppImage icon")]
+    /// Could not find a square icon to use as AppImage icon
+    #[error("Could not find a square icon to use as AppImage icon")]
     AppImageSquareIcon,
     /// Base64 decoding error.
     #[error(transparent)]
@@ -189,8 +217,11 @@ pub enum Error {
     #[error(transparent)]
     SystemTimeError(#[from] std::time::SystemTimeError),
     /// Signing keys generation error.
-    #[error("Key generation aborted, {0} already exists and force overrwite wasnot desired.")]
+    #[error("aborted key generation, {0} already exists and force overrwite wasnot desired.")]
     SigningKeyExists(PathBuf),
+    /// Failed to extract external binary filename
+    #[error("Failed to extract filename from {0}")]
+    FailedToExtractFilename(PathBuf),
 }
 
 /// Convenient type alias of Result type for cargo-packager.

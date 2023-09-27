@@ -74,9 +74,8 @@ pub fn target_triple() -> crate::Result<String> {
             .target_arch
             .expect("could not find `target_arch` when running `rustc --print cfg`."),
         Err(err) => {
-            log:: warn!(
-                "failed to determine target arch using rustc, error: `{}`. The fallback is the architecture of the machine that compiled this crate.",
-                err,
+            tracing:: warn!(
+                "Failed to determine target arch using rustc, error: `{err}`. Falling back to the architecture of the machine that compiled this crate.",
             );
             if cfg!(target_arch = "x86") {
                 "i686".into()
@@ -124,7 +123,7 @@ pub fn target_triple() -> crate::Result<String> {
 }
 
 pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
-    log::info!(action = "Downloading"; "{}", url);
+    tracing::info!("Downloading {}", url);
     let response = ureq::get(url).call().map_err(Box::new)?;
     let mut bytes = Vec::new();
     response.into_reader().read_to_end(&mut bytes)?;
@@ -145,7 +144,7 @@ pub(crate) fn download_and_verify(
     hash_algorithm: HashAlgorithm,
 ) -> crate::Result<Vec<u8>> {
     let data = download(url)?;
-    log::info!(action = "Validating"; "{file} hash");
+    tracing::info!("Validating {file} hash");
 
     match hash_algorithm {
         #[cfg(target_os = "windows")]
@@ -190,7 +189,9 @@ pub(crate) fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
                 continue;
             }
 
-            let parent = dest_path.parent().ok_or(crate::Error::ParentDirNotFound)?;
+            let parent = dest_path
+                .parent()
+                .ok_or_else(|| crate::Error::ParentDirNotFound(dest_path.clone()))?;
 
             if !parent.exists() {
                 std::fs::create_dir_all(parent)?;
@@ -281,8 +282,11 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
         for icon_path in icons {
             let icon_path = PathBuf::from(icon_path);
             if icon_path.extension() == Some(std::ffi::OsStr::new("icns")) {
-                let dest_path =
-                    out_dir.join(icon_path.file_name().expect("could not get icon filename"));
+                let dest_path = out_dir.join(
+                    icon_path
+                        .file_name()
+                        .ok_or_else(|| crate::Error::FailedToExtractFilename(icon_path.clone()))?,
+                );
                 std::fs::copy(&icon_path, &dest_path)?;
 
                 return Ok(Some(dest_path));

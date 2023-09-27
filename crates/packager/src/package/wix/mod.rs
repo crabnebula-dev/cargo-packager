@@ -126,6 +126,7 @@ struct Binary {
 }
 
 /// Generates the data required for the external binaries.
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
     let mut binaries = Vec::new();
     let cwd = std::env::current_dir()?;
@@ -135,9 +136,10 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
             let binary_path = cwd.join(src);
-            let dest_filename = PathBuf::from(src)
+            let src = PathBuf::from(src);
+            let dest_filename = src
                 .file_name()
-                .expect("failed to extract external binary filename")
+                .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
                 .to_string_lossy()
                 .replace(&format!("-{}", config.target_triple()), "");
             let dest = tmp_dir.join(&dest_filename);
@@ -145,10 +147,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
 
             binaries.push(Binary {
                 guid: Uuid::new_v4().to_string(),
-                path: dest
-                    .into_os_string()
-                    .into_string()
-                    .expect("failed to read external binary path"),
+                path: dest.into_os_string().into_string().unwrap_or_default(),
                 id: regex
                     .replace_all(&dest_filename.replace('-', "_"), "")
                     .to_string(),
@@ -164,7 +163,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                     .binary_path(bin)
                     .into_os_string()
                     .into_string()
-                    .expect("failed to read binary path"),
+                    .unwrap_or_default(),
                 id: regex
                     .replace_all(&bin.filename.replace('-', "_"), "")
                     .to_string(),
@@ -250,6 +249,7 @@ impl ResourceDirectory {
 type ResourceMap = BTreeMap<String, ResourceDirectory>;
 
 /// Generates the data required for the resource on wix
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
     let mut resources_map = ResourceMap::new();
     for resource in config.resources()? {
@@ -285,9 +285,7 @@ fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
             );
         }
 
-        let mut directory_entry = resources_map
-            .get_mut(&first_directory)
-            .expect("Unable to handle resources");
+        let mut directory_entry = resources_map.get_mut(&first_directory).unwrap();
 
         let mut path = String::new();
         // the first component is already parsed on `first_directory` so we skip(1)
@@ -296,7 +294,7 @@ fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
                 .as_os_str()
                 .to_os_string()
                 .into_string()
-                .expect("failed to read resource folder name");
+                .unwrap_or_default();
             path.push_str(directory_name.as_str());
             path.push(std::path::MAIN_SEPARATOR);
 
@@ -367,21 +365,25 @@ fn run_candle(
 
     let candle_exe = wix_path.join("candle.exe");
 
-    log::info!(action = "Running"; "candle for {:?}", wxs_file_path);
+    tracing::info!("Running candle for {:?}", wxs_file_path);
     let mut cmd = Command::new(candle_exe);
     for ext in extensions {
         cmd.arg("-ext");
         cmd.arg(ext);
     }
+
     clear_env_for_wix(&mut cmd);
-    if config.log_level.unwrap_or_default() >= LogLevel::Debug {
-        cmd.arg("-v");
+
+    if let Some(level) = config.log_level {
+        if level >= LogLevel::Debug {
+            cmd.arg("-v");
+        }
     }
 
     cmd.args(&args)
         .current_dir(intermediates_path)
         .output_ok()
-        .map_err(|e| crate::Error::WixFailed("candle.exe".into(), e.to_string()))?;
+        .map_err(|e| crate::Error::WixFailed("candle.exe".into(), e))?;
 
     Ok(())
 }
@@ -406,18 +408,24 @@ fn run_light(
         cmd.arg("-ext");
         cmd.arg(ext);
     }
+
     clear_env_for_wix(&mut cmd);
-    if config.log_level.unwrap_or_default() >= LogLevel::Debug {
-        cmd.arg("-v");
+
+    if let Some(level) = config.log_level {
+        if level >= LogLevel::Debug {
+            cmd.arg("-v");
+        }
     }
+
     cmd.args(&args)
         .current_dir(intermediates_path)
         .output_ok()
-        .map_err(|e| crate::Error::WixFailed("light.exe".into(), e.to_string()))?;
+        .map_err(|e| crate::Error::WixFailed("light.exe".into(), e))?;
 
     Ok(())
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn get_and_extract_wix(path: &Path) -> crate::Result<()> {
     let data = download_and_verify(
         "wix311-binaries.zip",
@@ -425,10 +433,11 @@ fn get_and_extract_wix(path: &Path) -> crate::Result<()> {
         WIX_SHA256,
         HashAlgorithm::Sha256,
     )?;
-    log::info!("extracting WIX");
+    tracing::info!("extracting WIX");
     extract_zip(&data, path)
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -446,7 +455,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let main_binary = config.main_binary()?;
     let app_exe_source = config.binary_path(main_binary);
     let signing_path = app_exe_source.with_extension("exe");
-    log::debug!(action = "Codesigning"; "{}", signing_path.display());
+    tracing::debug!("Codesigning {}", signing_path.display());
     codesign::try_sign(&signing_path, config)?;
 
     let intermediates_path = intermediates_path.join("wix").join(arch);
@@ -523,6 +532,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
                 license_contents.replace('\n', "\\par ")
             );
             let rtf_output_path = intermediates_path.join("LICENSE.rtf");
+            tracing::debug!("Writing {}", util::display_path(&rtf_output_path));
             std::fs::write(&rtf_output_path, license_rtf)?;
             data.insert("license", to_json(rtf_output_path));
         }
@@ -574,16 +584,15 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     if let Some(path) = custom_template_path {
         handlebars
             .register_template_string("main.wxs", std::fs::read_to_string(path)?)
-            .map_err(|e| e.to_string())
-            .expect("Failed to setup custom handlebar template");
+            .map_err(Box::new)?;
     } else {
         handlebars
             .register_template_string("main.wxs", include_str!("./main.wxs"))
-            .map_err(|e| e.to_string())
-            .expect("Failed to setup handlebar template");
+            .map_err(Box::new)?;
     }
 
     let main_wxs_path = intermediates_path.join("main.wxs");
+    tracing::debug!("Writing {}", util::display_path(&main_wxs_path));
     std::fs::write(&main_wxs_path, handlebars.render("main.wxs", &data)?)?;
 
     let mut candle_inputs = vec![(main_wxs_path, Vec::new())];
@@ -622,7 +631,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let mut output_paths = Vec::new();
 
     let language_map: HashMap<String, LanguageMetadata> =
-        serde_json::from_str(include_str!("./languages.json")).unwrap();
+        serde_json::from_str(include_str!("./languages.json"))?;
     let configured_languages = config
         .wix()
         .map(|w| w.languages.clone())
@@ -672,7 +681,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         );
         let locale_path = intermediates_path.join("locale.wxl");
         {
-            let mut fileout = File::create(&locale_path).expect("Failed to create locale file");
+            tracing::debug!("Writing {}", util::display_path(&locale_path));
+            let mut fileout = File::create(&locale_path)?;
             fileout.write_all(locale_contents.as_bytes())?;
         }
 
@@ -694,9 +704,13 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             "{}_{}_{}_{}.msi",
             main_binary.filename, app_version, arch, language
         ));
-        std::fs::create_dir_all(msi_path.parent().unwrap())?;
+        std::fs::create_dir_all(
+            msi_path
+                .parent()
+                .ok_or_else(|| crate::Error::ParentDirNotFound(msi_path.clone()))?,
+        )?;
 
-        log::info!(action = "Running"; "light.exe to produce {}", display_path(&msi_path));
+        tracing::info!("Running light.exe to produce {}", display_path(&msi_path));
 
         run_light(
             config,
@@ -707,7 +721,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             &msi_output_path,
         )?;
         std::fs::rename(&msi_output_path, &msi_path)?;
-        log::debug!(action = "Codesigning"; "{}", msi_path.display());
+        tracing::debug!("Codesigning {}", msi_path.display());
         codesign::try_sign(&msi_path, config)?;
         output_paths.push(msi_path);
     }
@@ -715,6 +729,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     Ok(output_paths)
 }
 
+#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let wix_path = ctx.tools_path.join("WixTools");
     if !wix_path.exists() {
@@ -723,7 +738,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .iter()
         .any(|p| !wix_path.join(p).exists())
     {
-        log::warn!("WixTools directory is missing some files. Recreating it.");
+        tracing::warn!("WixTools directory is missing some files. Recreating it.");
         std::fs::remove_dir_all(&wix_path)?;
         get_and_extract_wix(&wix_path)?;
     }
