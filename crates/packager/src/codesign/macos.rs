@@ -241,13 +241,16 @@ pub fn notarize(
     let zip_path = tmp_dir
         .path()
         .join(format!("{}.zip", bundle_stem.to_string_lossy()));
+
+    let app_bundle_path_str = app_bundle_path.to_string_lossy().to_string();
+    let zip_path_str = zip_path.to_string_lossy().to_string().as_str();
     let zip_args = vec![
         "-c",
         "-k",
         "--keepParent",
         "--sequesterRsrc",
-        app_bundle_path.to_string_lossy().to_string().as_str(),
-        zip_path.to_string_lossy().to_string().as_str(),
+        &app_bundle_path_str,
+        &zip_path_str,
     ];
 
     // use ditto to create a PKZip almost identical to Finder
@@ -265,10 +268,12 @@ pub fn notarize(
         try_sign(&zip_path, identity, config, false)?;
     };
 
+    let zip_path_str = zip_path.to_string_lossy().to_string();
+
     let notarize_args = vec![
         "notarytool",
         "submit",
-        zip_path.to_string_lossy().to_string().as_str(),
+        &zip_path_str,
         "--wait",
         "--output-format",
         "json",
