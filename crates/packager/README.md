@@ -50,7 +50,7 @@ run `cargo-pacakger` in release mode `cargo packager --release`, otherwise, if y
 For more information, checkout the available [configuration options](https://docs.rs/cargo-packager/latest/cargo-packager/struct.Config.html) and for a list of available CLI
 commands and arguments, run `cargo packager --help`.
 
-## Examples
+### Examples
 
 The [`examples`](../../examples/) directory contains a number of varying examples, if you want to build them all run `cargo r -p cargo-pacakger -- --release` in the root of this repository. Just make sure to have the tooling for each example installed on your system. You can find what tooling they require by checking the README in each example. The README also contains a command to build this example alone if you wish.
 
