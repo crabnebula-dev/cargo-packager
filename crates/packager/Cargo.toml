@@ -1,9 +1,18 @@
 [package]
 name = "cargo-packager"
 version = "0.0.0"
-description = "Rust executable packager and bundler."
+description = "Rust executable packager and bundler CLI and library."
 edition = "2021"
 license = "Apache-2.0 OR MIT"
+keywords = ["bundle", "package", "cargo"]
+categories = [
+    "command-line-interface",
+    "command-line-utilities",
+    "development-tools::cargo-plugins",
+    "development-tools::build-utils",
+    "os",
+]
+repository = "https://github.com/crabnebula-dev/cargo-packager"
 
 [features]
 default = ["cli"]

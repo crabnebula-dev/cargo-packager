@@ -14,9 +14,12 @@ use minisign::{sign, KeyPair as KP, SecretKey, SecretKeyBox};
 
 use crate::util;
 
+/// A public and secret key pair.
 #[derive(Clone, Debug)]
 pub struct KeyPair {
+    /// Publick key
     pub pk: String,
+    /// Secret key
     pub sk: String,
 }
 

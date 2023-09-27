@@ -141,7 +141,9 @@ pub enum Error {
     /// Invalid framework.
     #[error("Invalid framework {framework}: {reason}")]
     InvalidFramework {
+        /// Framework name
         framework: String,
+        /// Reason why this framework is invalid
         reason: &'static str,
     },
     /// Invalid icons.
@@ -158,7 +160,10 @@ pub enum Error {
     FailedToParseNotarytoolOutput(String),
     /// Failed to find API key file.
     #[error("Could not find API key file. Please set the APPLE_API_KEY_PATH environment variables to the path to the {filename} file")]
-    ApiKeyMissing { filename: String },
+    ApiKeyMissing {
+        /// Filename of the API key.
+        filename: String,
+    },
     /// Missing notarize environment variables.
     #[error("Could not find APPLE_ID & APPLE_PASSWORD or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
     MissingNotarizeAuthVars,

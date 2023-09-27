@@ -1,3 +1,5 @@
+//! Configuration type and associated utilities.
+
 use std::path::{Path, PathBuf};
 
 pub use cargo_packager_config::*;
@@ -11,6 +13,7 @@ pub(crate) struct IResource {
     pub target: PathBuf,
 }
 
+/// [Config] extenstion trait
 pub trait ConfigExt {
     /// Returns the windows specific configuration
     fn windows(&self) -> Option<&WindowsConfig>;

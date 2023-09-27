@@ -4,6 +4,7 @@ version = "0.0.0"
 description = "Config types for cargo-packager."
 edition = "2021"
 license = "Apache-2.0 OR MIT"
+repository = "https://github.com/crabnebula-dev/cargo-packager"
 
 [features]
 clap = ["dep:clap"]
