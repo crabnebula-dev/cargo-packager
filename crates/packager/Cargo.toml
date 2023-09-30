@@ -2,6 +2,11 @@
 name = "cargo-packager"
 version = "0.0.0"
 description = "Rust executable packager and bundler CLI and library."
+authors = [
+    "CrabNebula Ltd.",
+    "Tauri Programme within The Commons Conservancy",
+    "George Burton <burtonageo@gmail.com>",
+]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 keywords = ["bundle", "package", "cargo"]
