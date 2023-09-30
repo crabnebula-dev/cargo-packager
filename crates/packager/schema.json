@@ -694,6 +694,16 @@
             "type": "string"
           }
         },
+        "fragments": {
+          "description": "List of WiX fragments as strings. This is similar to `config.wix.fragments_paths` but is a string so you can define it inline in your config.\n\n```text <?xml version=\"1.0\" encoding=\"utf-8\"?> <Wix xmlns=\"http://schemas.microsoft.com/wix/2006/wi\"> <Fragment> <CustomAction Id=\"OpenNotepad\" Directory=\"INSTALLDIR\" Execute=\"immediate\" ExeCommand=\"cmd.exe /c notepad.exe\" Return=\"check\" /> <InstallExecuteSequence> <Custom Action=\"OpenNotepad\" After=\"InstallInitialize\" /> </InstallExecuteSequence> </Fragment> </Wix> ```",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
         "componentGroupRefs": {
           "description": "The ComponentGroup element ids you want to reference from the fragments.",
           "type": [
@@ -706,6 +716,16 @@
         },
         "componentRefs": {
           "description": "The Component element ids you want to reference from the fragments.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "customActionRefs": {
+          "description": "The CustomAction element ids you want to reference from the fragments.",
           "type": [
             "array",
             "null"
