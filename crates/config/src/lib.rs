@@ -335,12 +335,30 @@ pub struct WixConfig {
     /// A list of paths to .wxs files with WiX fragments to use.
     #[serde(alias = "fragment-paths", alias = "fragment_paths")]
     pub fragment_paths: Option<Vec<PathBuf>>,
+    /// List of WiX fragments as strings. This is similar to `config.wix.fragments_paths` but
+    /// is a string so you can define it inline in your config.
+    ///
+    /// ```text
+    /// <?xml version="1.0" encoding="utf-8"?>
+    /// <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    /// <Fragment>
+    ///     <CustomAction Id="OpenNotepad" Directory="INSTALLDIR" Execute="immediate" ExeCommand="cmd.exe /c notepad.exe" Return="check" />
+    ///     <InstallExecuteSequence>
+    ///         <Custom Action="OpenNotepad" After="InstallInitialize" />
+    ///     </InstallExecuteSequence>
+    /// </Fragment>
+    /// </Wix>
+    /// ```
+    pub fragments: Option<Vec<String>>,
     /// The ComponentGroup element ids you want to reference from the fragments.
     #[serde(alias = "component-group-refs", alias = "component_group_refs")]
     pub component_group_refs: Option<Vec<String>>,
     /// The Component element ids you want to reference from the fragments.
     #[serde(alias = "component-refs", alias = "component_refs")]
     pub component_refs: Option<Vec<String>>,
+    /// The CustomAction element ids you want to reference from the fragments.
+    #[serde(alias = "custom-action-refs", alias = "custom_action_refs")]
+    pub custom_action_refs: Option<Vec<String>>,
     /// The FeatureGroup element ids you want to reference from the fragments.
     #[serde(alias = "feature-group-refs", alias = "feature_group_refs")]
     pub feature_group_refs: Option<Vec<String>>,

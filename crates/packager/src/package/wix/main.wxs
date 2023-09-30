@@ -235,6 +235,10 @@
             {{/each~}}
         </Feature>
 
+        {{#each custom_action_refs as |id| ~}}
+            <CustomActionRef Id="{{ id }}"/>
+        {{/each~}}
+
         {{#if install_webview}}
         <!-- WebView2 -->
         <Property Id="WVRTINSTALLED">
