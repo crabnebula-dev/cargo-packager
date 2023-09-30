@@ -49,7 +49,7 @@ tracing-subscriber = { version = "0.3", optional = true, features = [
 ] }
 toml = "0.8"
 cargo_metadata = "0.18"
-ureq = "2.7"
+ureq = "2.8"
 hex = "0.4"
 sha1 = "0.10"
 sha2 = "0.10"
