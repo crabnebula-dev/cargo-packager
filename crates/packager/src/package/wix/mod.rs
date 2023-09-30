@@ -17,7 +17,7 @@ use crate::{
     codesign,
     config::{Config, ConfigExt, ConfigExtInternal},
     shell::CommandExt,
-    util::{self, display_path, download_and_verify, extract_zip, HashAlgorithm},
+    util::{self, download_and_verify, extract_zip, HashAlgorithm},
 };
 
 pub const WIX_URL: &str =
@@ -355,7 +355,7 @@ fn run_candle(
         wxs_file_path.to_string_lossy().to_string(),
         format!(
             "-dSourceDir={}",
-            display_path(config.binary_path(main_binary))
+            util::display_path(config.binary_path(main_binary))
         ),
     ];
 
@@ -399,7 +399,7 @@ fn run_light(
 ) -> crate::Result<()> {
     let light_exe = wix_path.join("light.exe");
 
-    let mut args: Vec<String> = vec!["-o".to_string(), display_path(output_path)];
+    let mut args: Vec<String> = vec!["-o".to_string(), util::display_path(output_path)];
 
     args.extend(arguments);
 
@@ -462,8 +462,6 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     util::create_clean_dir(&intermediates_path)?;
 
     let mut data = BTreeMap::new();
-
-    // TODO: webview2 logic
 
     let app_version = convert_version(&config.version)?;
 
@@ -543,13 +541,26 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     handlebars.register_escape_fn(handlebars::no_escape);
     let mut custom_template_path = None;
     if let Some(wix) = config.wix() {
+        data.insert("custom_action_refs", to_json(&wix.custom_action_refs));
         data.insert("component_group_refs", to_json(&wix.component_group_refs));
         data.insert("component_refs", to_json(&wix.component_refs));
         data.insert("feature_group_refs", to_json(&wix.feature_group_refs));
         data.insert("feature_refs", to_json(&wix.feature_refs));
         data.insert("merge_refs", to_json(&wix.merge_refs));
-        fragment_paths = wix.fragment_paths.clone().unwrap_or_default();
         custom_template_path = wix.template.clone();
+
+        fragment_paths = wix.fragment_paths.clone().unwrap_or_default();
+        if let Some(ref inline_fragments) = wix.fragments {
+            tracing::debug!(
+                "Writing inline fragments to {}",
+                util::display_path(&intermediates_path)
+            );
+            for (idx, fragment) in inline_fragments.iter().enumerate() {
+                let path = intermediates_path.join(format!("inline_fragment{idx}.wxs"));
+                std::fs::write(&path, fragment)?;
+                fragment_paths.push(path);
+            }
+        }
 
         if let Some(banner_path) = &wix.banner_path {
             data.insert("banner_path", to_json(dunce::canonicalize(banner_path)?));
@@ -696,7 +707,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
                 }
             ),
             "-loc".into(),
-            display_path(&locale_path),
+            util::display_path(&locale_path),
             "*.wixobj".into(),
         ];
         let msi_output_path = intermediates_path.join("output.msi");
@@ -710,7 +721,10 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
                 .ok_or_else(|| crate::Error::ParentDirNotFound(msi_path.clone()))?,
         )?;
 
-        tracing::info!("Running light.exe to produce {}", display_path(&msi_path));
+        tracing::info!(
+            "Running light.exe to produce {}",
+            util::display_path(&msi_path)
+        );
 
         run_light(
             config,

@@ -263,6 +263,7 @@ pub fn run() {
             .with_target(debug)
             .with_line_number(tracing)
             .with_file(tracing)
+            .with_max_level(level)
             .init();
     }
 
