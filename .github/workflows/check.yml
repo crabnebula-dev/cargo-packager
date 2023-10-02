@@ -23,8 +23,6 @@ concurrency:
 jobs:
   clippy:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
@@ -40,8 +38,6 @@ jobs:
 
   fmt:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
@@ -62,10 +58,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: install webkit2gtk
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace --all-targets --all-features --no-fail-fast
+      - run: cargo test --workspace --lib --bins --tests --benches --all-features --no-fail-fast
