@@ -47,6 +47,7 @@
     "cargo-packager": {
       "path": "./crates/packager",
       "manager": "rust",
+      "dependencies": ["cargo-packager-config"],
       "assets": [
         {
           "path": "${ pkg.path }/target/package/cargo-packager-${ pkgFile.version }.crate",
