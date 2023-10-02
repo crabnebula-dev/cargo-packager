@@ -75,3 +75,7 @@ cargo add cargo-packager --no-default-features
 
 - **`cli`**: Enables the CLI specifc features and dependencies. Enabled by default.
 - **`tracing`**: Enables `tracing` crate integration.
+
+## Licenses
+
+MIT or MIT/Apache 2.0 where applicable.

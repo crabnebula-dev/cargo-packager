@@ -2,6 +2,7 @@
 members = ["crates/*", "examples/*"]
 exclude = ["examples/deno"]
 resolver = "2"
+authors = ["CrabNebula Ltd."]
 
 [workspace.dependencies]
 thiserror = "1.0.49"

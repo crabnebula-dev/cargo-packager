@@ -1,3 +1,8 @@
+// Copyright 2019-2023 Tauri Programme within The Commons Conservancy
+// Copyright 2023-2023 CrabNebula Ltd.
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
+
 use std::path::PathBuf;
 
 use thiserror::Error;

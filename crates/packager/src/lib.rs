@@ -1,3 +1,7 @@
+// Copyright 2023-2023 CrabNebula Ltd.
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
+
 //! `cargo-packager` is a tool and library to generate installers or app bundles for your executables.
 //! It also has a comptabile updater through [cargo-packager-updater](https://docs.rs/cargo-packager-updater).
 //!

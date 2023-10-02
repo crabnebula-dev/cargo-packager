@@ -1,0 +1,19 @@
+SPDXVersion: SPDX-2.1
+DataLicense: CC0-1.0
+PackageName: cargo-packager
+DataFormat: SPDXRef-1
+PackageSupplier: Organization: CrabNebula Ltd.
+PackageHomePage: https://github.com/crabnebula-dev/cargo-packager
+PackageLicenseDeclared: Apache-2.0
+PackageLicenseDeclared: MIT
+PackageCopyrightText: 2023-2023, CrabNebula Ltd.
+PackageSummary: <text>Rust executable packager, bundler and updater. A tool and library to generate installers or app bundles for your executables.
+It also has a comptabile updater through cargo-packager-updater crate.
+                </text>
+PackageComment: <text>The package includes the following libraries; see
+Relationship information.
+                </text>
+Created: 2023-09-30T09:00:00Z
+PackageDownloadLocation: git://github.com/crabnebula-dev/cargo-packager
+PackageDownloadLocation: git+https://github.com/crabnebula-dev/cargo-packager.git
+PackageDownloadLocation: git+ssh://github.com/crabnebula-dev/cargo-packager.git
