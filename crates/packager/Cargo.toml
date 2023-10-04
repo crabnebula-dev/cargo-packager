@@ -34,12 +34,12 @@ targets = [
 ]
 
 [build-dependencies]
-cargo-packager-config.workspace = true
+cargo-packager-config = { path = "../config", version = "0.0.0" }
 serde_json.workspace = true
 schemars.workspace = true
 
 [dependencies]
-cargo-packager-config.workspace = true
+cargo-packager-config = { path = "../config", version = "0.0.0" }
 thiserror.workspace = true
 serde.workspace = true
 serde_json.workspace = true
