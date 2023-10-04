@@ -591,7 +591,7 @@
           }
         },
         "desktopTemplate": {
-          "description": "Path to a custom desktop file Handlebars template.\n\nAvailable variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.\n\nDefault file contents: ```text ```",
+          "description": "Path to a custom desktop file Handlebars template.\n\nAvailable variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.\n\nDefault file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```",
           "type": [
             "string",
             "null"

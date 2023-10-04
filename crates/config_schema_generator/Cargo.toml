@@ -1,0 +1,12 @@
+[package]
+name = "cargo-packager-config-schema-generator"
+version = "0.0.0"
+publish = false
+edition = "2021"
+authors = ["CrabNebula Ltd."]
+license = "Apache-2.0 OR MIT"
+
+[build-dependencies]
+cargo-packager-config = { path = "../config", version = "0.1.0" }
+serde_json = { workspace = true }
+schemars = { workspace = true }

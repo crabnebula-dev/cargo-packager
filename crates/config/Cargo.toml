@@ -1,21 +1,21 @@
 [package]
 name = "cargo-packager-config"
-version = "0.0.0"
+version = "0.1.0"
 description = "Config types for cargo-packager."
 authors = [
-    "CrabNebula Ltd.",
-    "Tauri Programme within The Commons Conservancy",
-    "George Burton <burtonageo@gmail.com>",
+  "CrabNebula Ltd.",
+  "Tauri Programme within The Commons Conservancy",
+  "George Burton <burtonageo@gmail.com>"
 ]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/crabnebula-dev/cargo-packager"
 
 [features]
-clap = ["dep:clap"]
+clap = [ "dep:clap" ]
 
 [dependencies]
-serde.workspace = true
-schemars.workspace = true
+serde = { workspace = true }
+schemars = { workspace = true }
 clap = { workspace = true, optional = true }
 strsim = "0.10"

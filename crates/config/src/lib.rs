@@ -231,7 +231,19 @@ pub struct DebianConfig {
     ///
     /// Default file contents:
     /// ```text
-    #[doc = include_str!("../../packager/src/package/deb/main.desktop")]
+    /// [Desktop Entry]
+    /// Categories={{categories}}
+    /// {{#if comment}}
+    /// Comment={{comment}}
+    /// {{/if}}
+    /// Exec={{exec}}
+    /// Icon={{icon}}
+    /// Name={{name}}
+    /// Terminal=false
+    /// Type=Application
+    /// {{#if mime_type}}
+    /// MimeType={{mime_type}}
+    /// {{/if}}
     /// ```
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,

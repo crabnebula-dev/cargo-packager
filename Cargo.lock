@@ -780,7 +780,6 @@ dependencies = [
  "plist",
  "regex",
  "relative-path",
- "schemars",
  "semver",
  "serde",
  "serde_json",
@@ -804,12 +803,21 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager-config"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "clap",
  "schemars",
  "serde",
  "strsim",
+]
+
+[[package]]
+name = "cargo-packager-config-schema-generator"
+version = "0.0.0"
+dependencies = [
+ "cargo-packager-config",
+ "schemars",
+ "serde_json",
 ]
 
 [[package]]
