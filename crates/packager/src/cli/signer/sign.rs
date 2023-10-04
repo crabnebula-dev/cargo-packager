@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Sign a file.")]
+#[clap(about = "Sign a file")]
 pub struct Options {
     /// Load the private key from a file or a string.
     #[clap(short = 'k', long, env = "CARGO_PACKAGER_SIGN_PRIVATE_KEY")]
