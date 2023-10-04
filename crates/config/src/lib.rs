@@ -17,10 +17,10 @@ mod category;
 pub use category::AppCategory;
 
 /// The type of the package we're packaging.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-#[non_exhaustive]
-#[value(rename_all = "lowercase")]
+#[cfg_attr(feature = "clap", value(rename_all = "lowercase"))]
 #[serde(rename_all = "lowercase")]
 pub enum PackageFormat {
     /// All available package formats for the current platform.
