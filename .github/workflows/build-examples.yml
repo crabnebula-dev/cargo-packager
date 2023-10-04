@@ -24,12 +24,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
       - name: install webkit2gtk
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
+      - uses: dtolnay/rust-toolchain@stable
       - uses: denoland/setup-deno@v1
         with:
           deno-version: v1.36 # lock this for now until `deno compile --output` is fixed
