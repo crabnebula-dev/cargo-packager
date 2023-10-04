@@ -1,13 +1,6 @@
 name: Build examples
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/build-examples.yml"
-      - "crates/**"
-      - "examples/**"
   pull_request:
     branches:
       - main
