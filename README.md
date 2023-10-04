@@ -31,7 +31,7 @@ cargo packager
 
 ### Configuration
 
-By default, `cargo-packager` reads a configuration from `Packager.toml` or `pacakger.json` if it exists, and from `package.metadata.packager` table in `Cargo.toml`.
+By default, `cargo-packager` reads a configuration from `Packager.toml` or `packager.json` if it exists, and from `package.metadata.packager` table in `Cargo.toml`.
 You can also specify a custom configuration file using the `-c/--config` cli argument.
 All configuration options could be either a single config or array of configs.
 

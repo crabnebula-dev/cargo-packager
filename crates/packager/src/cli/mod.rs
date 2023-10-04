@@ -47,7 +47,7 @@ pub(crate) struct Cli {
     /// Specify a configuration to read, which could be a JSON file,
     /// TOML file, or a raw JSON string.
     ///
-    /// By default, cargo-pacakger looks for `{p,P}ackager.{toml,json}` and
+    /// By default, cargo-packager looks for `{p,P}ackager.{toml,json}` and
     /// `[package.metadata.packager]` in `Cargo.toml` files.
     #[clap(short, long)]
     config: Option<String>,

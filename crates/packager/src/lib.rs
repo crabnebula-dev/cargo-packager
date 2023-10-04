@@ -10,13 +10,13 @@
 //! ### Installation
 //!
 //! ```sh
-//! cargo install cargo-pacakger --locked
+//! cargo install cargo-packager --locked
 //! ```
 //!
 //! ### Usage
 //!
 //! ```sh
-//! cargo pacakger
+//! cargo packager
 //! ```
 //!
 //! ### Supported pacakges
@@ -33,7 +33,7 @@
 //!
 //! ### Configuration
 //!
-//! By default, `cargo-pacakger` reads configuration from `Packager.toml` or `pacakger.json` if exists, and from `package.metadata.packager` table in `Cargo.toml`.
+//! By default, `cargo-packager` reads configuration from `Packager.toml` or `packager.json` if exists, and from `package.metadata.packager` table in `Cargo.toml`.
 //! You can also specify a custom configuration file using `-c/--config` cli argument.
 //! All configuration options could be either a single config or array of configs.
 //!
@@ -44,12 +44,12 @@
 //! ### Building your application before packaging
 //!
 //! By default, `cargo-packager` doesn't build your application, it only looks for it inside the directory specified in `config.out_dir` or `--out-dir` cli arg,
-//! However, `cargo-pacakger` has an option to specify a shell command to be executed before packaing your app, `beforePackagingCommand`.
+//! However, `cargo-packager` has an option to specify a shell command to be executed before packaing your app, `beforePackagingCommand`.
 //!
 //! ### Cargo profiles
 //!
 //! By default, `cargo-packager` looks for binaries built using the `debug` profile, if your `beforePackagingCommand` builds your app using `cargo build --release`, you will also need to
-//! run `cargo-pacakger` in release mode `cargo packager --release`, otherwise, if you have a custom cargo profile, you will need to specify it using `--profile` cli arg `cargo pacakger --profile custom-release-profile`.
+//! run `cargo-packager` in release mode `cargo packager --release`, otherwise, if you have a custom cargo profile, you will need to specify it using `--profile` cli arg `cargo packager --profile custom-release-profile`.
 //!
 //! For more information, checkout the available [configuration options](config::Config) and for a list of available CLI
 //! commands and arguments, run `cargo packager --help`.
