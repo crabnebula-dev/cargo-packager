@@ -114,24 +114,28 @@ fn try_run(cli: Cli) -> Result<()> {
                 .concat()
                 .into_iter()
                 .filter(|(_, c)| {
-                    // skip if this package was not specified in the explicit packages to build
-                    // otherwise we should package it if `cli_packages` was `None`
-                    cli.packages
-                        .as_ref()
-                        .map(|p| {
-                            c.name
-                                .as_ref()
-                                .map(|name| p.contains(name))
-                                .unwrap_or(false)
-                        })
-                        .unwrap_or(true)
+                    // skip if this config is not enabled
+                    //    or if this package was in the explicit
+                    //    packages list specified on the CLI,
+                    // otherwise build all if no packages were specified on the CLI
+                    c.enabled
+                        && (cli
+                            .packages
+                            .as_ref()
+                            .map(|cli_packages| {
+                                c.name
+                                    .as_ref()
+                                    .map(|name| cli_packages.contains(name))
+                                    .unwrap_or(false)
+                            })
+                            .unwrap_or(true))
                 })
                 .collect()
         }
     };
 
     if configs.is_empty() {
-        tracing::warn!("Couldn't detect a valid configuration file! Nothing to do here.");
+        tracing::debug!("Couldn't detect a valid configuration file or all configurations are disabled! Nothing to do here.");
         return Ok(());
     }
 

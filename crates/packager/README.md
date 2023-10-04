@@ -11,9 +11,18 @@ cargo install cargo-packager --locked
 
 ### Usage
 
-```sh
-cargo packager
-```
+1. Add `Packager.toml` or `packager.json` in your project or modify Cargo.toml and include
+
+   ```toml
+   [package.metadata.packager]
+   enabled = true
+   ```
+
+2. Run the CLI
+
+   ```sh
+   cargo packager
+   ```
 
 ### Supported pacakges
 

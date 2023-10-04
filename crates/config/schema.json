@@ -4,6 +4,11 @@
   "description": "The packaging config.",
   "type": "object",
   "properties": {
+    "enabled": {
+      "description": "Whether this config is enabled or not. Defaults to `true`.",
+      "default": true,
+      "type": "boolean"
+    },
     "$schema": {
       "description": "The JSON schema for the config.\n\nSetting this field has no effect, this just exists so we can parse the JSON correct when it has `$schema` field set.",
       "type": [
@@ -343,14 +348,14 @@
       "description": "The type of the package we're packaging.",
       "oneOf": [
         {
-          "description": "All available package formats for the current platform.\n\nSee [`PackageFornat::platform_all`]",
+          "description": "All available package formats for the current platform.\n\nSee [`PackageFormat::platform_all`]",
           "type": "string",
           "enum": [
             "all"
           ]
         },
         {
-          "description": "The default list of package formats for the current platform.\n\nSee [`PackageFornat::platform_default`]",
+          "description": "The default list of package formats for the current platform.\n\nSee [`PackageFormat::platform_default`]",
           "type": "string",
           "enum": [
             "default"

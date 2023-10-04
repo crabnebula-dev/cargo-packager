@@ -29,11 +29,11 @@ pub use category::AppCategory;
 pub enum PackageFormat {
     /// All available package formats for the current platform.
     ///
-    /// See [`PackageFornat::platform_all`]
+    /// See [`PackageFormat::platform_all`]
     All,
     /// The default list of package formats for the current platform.
     ///
-    /// See [`PackageFornat::platform_default`]
+    /// See [`PackageFormat::platform_default`]
     Default,
     /// The macOS application bundle (.app).
     App,
@@ -664,6 +664,9 @@ pub enum HookCommand {
 #[derive(Deserialize, Serialize, Default, Debug, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Config {
+    /// Whether this config is enabled or not. Defaults to `true`.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
     /// The JSON schema for the config.
     ///
     /// Setting this field has no effect, this just exists so

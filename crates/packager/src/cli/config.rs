@@ -123,6 +123,11 @@ pub fn load_configs_from_cargo_workspace(
             if config.version.is_empty() {
                 config.version = package.version.to_string();
             }
+            if config.identifier.is_none() {
+                config
+                    .identifier
+                    .replace(format!("com.{}.app", package.name));
+            }
             if config.out_dir.as_os_str().is_empty() {
                 config.out_dir = metadata
                     .target_directory
