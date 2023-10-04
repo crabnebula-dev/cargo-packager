@@ -4,6 +4,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+//! Config types for [`cargo-packager`](https://docs.rs/cargo-packager).
+
+#![deny(missing_docs)]
+
 use std::{
     collections::HashMap,
     fmt::{self, Display},
@@ -628,8 +632,15 @@ pub struct Binary {
 pub enum Resource {
     /// Supports glob patterns
     Single(String),
+    /// An object descriping the src file or directory
+    /// and its target location in the final package.
     Mapped {
+        /// The src file or directory, supports glob patterns.
         src: String,
+        /// A relative path from the root of the final package.
+        ///
+        /// If `src` is a glob, this will always be treated as a directory
+        /// where all globbed files will be placed under.
         target: PathBuf,
     },
 }

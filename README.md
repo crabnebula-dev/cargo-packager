@@ -1,7 +1,7 @@
 # cargo-packager
 
 Rust executable packager, bundler and updater. A tool and library to generate installers or app bundles for your executables.
-It also has a comptabile updater through [cargo-packager-updater](https://docs.rs/cargo-packager-updater).
+It also has a comptabile updater through [cargo-packager-updater](./crates/updater/).
 
 ## CLI
 

@@ -560,6 +560,7 @@
           "type": "string"
         },
         {
+          "description": "An object descriping the src file or directory and its target location in the final package.",
           "type": "object",
           "required": [
             "src",
@@ -567,9 +568,11 @@
           ],
           "properties": {
             "src": {
+              "description": "The src file or directory, supports glob patterns.",
               "type": "string"
             },
             "target": {
+              "description": "A relative path from the root of the final package.\n\nIf `src` is a glob, this will always be treated as a directory where all globbed files will be placed under.",
               "type": "string"
             }
           }
