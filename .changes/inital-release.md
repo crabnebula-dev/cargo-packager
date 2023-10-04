@@ -1,5 +1,5 @@
 ---
-"cargo-packager": "minor"
+"cargo-packager": "patch"
 "cargo-packager-config": "minor"
 ---
 

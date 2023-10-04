@@ -1,6 +1,6 @@
 [package]
 name = "cargo-packager"
-version = "0.0.0"
+version = "0.1.0"
 description = "Rust executable packager and bundler CLI and library."
 authors = [
     "CrabNebula Ltd.",
