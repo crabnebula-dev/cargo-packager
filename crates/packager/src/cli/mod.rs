@@ -6,7 +6,11 @@
 
 #![cfg(feature = "cli")]
 
-use std::{fmt::Write, path::PathBuf};
+use std::{
+    ffi::OsStr,
+    fmt::Write,
+    path::{Path, PathBuf},
+};
 
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
@@ -80,7 +84,7 @@ pub(crate) struct Cli {
     command: Option<Commands>,
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn try_run(cli: Cli) -> Result<()> {
     // run subcommand and exit if one was specified,
     // otherwise run the default packaging command
@@ -250,7 +254,23 @@ fn parse_log_level(verbose: u8) -> tracing::Level {
 /// Run the packager CLI
 pub fn run() {
     // prepare cli args
-    let args = std::env::args_os().skip(1);
+    let mut args = std::env::args_os().peekable();
+    match args
+        .next()
+        .as_deref()
+        .map(Path::new)
+        .and_then(Path::file_stem)
+        .and_then(OsStr::to_str)
+    {
+        Some("cargo-packager") => {
+            if args.peek().and_then(|s| s.to_str()) == Some("packager") {
+                // remove the extra cargo subcommand
+                args.next();
+            }
+        }
+        _ => {}
+    }
+
     let cli = Cli::command();
     let matches = cli.get_matches_from(args);
     let res = Cli::from_arg_matches(&matches).map_err(|e| e.format(&mut Cli::command()));

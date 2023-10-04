@@ -31,7 +31,7 @@ pub struct KeyPair {
 /// Generates a new signing key. If `password` is `None`, it will prompt
 /// the user for a password, so if you want to skip the prompt, specify and
 /// empty string as the password.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn generate_key(password: Option<String>) -> crate::Result<KeyPair> {
     let KP { pk, sk } = KP::generate_encrypted_keypair(password)?;
 
@@ -53,7 +53,7 @@ fn decode_base64(base64_key: &str) -> crate::Result<String> {
 }
 
 /// Decodes a private key using the specified password.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn decode_private_key(private_key: &str, password: Option<&str>) -> crate::Result<SecretKey> {
     let decoded_secret = decode_base64(private_key)?;
     let sk_box = SecretKeyBox::from_string(&decoded_secret)?;
@@ -62,7 +62,7 @@ pub fn decode_private_key(private_key: &str, password: Option<&str>) -> crate::R
 }
 
 /// Saves a [`KeyPair`] to disk.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn save_keypair<P: AsRef<Path> + Debug>(
     keypair: &KeyPair,
     path: P,
@@ -109,7 +109,7 @@ pub struct SigningConfig {
 }
 
 /// Signs a specified file using the specified signing configuration.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn sign_file<P: AsRef<Path> + Debug>(
     config: &SigningConfig,
     path: P,
@@ -119,7 +119,7 @@ pub fn sign_file<P: AsRef<Path> + Debug>(
 }
 
 /// Signs a specified file using an already decoded secret key.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     secret_key: &SecretKey,
     path: P,

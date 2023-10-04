@@ -16,7 +16,7 @@ use crate::{
 const CREATE_DMG_URL: &str =
     "https://raw.githubusercontent.com/create-dmg/create-dmg/28867ba3563ddef62f55dcf130677103b4296c42/create-dmg";
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,

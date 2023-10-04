@@ -56,7 +56,7 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
 type DirectoriesSet = BTreeSet<PathBuf>;
 type ResourcesMap = Vec<(PathBuf, PathBuf)>;
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, ResourcesMap)> {
     let mut directories = BTreeSet::new();
     let mut resources_map = Vec::new();
@@ -74,7 +74,7 @@ fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, Res
 
 /// BTreeMap<OriginalPath, TargetFileName>
 type BinariesMap = BTreeMap<PathBuf, String>;
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
     let mut binaries = BinariesMap::new();
     let cwd = std::env::current_dir()?;
@@ -106,7 +106,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
     Ok(binaries)
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn get_lang_data(
     lang: &str,
     custom_lang_files: Option<&HashMap<String, PathBuf>>,
@@ -138,7 +138,7 @@ fn get_lang_data(
     Ok(Some((lang_path, lang_content)))
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn write_ut16_le_with_bom<P: AsRef<Path> + Debug>(path: P, content: &str) -> crate::Result<()> {
     tracing::debug!("Writing {path:?} in UTF-16 LE encoding");
 
@@ -234,7 +234,7 @@ fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
     ))
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn get_and_extract_nsis(
     #[allow(unused)] ctx: &Context,
     nsis_toolset_path: &Path,
@@ -271,7 +271,7 @@ fn get_and_extract_nsis(
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -540,7 +540,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     Ok(vec![installer_path])
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let nsis_toolset_path = ctx.tools_path.join("NSIS");
 

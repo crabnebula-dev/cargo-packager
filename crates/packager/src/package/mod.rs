@@ -44,7 +44,7 @@ pub struct PackageOuput {
 }
 
 /// Package an app using the specified config.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
     let mut formats = config
         .formats

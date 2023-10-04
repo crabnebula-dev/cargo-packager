@@ -98,7 +98,7 @@ fn signtool() -> Option<PathBuf> {
     (*SIGN_TOOL).as_ref().ok().cloned()
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn sign_command<P: AsRef<Path> + Debug>(
     path: P,
     params: &SignParams,
@@ -159,7 +159,7 @@ impl ConfigSignExt for Config {
     }
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn sign<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Result<()> {
     let signtool = signtool().ok_or(crate::Error::SignToolNotFound)?;
     let path = path.as_ref();
@@ -179,7 +179,7 @@ pub fn sign<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Resu
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn try_sign(
     file_path: &std::path::PathBuf,
     config: &crate::config::Config,

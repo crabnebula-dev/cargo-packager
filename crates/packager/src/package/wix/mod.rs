@@ -131,7 +131,7 @@ struct Binary {
 }
 
 /// Generates the data required for the external binaries.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
     let mut binaries = Vec::new();
     let cwd = std::env::current_dir()?;
@@ -254,7 +254,7 @@ impl ResourceDirectory {
 type ResourceMap = BTreeMap<String, ResourceDirectory>;
 
 /// Generates the data required for the resource on wix
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
     let mut resources_map = ResourceMap::new();
     for resource in config.resources()? {
@@ -430,7 +430,7 @@ fn run_light(
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn get_and_extract_wix(path: &Path) -> crate::Result<()> {
     let data = download_and_verify(
         "wix311-binaries.zip",
@@ -442,7 +442,7 @@ fn get_and_extract_wix(path: &Path) -> crate::Result<()> {
     extract_zip(&data, path)
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -748,7 +748,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     Ok(output_paths)
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let wix_path = ctx.tools_path.join("WixTools");
     if !wix_path.exists() {

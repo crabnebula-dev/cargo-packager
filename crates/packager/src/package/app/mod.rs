@@ -13,7 +13,7 @@ use crate::{
     util,
 };
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context { config, .. } = ctx;
     // we should use the bundle name (App name) as a MacOS standard.
@@ -78,7 +78,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 }
 
 // Creates the Info.plist file.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn create_info_plist(
     contents_directory: &Path,
     bundle_icon_file: Option<PathBuf>,
@@ -209,7 +209,7 @@ fn create_info_plist(
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
     if !from.exists() {
         return Err(crate::Error::AlreadyExists(from.to_path_buf()));
@@ -243,7 +243,7 @@ fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
 }
 
 // Copies the framework under `{src_dir}/{framework}.framework` to `{dest_dir}/{framework}.framework`.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crate::Result<bool> {
     let src_name = format!("{}.framework", framework);
     let src_path = src_dir.join(&src_name);
@@ -256,7 +256,7 @@ fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crat
 }
 
 // Copies the macOS application bundle frameworks to the .app
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crate::Result<()> {
     if let Some(frameworks) = config.macos().and_then(|m| m.frameworks.as_ref()) {
         let dest_dir = contents_directory.join("Frameworks");

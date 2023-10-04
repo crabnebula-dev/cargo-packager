@@ -19,7 +19,7 @@ use crate::{
     util,
 };
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn donwload_dependencies(
     ctx: &Context,
     appimage_tools_path: &Path,
@@ -65,7 +65,7 @@ fn donwload_dependencies(
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,

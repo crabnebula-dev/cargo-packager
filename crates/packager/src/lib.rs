@@ -103,7 +103,7 @@ pub use package::{package, PackageOuput};
 ///
 /// If `packages` contain a directory in the case of [`PackageFormat::App`]
 /// it will zip the directory before signing and appends it to `packages`.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn sign_outputs(
     config: &SigningConfig,
     packages: &mut Vec<PackageOuput>,
@@ -140,7 +140,7 @@ pub fn sign_outputs(
 /// This is similar to calling `sign_outputs(signing_config, package(config)?)`
 ///
 /// Returns a tuple of list of packages and list of signatures.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn package_and_sign(
     config: &Config,
     signing_config: &SigningConfig,

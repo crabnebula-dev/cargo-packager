@@ -25,7 +25,7 @@ const KEYCHAIN_PWD: &str = "cargo-packager";
 // Then use the value of the base64 in APPLE_CERTIFICATE env variable.
 // You need to set APPLE_CERTIFICATE_PASSWORD to the password you set when you exported your certificate.
 // https://help.apple.com/xcode/mac/current/#/dev154b28f09 see: `Export a signing certificate`
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn setup_keychain(
     certificate_encoded: OsString,
     certificate_password: OsString,
@@ -137,7 +137,7 @@ pub fn setup_keychain(
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn delete_keychain() {
     // delete keychain if needed and skip any error
     let _ = Command::new("security")
@@ -146,7 +146,7 @@ pub fn delete_keychain() {
         .output_ok();
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn try_sign(
     path_to_sign: &Path,
     identity: &str,
@@ -187,7 +187,7 @@ pub fn try_sign(
     res
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn sign(
     path_to_sign: &Path,
     identity: &str,
@@ -232,7 +232,7 @@ struct NotarytoolSubmitOutput {
     message: String,
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn notarize(
     app_bundle_path: PathBuf,
     auth: NotarizeAuth,
@@ -376,7 +376,7 @@ impl NotarytoolCmdExt for Command {
     }
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
     match (
         std::env::var_os("APPLE_ID"),

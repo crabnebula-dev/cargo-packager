@@ -34,7 +34,7 @@ pub struct DebIcon {
 }
 
 /// Generate the icon files and store them under the `data_dir`.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let hicolor_dir = data_dir.join("usr/share/icons/hicolor");
     let main_binary_name = config.main_binary_name()?;
@@ -84,7 +84,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
 }
 
 /// Generate the application desktop file and store it under the `data_dir`.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> {
     let bin_name = config.main_binary_name()?;
     let desktop_file_name = format!("{}.desktop", bin_name);
@@ -148,7 +148,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let bin_dir = data_dir.join("usr/bin");
 
@@ -196,7 +196,7 @@ pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
 }
 
 /// Copies user-defined files to the deb package.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn copy_custom_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
     if let Some(files) = config.deb().and_then(|d| d.files.as_ref()) {
         for (src, target) in files.iter() {
@@ -234,7 +234,7 @@ fn copy_custom_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
 }
 
 /// Generates the debian control file and stores it under the `control_dir`.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_control_file(
     config: &Config,
     arch: &str,
@@ -289,7 +289,7 @@ fn generate_control_file(
 
 /// Create an `md5sums` file in the `control_dir` containing the MD5 checksums
 /// for each file within the `data_dir`.
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
     let md5sums_path = control_dir.join("md5sums");
     let mut md5sums_file = util::create_file(&md5sums_path)?;
@@ -340,7 +340,7 @@ fn create_archive(srcs: Vec<PathBuf>, dest: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,

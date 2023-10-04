@@ -35,7 +35,7 @@ fn find_nearset_pkg_name(path: &Path) -> crate::Result<Option<String>> {
     res
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn parse_config_file<P: AsRef<Path> + Debug>(
     path: P,
 ) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
@@ -72,7 +72,7 @@ pub fn parse_config_file<P: AsRef<Path> + Debug>(
     Ok(configs)
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn find_config_files() -> crate::Result<Vec<PathBuf>> {
     let opts = glob::MatchOptions {
         case_sensitive: false,
@@ -90,7 +90,7 @@ pub fn find_config_files() -> crate::Result<Vec<PathBuf>> {
     .concat())
 }
 
-#[cfg_attr(feature = "tracing", tracing::instrument(level = "trace"))]
+#[tracing::instrument(level = "trace")]
 pub fn load_configs_from_cargo_workspace(
     release: bool,
     profile: Option<String>,
