@@ -2,6 +2,7 @@
 name = "slint-example"
 version = "0.0.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 slint = "1.0"
