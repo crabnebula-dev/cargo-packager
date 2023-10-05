@@ -15,14 +15,13 @@ cargo install cargo-packager --locked
 
    ```toml
    [package.metadata.packager]
-   enabled = true
-   before-packaging-command = "cargo build"
+   before-packaging-command = "cargo build --release"
    ```
 
 2. Run the CLI
 
    ```sh
-   cargo packager
+   cargo packager --release
    ```
 
 ### Supported pacakges
