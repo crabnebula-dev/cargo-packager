@@ -1,6 +1,6 @@
 [package]
 name = "cargo-packager"
-version = "0.1.1"
+version = "0.1.2"
 description = "Rust executable packager and bundler CLI and library."
 authors = [
   "CrabNebula Ltd.",
@@ -30,14 +30,10 @@ targets = [
 
 [features]
 default = [ "cli" ]
-cli = [
-  "clap",
-  "cargo-packager-config/clap",
-  "tracing-subscriber"
-]
+cli = [ "clap", "cargo-packager-config/clap", "tracing-subscriber" ]
 
 [dependencies]
-cargo-packager-config = { path = "../config", version = "0.1.0" }
+cargo-packager-config = { path = "../config", version = "0.2.0" }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

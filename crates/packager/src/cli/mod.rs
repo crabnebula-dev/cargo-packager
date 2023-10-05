@@ -255,20 +255,17 @@ fn parse_log_level(verbose: u8) -> tracing::Level {
 pub fn run() {
     // prepare cli args
     let mut args = std::env::args_os().peekable();
-    match args
+    if let Some("cargo-packager") = args
         .next()
         .as_deref()
         .map(Path::new)
         .and_then(Path::file_stem)
         .and_then(OsStr::to_str)
     {
-        Some("cargo-packager") => {
-            if args.peek().and_then(|s| s.to_str()) == Some("packager") {
-                // remove the extra cargo subcommand
-                args.next();
-            }
+        if args.peek().and_then(|s| s.to_str()) == Some("packager") {
+            // remove the extra cargo subcommand
+            args.next();
         }
-        _ => {}
     }
 
     let cli = Cli::command();
