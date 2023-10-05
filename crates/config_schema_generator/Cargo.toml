@@ -2,9 +2,10 @@
 name = "cargo-packager-config-schema-generator"
 version = "0.0.0"
 publish = false
-edition = "2021"
-authors = ["CrabNebula Ltd."]
-license = "Apache-2.0 OR MIT"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [build-dependencies]
 cargo-packager-config = { path = "../config" }

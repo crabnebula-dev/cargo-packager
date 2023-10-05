@@ -5,6 +5,9 @@ resolver = "2"
 
 [workspace.package]
 authors = ["CrabNebula Ltd."]
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/crabnebula-dev/cargo-packager"
 
 [workspace.dependencies]
 thiserror = "1.0.49"

@@ -3,8 +3,8 @@ name = "cargo-packager-updater"
 version = "0.0.0"
 description = "Rust executable updater."
 authors.workspace = true
-edition = "2021"
-license = "Apache-2.0 OR MIT"
-repository = "https://github.com/crabnebula-dev/cargo-packager"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]

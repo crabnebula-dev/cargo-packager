@@ -2,13 +2,14 @@
 name = "cargo-packager"
 version = "0.1.2"
 description = "Rust executable packager and bundler CLI and library."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 authors = [
   "CrabNebula Ltd.",
   "Tauri Programme within The Commons Conservancy",
   "George Burton <burtonageo@gmail.com>"
 ]
-edition = "2021"
-license = "Apache-2.0 OR MIT"
 keywords = [ "bundle", "package", "cargo" ]
 categories = [
   "command-line-interface",
@@ -17,7 +18,6 @@ categories = [
   "development-tools::build-utils",
   "os"
 ]
-repository = "https://github.com/crabnebula-dev/cargo-packager"
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg", "doc_cfg" ]
