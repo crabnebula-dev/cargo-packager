@@ -129,7 +129,7 @@ pub fn load_configs_from_cargo_workspace(
                     .first()
                     .map(|a| {
                         let a = a.replace(['_', ' ', '.'], "-").to_lowercase();
-                        a.strip_suffix("_").map(ToString::to_string).unwrap_or(a)
+                        a.strip_suffix('_').map(ToString::to_string).unwrap_or(a)
                     })
                     .unwrap_or_else(|| format!("{}-author", package.name));
                 config

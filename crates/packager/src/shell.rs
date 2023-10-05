@@ -41,7 +41,7 @@ impl CommandExt for Command {
             loop {
                 buf.clear();
                 match stdout.read_line(&mut buf) {
-                    Ok(s) if s == 0 => break,
+                    Ok(0) => break,
                     _ => (),
                 }
                 tracing::debug!("{}", buf.strip_suffix('\n').unwrap_or_else(|| &buf));
@@ -58,7 +58,7 @@ impl CommandExt for Command {
             loop {
                 buf.clear();
                 match stderr.read_line(&mut buf) {
-                    Ok(s) if s == 0 => break,
+                    Ok(0) => break,
                     _ => (),
                 }
                 tracing::debug!("{}", buf.strip_suffix('\n').unwrap_or_else(|| &buf));
