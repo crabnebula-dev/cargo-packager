@@ -124,9 +124,17 @@ pub fn load_configs_from_cargo_workspace(
                 config.version = package.version.to_string();
             }
             if config.identifier.is_none() {
+                let author = package
+                    .authors
+                    .first()
+                    .map(|a| {
+                        let a = a.replace(['_', ' ', '.'], "-").to_lowercase();
+                        a.strip_suffix("_").map(ToString::to_string).unwrap_or(a)
+                    })
+                    .unwrap_or_else(|| format!("{}-author", package.name));
                 config
                     .identifier
-                    .replace(format!("com.{}.app", package.name));
+                    .replace(format!("com.{}.{}", author, package.name));
             }
             if config.out_dir.as_os_str().is_empty() {
                 config.out_dir = metadata

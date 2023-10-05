@@ -729,7 +729,11 @@ pub struct Config {
     /// the package's authors.
     #[serde(default)]
     pub authors: Vec<String>,
-    /// the app's identifier.
+    /// the application identifier in reverse domain name notation (e.g. `com.packager.example`).
+    /// This string must be unique across applications since it is used in some system configurations.
+    /// This string must contain only alphanumeric characters (A–Z, a–z, and 0–9), hyphens (-),
+    /// and periods (.).
+    #[schemars(regex(pattern = r"^[a-zA-Z0-9-\.]*$"))]
     pub identifier: Option<String>,
     /// The app's publisher. Defaults to the second element in the identifier string.
     /// Currently maps to the Manufacturer property of the Windows Installer.
