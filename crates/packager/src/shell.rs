@@ -40,9 +40,8 @@ impl CommandExt for Command {
             let mut lines = stdout_lines_.lock().unwrap();
             loop {
                 buf.clear();
-                match stdout.read_line(&mut buf) {
-                    Ok(0) => break,
-                    _ => (),
+                if let Ok(0) = stdout.read_line(&mut buf) {
+                    break;
                 }
                 tracing::debug!("{}", buf.strip_suffix('\n').unwrap_or_else(|| &buf));
                 lines.extend(buf.as_bytes());
@@ -57,9 +56,8 @@ impl CommandExt for Command {
             let mut lines = stderr_lines_.lock().unwrap();
             loop {
                 buf.clear();
-                match stderr.read_line(&mut buf) {
-                    Ok(0) => break,
-                    _ => (),
+                if let Ok(0) = stderr.read_line(&mut buf) {
+                    break;
                 }
                 tracing::debug!("{}", buf.strip_suffix('\n').unwrap_or_else(|| &buf));
                 lines.extend(buf.as_bytes());
