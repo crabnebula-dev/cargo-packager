@@ -22,11 +22,8 @@ allow = [
     "Unicode-DFS-2016",
     # Used by webpki-roots and option-ext which we are using without modifications in a larger work, therefore okay.
     "MPL-2.0",
-    # TODO is this okay??
     "BSD-3-Clause",
-    # TODO is this okay??
     "OpenSSL",
-    # TODO is this okay??
     "Zlib"
 ]
 
