@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+//! [![cargo-packager splash](https://github.com/crabnebula-dev/cargo-packager/raw/main/.github/splash.png)](https://github.com/crabnebula-dev/cargo-packager)
+//!
 //! `cargo-packager` is a tool and library to generate installers or app bundles for your executables.
 //! It also has a comptabile updater through [cargo-packager-updater](https://docs.rs/cargo-packager-updater).
 //!
