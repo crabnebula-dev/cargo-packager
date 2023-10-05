@@ -16,6 +16,7 @@ cargo install cargo-packager --locked
    ```toml
    [package.metadata.packager]
    enabled = true
+   before-packaging-command = "cargo build"
    ```
 
 2. Run the CLI
