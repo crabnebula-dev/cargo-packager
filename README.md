@@ -46,7 +46,7 @@ By default, `cargo-packager` reads a configuration from `Packager.toml` or `pack
 You can also specify a custom configuration file using the `-c/--config` cli argument.
 All configuration options could be either a single config or array of configs.
 
-For a full list of configuration options, see https://docs.rs/cargo-packager/latest/cargo-packager/struct.Config.html
+For a full list of configuration options, see https://docs.rs/cargo-packager/latest/cargo_packager/config/struct.Config.html
 
 You could also use the schema from GitHub releases to validate your configuration or have auto completions turned on in your IDE.
 
@@ -60,7 +60,7 @@ However, `cargo-packager` has an option to specify a shell command to be execute
 By default, `cargo-packager` looks for binaries built using the `debug` profile, if your `beforePackagingCommand` builds your app using `cargo build --release`, you will also need to
 run `cargo-packager` in release mode `cargo packager --release`, otherwise, if you have a custom cargo profile, you will need to specify it using `--profile` cli arg `cargo packager --profile custom-release-profile`.
 
-For more information, checkout the available [configuration options](https://docs.rs/cargo-packager/latest/cargo-packager/struct.Config.html) and for a list of available CLI
+For more information, checkout the available [configuration options](https://docs.rs/cargo-packager/latest/cargo_packager/config/struct.Config.html) and for a list of available CLI
 commands and arguments, run `cargo packager --help`.
 
 ### Examples
