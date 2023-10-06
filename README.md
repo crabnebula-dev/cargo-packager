@@ -28,7 +28,7 @@ cargo install cargo-packager --locked
    cargo packager --release
    ```
 
-### Supported pacakges
+### Supported packages
 
 - macOS
   - DMG (.dmg)
