@@ -30,7 +30,7 @@
 //!    cargo packager --release
 //!    ```
 //!
-//! ### Supported pacakges
+//! ### Supported packages
 //!
 //! - macOS
 //!   - DMG (.dmg)
