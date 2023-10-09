@@ -34,16 +34,6 @@
     }
   },
   "packages": {
-    "cargo-packager-config": {
-      "path": "./crates/config",
-      "manager": "rust",
-      "assets": [
-        {
-          "path": "${ pkg.path }/target/package/cargo-packager-config-${ pkgFile.version }.crate",
-          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
-        }
-      ]
-    },
     "cargo-packager": {
       "path": "./crates/packager",
       "manager": "rust",

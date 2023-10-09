@@ -11,10 +11,9 @@ use std::{
     process::Command,
 };
 
-use cargo_packager_config::Config;
 use serde::Deserialize;
 
-use crate::{config::ConfigExt, shell::CommandExt, Error};
+use crate::{shell::CommandExt, Config, Error};
 
 const KEYCHAIN_ID: &str = "cargo-packager.keychain";
 const KEYCHAIN_PWD: &str = "cargo-packager";

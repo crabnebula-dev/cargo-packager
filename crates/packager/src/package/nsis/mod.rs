@@ -10,14 +10,13 @@ use std::{
     process::Command,
 };
 
-use cargo_packager_config::NsisCompression;
 use handlebars::{to_json, Handlebars};
 
 use super::Context;
 #[cfg(windows)]
 use crate::codesign;
 use crate::{
-    config::{Config, ConfigExt, ConfigExtInternal, LogLevel, NSISInstallerMode},
+    config::{Config, LogLevel, NSISInstallerMode, NsisCompression},
     shell::CommandExt,
     util::{self, download, download_and_verify, extract_zip, HashAlgorithm},
 };

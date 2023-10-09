@@ -11,7 +11,6 @@ use std::{
     process::Command,
 };
 
-use cargo_packager_config::LogLevel;
 use handlebars::{to_json, Handlebars};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -20,7 +19,7 @@ use uuid::Uuid;
 use super::Context;
 use crate::{
     codesign,
-    config::{Config, ConfigExt, ConfigExtInternal},
+    config::{Config, LogLevel},
     shell::CommandExt,
     util::{self, download_and_verify, extract_zip, HashAlgorithm},
 };

@@ -7,11 +7,7 @@
 use std::path::{Path, PathBuf};
 
 use super::Context;
-use crate::{
-    codesign,
-    config::{Config, ConfigExt, ConfigExtInternal},
-    util,
-};
+use crate::{codesign, config::Config, util};
 
 #[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {

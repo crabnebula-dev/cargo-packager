@@ -20,10 +20,7 @@ use serde::Serialize;
 use walkdir::WalkDir;
 
 use super::Context;
-use crate::{
-    config::{Config, ConfigExt, ConfigExtInternal},
-    util,
-};
+use crate::{config::Config, util};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct DebIcon {

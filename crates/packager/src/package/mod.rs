@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use crate::{shell::CommandExt, util, Config, PackageFormat};
+use crate::{config, shell::CommandExt, util, Config, PackageFormat};
 
 use self::context::Context;
 
@@ -164,11 +164,11 @@ fn run_before_each_packaging_command_hook(
 ) -> crate::Result<()> {
     if let Some(hook) = &config.before_each_package_command {
         let (mut cmd, script) = match hook {
-            cargo_packager_config::HookCommand::Script(script) => {
+            config::HookCommand::Script(script) => {
                 let cmd = util::cross_command(script);
                 (cmd, script)
             }
-            cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
+            config::HookCommand::ScriptWithOptions { script, dir } => {
                 let mut cmd = util::cross_command(script);
                 if let Some(dir) = dir {
                     cmd.current_dir(dir);
@@ -208,11 +208,11 @@ fn run_before_packaging_command_hook(
 ) -> crate::Result<()> {
     if let Some(hook) = &config.before_packaging_command {
         let (mut cmd, script) = match hook {
-            cargo_packager_config::HookCommand::Script(script) => {
+            config::HookCommand::Script(script) => {
                 let cmd = util::cross_command(script);
                 (cmd, script)
             }
-            cargo_packager_config::HookCommand::ScriptWithOptions { script, dir } => {
+            config::HookCommand::ScriptWithOptions { script, dir } => {
                 let mut cmd = util::cross_command(script);
                 if let Some(dir) = dir {
                     cmd.current_dir(dir);

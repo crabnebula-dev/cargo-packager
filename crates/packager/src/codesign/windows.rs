@@ -18,7 +18,7 @@ use winreg::{
 };
 
 use crate::{
-    config::{Config, ConfigExt},
+    config::Config,
     shell::CommandExt,
     util::{self, display_path, Bitness},
 };
