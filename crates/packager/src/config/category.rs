@@ -6,7 +6,6 @@
 
 use std::{fmt, str::FromStr};
 
-use schemars::JsonSchema;
 use serde::Serialize;
 
 const CONFIDENCE_THRESHOLD: f64 = 0.8;
@@ -16,7 +15,8 @@ const MACOS_APP_CATEGORY_PREFIX: &str = "public.app-category.";
 /// The possible app categories.
 /// Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub enum AppCategory {
     Business,

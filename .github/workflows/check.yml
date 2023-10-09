@@ -21,21 +21,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  clippy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - name: install webkit2gtk
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
   fmt:
     runs-on: ubuntu-latest
 
@@ -46,6 +31,27 @@ jobs:
           components: rustfmt
       - name: Check formatting
         run: cargo fmt --all -- --check
+
+  clippy:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: install webkit2gtk
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y  webkit2gtk-4.1 libayatana-appindicator3-dev
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   test:
     strategy:

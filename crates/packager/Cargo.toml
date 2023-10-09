@@ -30,10 +30,10 @@ targets = [
 
 [features]
 default = [ "cli" ]
-cli = [ "clap", "cargo-packager-config/clap", "tracing-subscriber" ]
+cli = [ "clap", "tracing-subscriber" ]
+schema = ["schemars"]
 
 [dependencies]
-cargo-packager-config = { path = "../config", version = "0.2.0" }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -59,6 +59,8 @@ os_pipe = "1"
 minisign = "0.7"
 tar = "0.4"
 libflate = "2.0"
+strsim = "0.10"
+schemars = { workspace = true, optional =  true }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 winreg = "0.51"

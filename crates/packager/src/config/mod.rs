@@ -1,28 +1,27 @@
-// Copyright 2016-2019 Cargo-Bundle developers <https://github.com/burtonageo/cargo-bundle>
-// Copyright 2019-2023 Tauri Programme within The Commons Conservancy
 // Copyright 2023-2023 CrabNebula Ltd.
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-//! Config types for [`cargo-packager`](https://docs.rs/cargo-packager).
-
-#![deny(missing_docs)]
+//! Configuration type and associated utilities.
 
 use std::{
     collections::HashMap,
     fmt::{self, Display},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
-use schemars::JsonSchema;
+use relative_path::PathExt;
 use serde::{Deserialize, Serialize};
+
+use crate::util;
 
 mod category;
 pub use category::AppCategory;
 
 /// The type of the package we're packaging.
 #[non_exhaustive]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[cfg_attr(feature = "clap", value(rename_all = "lowercase"))]
 #[serde(rename_all = "lowercase")]
@@ -172,7 +171,8 @@ impl PackageFormat {
 }
 
 /// **macOS-only**. Corresponds to CFBundleTypeRole
-#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub enum BundleTypeRole {
     /// CFBundleTypeRole.Editor. Files can be read and edited.
@@ -206,7 +206,8 @@ impl Display for BundleTypeRole {
 }
 
 /// A file association configuration.
-#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FileAssociation {
     /// File extensions to associate with this app. e.g. 'png'
@@ -224,7 +225,8 @@ pub struct FileAssociation {
 }
 
 /// The Linux debian configuration.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DebianConfig {
     /// the list of debian dependencies.
@@ -257,7 +259,8 @@ pub struct DebianConfig {
 }
 
 /// The Linux AppImage configuration.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AppImageConfig {
     /// List of libs that exist in `/usr/lib*` to be include in the final AppImage.
@@ -277,7 +280,8 @@ pub struct AppImageConfig {
 }
 
 /// The macOS configuration.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MacOsConfig {
     /// MacOS frameworks that need to be packaged with the app.
@@ -314,7 +318,8 @@ pub struct MacOsConfig {
 }
 
 /// Configuration for a target language for the WiX build.
-#[derive(Debug, Clone, Default, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WixLanguageConfig {
     /// The path to a locale (`.wxl`) file. See <https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/build_a_localized_version.html>.
@@ -323,7 +328,8 @@ pub struct WixLanguageConfig {
 }
 
 /// The languages to build using WiX.
-#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct WixLanguages(pub Vec<(String, WixLanguageConfig)>);
 
 impl Default for WixLanguages {
@@ -333,7 +339,8 @@ impl Default for WixLanguages {
 }
 
 /// The wix format configuration
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WixConfig {
     /// The app languages to build. See <https://docs.microsoft.com/en-us/windows/win32/msi/localizing-the-error-and-actiontext-tables>.
@@ -401,7 +408,8 @@ pub struct WixConfig {
 }
 
 /// Install Modes for the NSIS installer.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub enum NSISInstallerMode {
     /// Default mode for the installer.
@@ -432,7 +440,8 @@ impl Default for NSISInstallerMode {
 /// Compression algorithms used in the NSIS installer.
 ///
 /// See <https://nsis.sourceforge.io/Reference/SetCompressor>
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum NsisCompression {
     /// ZLIB uses the deflate algorithm, it is a quick and simple method. With the default compression level it uses about 300 KB of memory.
@@ -444,7 +453,8 @@ pub enum NsisCompression {
 }
 
 /// The NSIS format configuration.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NsisConfig {
     /// Set the compression algorithm used to compress files in the installer.
@@ -535,7 +545,8 @@ pub struct NsisConfig {
 }
 
 /// The Windows configuration.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WindowsConfig {
     /// The file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.
@@ -583,7 +594,8 @@ impl Default for WindowsConfig {
 /// An enum representing the available verbosity levels of the logger.
 #[derive(Deserialize, Serialize)]
 #[repr(usize)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, JsonSchema)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub enum LogLevel {
     /// The "error" level.
@@ -615,7 +627,8 @@ impl Default for LogLevel {
 }
 
 /// A binary to package within the final package.
-#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Binary {
     /// File name and without `.exe` on Windows
@@ -627,7 +640,8 @@ pub struct Binary {
 
 /// A path to a resource (with optional glob pattern)
 /// or an object of `src` and `target` paths.
-#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
 pub enum Resource {
     /// Supports glob patterns
@@ -646,7 +660,8 @@ pub enum Resource {
 }
 
 /// Describes a shell command to be executed when a CLI hook is triggered.
-#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
 pub enum HookCommand {
     /// Run the given script with the default options.
@@ -661,7 +676,8 @@ pub enum HookCommand {
 }
 
 /// The packaging config.
-#[derive(Deserialize, Serialize, Default, Debug, Clone, JsonSchema)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Config {
     /// Whether this config is enabled or not. Defaults to `true`.
@@ -733,7 +749,7 @@ pub struct Config {
     /// This string must be unique across applications since it is used in some system configurations.
     /// This string must contain only alphanumeric characters (A–Z, a–z, and 0–9), hyphens (-),
     /// and periods (.).
-    #[schemars(regex(pattern = r"^[a-zA-Z0-9-\.]*$"))]
+    #[cfg_attr(feature = "schema", schemars(regex(pattern = r"^[a-zA-Z0-9-\.]*$")))]
     pub identifier: Option<String>,
     /// The app's publisher. Defaults to the second element in the identifier string.
     /// Currently maps to the Manufacturer property of the Windows Installer.
@@ -789,4 +805,241 @@ pub struct Config {
     pub macos: Option<MacOsConfig>,
     /// Windows-specific settings.
     pub windows: Option<WindowsConfig>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct IResource {
+    pub src: PathBuf,
+    pub target: PathBuf,
+}
+
+impl Config {
+    /// Returns the windows specific configuration
+    pub fn windows(&self) -> Option<&WindowsConfig> {
+        self.windows.as_ref()
+    }
+
+    /// Returns the macos specific configuration
+    pub fn macos(&self) -> Option<&MacOsConfig> {
+        self.macos.as_ref()
+    }
+
+    /// Returns the nsis specific configuration
+    pub fn nsis(&self) -> Option<&NsisConfig> {
+        self.nsis.as_ref()
+    }
+
+    /// Returns the wix specific configuration
+    pub fn wix(&self) -> Option<&WixConfig> {
+        self.wix.as_ref()
+    }
+
+    /// Returns the debian specific configuration
+    pub fn deb(&self) -> Option<&DebianConfig> {
+        self.deb.as_ref()
+    }
+
+    /// Returns the appimage specific configuration
+    pub fn appimage(&self) -> Option<&AppImageConfig> {
+        self.appimage.as_ref()
+    }
+
+    /// Returns the target triple for the package to be built (e.g. "aarch64-unknown-linux-gnu").
+    pub fn target_triple(&self) -> String {
+        self.target_triple.clone().unwrap_or_else(|| {
+            util::target_triple().expect("Failed to detect current target triple")
+        })
+    }
+
+    /// Returns the architecture for the package to be built (e.g. "arm", "x86" or "x86_64").
+    pub fn target_arch(&self) -> crate::Result<&str> {
+        let target = self.target_triple();
+        Ok(if target.starts_with("x86_64") {
+            "x86_64"
+        } else if target.starts_with('i') {
+            "x86"
+        } else if target.starts_with("arm") {
+            "arm"
+        } else if target.starts_with("aarch64") {
+            "aarch64"
+        } else if target.starts_with("universal") {
+            "universal"
+        } else {
+            return Err(crate::Error::UnexpectedTargetTriple(target));
+        })
+    }
+
+    /// Returns the path to the specified binary.
+    pub fn binary_path(&self, binary: &Binary) -> PathBuf {
+        self.out_dir().join(&binary.filename)
+    }
+
+    /// Returns the package identifier
+    pub fn identifier(&self) -> &str {
+        self.identifier.as_deref().unwrap_or("")
+    }
+
+    /// Returns the package publisher
+    pub fn publisher(&self) -> String {
+        let identifier = self.identifier();
+        self.publisher
+            .clone()
+            .unwrap_or_else(|| identifier.split('.').nth(1).unwrap_or(identifier).into())
+    }
+
+    /// Returns the out dir
+    pub fn out_dir(&self) -> PathBuf {
+        dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
+    }
+
+    /// Returns the main binary
+    pub fn main_binary(&self) -> crate::Result<&Binary> {
+        self.binaries
+            .iter()
+            .find(|bin| bin.main)
+            .ok_or_else(|| crate::Error::MainBinaryNotFound)
+    }
+
+    /// Returns the main binary name
+    pub fn main_binary_name(&self) -> crate::Result<&String> {
+        self.binaries
+            .iter()
+            .find(|bin| bin.main)
+            .map(|b| &b.filename)
+            .ok_or_else(|| crate::Error::MainBinaryNotFound)
+    }
+}
+
+impl Config {
+    #[inline]
+    pub(crate) fn resources_from_dir(
+        src_dir: &Path,
+        target_dir: &Path,
+    ) -> crate::Result<Vec<IResource>> {
+        let mut out = Vec::new();
+        for entry in walkdir::WalkDir::new(src_dir) {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_file() {
+                let relative = path.relative_to(src_dir)?.to_path("");
+                let resource = IResource {
+                    src: dunce::canonicalize(path)?,
+                    target: target_dir.join(relative),
+                };
+                out.push(resource);
+            }
+        }
+        Ok(out)
+    }
+
+    #[inline]
+    pub(crate) fn resources_from_glob(glob: &str) -> crate::Result<Vec<IResource>> {
+        let mut out = Vec::new();
+        for src in glob::glob(glob)? {
+            let src = dunce::canonicalize(src?)?;
+            let target = PathBuf::from(src.file_name().unwrap_or_default());
+            out.push(IResource { src, target })
+        }
+        Ok(out)
+    }
+
+    pub(crate) fn resources(&self) -> crate::Result<Vec<IResource>> {
+        if let Some(resources) = &self.resources {
+            let mut out = Vec::new();
+            for r in resources {
+                match r {
+                    Resource::Single(src) => {
+                        let src_dir = PathBuf::from(src);
+                        if src_dir.is_dir() {
+                            let target_dir = Path::new(src_dir.file_name().unwrap_or_default());
+                            out.extend(Self::resources_from_dir(&src_dir, target_dir)?);
+                        } else {
+                            out.extend(Self::resources_from_glob(src)?);
+                        }
+                    }
+                    Resource::Mapped { src, target } => {
+                        let src_path = PathBuf::from(src);
+                        let target_dir = sanitize_path(target);
+                        if src_path.is_dir() {
+                            out.extend(Self::resources_from_dir(&src_path, &target_dir)?);
+                        } else if src_path.is_file() {
+                            out.push(IResource {
+                                src: dunce::canonicalize(src_path)?,
+                                target: sanitize_path(target),
+                            });
+                        } else {
+                            let globbed_res = Self::resources_from_glob(src)?;
+                            let retargetd_res = globbed_res.into_iter().map(|mut r| {
+                                r.target = target_dir.join(r.target);
+                                r
+                            });
+                            out.extend(retargetd_res);
+                        }
+                    }
+                }
+            }
+
+            Ok(out)
+        } else {
+            Ok(vec![])
+        }
+    }
+
+    #[allow(unused)]
+    pub(crate) fn find_ico(&self) -> Option<PathBuf> {
+        self.icons
+            .as_ref()
+            .and_then(|icons| {
+                icons
+                    .iter()
+                    .find(|i| PathBuf::from(i).extension().and_then(|s| s.to_str()) == Some("ico"))
+                    .or_else(|| {
+                        icons.iter().find(|i| {
+                            PathBuf::from(i).extension().and_then(|s| s.to_str()) == Some("png")
+                        })
+                    })
+            })
+            .map(PathBuf::from)
+    }
+
+    #[allow(unused)]
+    pub(crate) fn copy_resources(&self, path: &Path) -> crate::Result<()> {
+        for resource in self.resources()? {
+            let dest = path.join(resource.target);
+            std::fs::create_dir_all(
+                dest.parent()
+                    .ok_or_else(|| crate::Error::ParentDirNotFound(dest.to_path_buf()))?,
+            )?;
+            std::fs::copy(resource.src, dest)?;
+        }
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub(crate) fn copy_external_binaries(&self, path: &Path) -> crate::Result<()> {
+        if let Some(external_binaries) = &self.external_binaries {
+            for src in external_binaries {
+                let src = dunce::canonicalize(PathBuf::from(src))?;
+                let file_name_no_triple = src
+                    .file_name()
+                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
+                    .to_string_lossy()
+                    .replace(&format!("-{}", self.target_triple()), "");
+                let dest = path.join(file_name_no_triple);
+                std::fs::copy(src, dest)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn sanitize_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut dest = PathBuf::new();
+    for c in path.as_ref().components() {
+        if let std::path::Component::Normal(s) = c {
+            dest.push(s)
+        }
+    }
+    dest
 }

@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use crate::{config::ConfigExt, util, Config};
+use crate::{util, Config};
 
 /// The packaging context info
 #[derive(Debug)]
