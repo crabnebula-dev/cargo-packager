@@ -985,6 +985,7 @@ impl Config {
         }
     }
 
+    #[allow(unused)]
     pub(crate) fn find_ico(&self) -> Option<PathBuf> {
         self.icons
             .as_ref()
