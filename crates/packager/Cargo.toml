@@ -1,10 +1,7 @@
 [package]
 name = "cargo-packager"
-version = "0.1.2"
+version = "0.2.0"
 description = "Rust executable packager and bundler CLI and library."
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
 authors = [
   "CrabNebula Ltd.",
   "Tauri Programme within The Commons Conservancy",
@@ -19,6 +16,15 @@ categories = [
   "os"
 ]
 
+  [package.edition]
+  workspace = true
+
+  [package.license]
+  workspace = true
+
+  [package.repository]
+  workspace = true
+
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg", "doc_cfg" ]
 default-target = "x86_64-unknown-linux-gnu"
@@ -31,7 +37,7 @@ targets = [
 [features]
 default = [ "cli" ]
 cli = [ "clap", "tracing-subscriber" ]
-schema = ["schemars"]
+schema = [ "schemars" ]
 
 [dependencies]
 thiserror = { workspace = true }
@@ -60,7 +66,7 @@ minisign = "0.7"
 tar = "0.4"
 libflate = "2.0"
 strsim = "0.10"
-schemars = { workspace = true, optional =  true }
+schemars = { workspace = true, optional = true }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 winreg = "0.51"
