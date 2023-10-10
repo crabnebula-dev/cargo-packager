@@ -1,8 +1,9 @@
-name: covector status
+name: Covector Status
 on: [pull_request]
 
 jobs:
   covector:
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ubuntu-latest
 
     steps:

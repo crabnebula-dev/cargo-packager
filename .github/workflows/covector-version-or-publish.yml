@@ -1,4 +1,4 @@
-name: covector version or publish
+name: Covector Version or Publish
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   version-or-publish:
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -34,7 +35,7 @@ jobs:
         id: covector
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          command: 'version-or-publish'
+          command: "version-or-publish"
           createRelease: true
 
       - name: Create Pull Request With Versions Bumped
@@ -43,7 +44,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: release/version-updates
-          title: 'release: apply version updates from current changes'
-          commit-message: 'release: apply version updates from current changes'
-          labels: 'version updates'
+          title: "release: apply version updates from current changes"
+          commit-message: "release: apply version updates from current changes"
+          labels: "version updates"
           body: ${{ steps.covector.outputs.change }}

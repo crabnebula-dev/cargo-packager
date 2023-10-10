@@ -22,6 +22,7 @@ concurrency:
 
 jobs:
   fmt:
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -33,6 +34,8 @@ jobs:
         run: cargo fmt --all -- --check
 
   clippy:
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
+
     strategy:
       fail-fast: false
       matrix:
