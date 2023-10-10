@@ -1,4 +1,4 @@
-name: Build examples
+name: Package examples
 
 on:
   pull_request:
@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  package:
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     strategy:
       fail-fast: false
       matrix:
