@@ -690,7 +690,7 @@ pub struct Config {
     #[serde(rename = "$schema")]
     pub schema: Option<String>,
     /// The app name, this is just an identifier that could be used
-    /// to filter which app to package using `--pacakges` cli arg when there is multiple apps in the
+    /// to filter which app to package using `--packages` cli arg when there is multiple apps in the
     /// workspace or in the same config.
     ///
     /// This field resembles, the `name` field in `Cargo.toml` and `package.json`
