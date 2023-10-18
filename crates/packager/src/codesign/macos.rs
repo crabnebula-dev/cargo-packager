@@ -340,7 +340,7 @@ pub enum NotarizeAuth {
     AppleId {
         apple_id: OsString,
         password: OsString,
-        team_id: Option<OsString>,
+        team_id: OsString,
     },
     ApiKey {
         key: OsString,
@@ -364,10 +364,10 @@ impl NotarytoolCmdExt for Command {
                 self.arg("--apple-id")
                     .arg(apple_id)
                     .arg("--password")
-                    .arg(password);
-                if let Some(team_id) = team_id {
-                    self.arg("--team-id").arg(team_id);
-                }
+                    .arg(password)
+                    .arg("--team-id")
+                    .arg(team_id);
+
                 self
             }
             NotarizeAuth::ApiKey {
@@ -392,11 +392,12 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
         std::env::var_os("APPLE_PASSWORD"),
         std::env::var_os("APPLE_TEAM_ID"),
     ) {
-        (Some(apple_id), Some(password), team_id) => Ok(NotarizeAuth::AppleId {
+        (Some(apple_id), Some(password), Some(team_id)) => Ok(NotarizeAuth::AppleId {
             apple_id,
             password,
             team_id,
         }),
+        (Some(_apple_id), Some(_password), None) => Err(Error::MissingNotarizeAuthTeamId),
         _ => {
             match (
                 std::env::var_os("APPLE_API_KEY"),
