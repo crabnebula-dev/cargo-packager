@@ -232,8 +232,8 @@ pub enum Error {
     /// Failed to extract external binary filename
     #[error("Failed to extract filename from {0}")]
     FailedToExtractFilename(PathBuf),
-    /// Failed to remove extra attributes from app bundle
-    #[error("Failed to remove extended file attributes from app bundle: {0}")]
+    /// Failed to remove extended attributes from app bundle
+    #[error("Failed to remove extended attributes from app bundle: {0}")]
     #[cfg(target_os = "macos")]
     FailedToRemoveExtendedAttributes(std::io::Error),
 }
