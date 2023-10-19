@@ -208,7 +208,7 @@ fn create_info_plist(
 #[tracing::instrument(level = "trace")]
 fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
     if !from.exists() {
-        return Err(crate::Error::AlreadyExists(from.to_path_buf()));
+        return Err(crate::Error::DoesNotExist(from.to_path_buf()));
     }
     if !from.is_dir() {
         return Err(crate::Error::IsNotDirectory(from.to_path_buf()));
