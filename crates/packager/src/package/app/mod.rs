@@ -37,6 +37,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     let resources_dir = contents_directory.join("Resources");
     let bin_dir = contents_directory.join("MacOS");
+    std::fs::create_dir_all(&bin_dir)?;
+
     let mut sign_paths = Vec::new();
 
     let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
@@ -70,8 +72,6 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     }));
 
     tracing::debug!("Copying binaries");
-    let bin_dir = contents_directory.join("MacOS");
-    std::fs::create_dir_all(&bin_dir)?;
     for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
         let dest_path = bin_dir.join(&bin.filename);
