@@ -172,11 +172,6 @@ pub enum Error {
     /// Missing notarize environment variables.
     #[error("Could not find APPLE_ID & APPLE_PASSWORD & APPLE_TEAM_ID or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
     MissingNotarizeAuthVars,
-    /// Missing norarize APPLE_TEAM_ID environment variable.
-    #[error(
-        "The team ID is now required for notarization with app-specific password as authentication. Please set the `APPLE_TEAM_ID` environment variable. You can find the team ID in https://developer.apple.com/account#MembershipDetailsCard."
-      )]
-    MissingNotarizeAuthTeamId,
     /// Failed to list keychains
     #[error("Failed to list keychains: {0}")]
     FailedToListKeyChain(std::io::Error),

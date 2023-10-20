@@ -397,7 +397,6 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
             password,
             team_id,
         }),
-        (Some(_apple_id), Some(_password), None) => Err(Error::MissingNotarizeAuthTeamId),
         _ => {
             match (
                 std::env::var_os("APPLE_API_KEY"),
