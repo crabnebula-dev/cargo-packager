@@ -75,9 +75,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
         let dest_path = bin_dir.join(&bin.filename);
-
         std::fs::copy(&bin_path, &dest_path)?;
-
         sign_paths.push(SignTarget {
             path: dest_path,
             is_an_executable: true,
@@ -365,6 +363,6 @@ fn remove_extra_attr(app_bundle_path: &Path) -> crate::Result<()> {
         .arg("-cr")
         .arg(app_bundle_path)
         .output_ok()
-        .map_err(crate::Error::FailedToRemoveExtendedAttributes)?;
-    Ok(())
+        .map(|_| ())
+        .map_err(crate::Error::FailedToRemoveExtendedAttributes)
 }

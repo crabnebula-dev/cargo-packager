@@ -153,8 +153,6 @@ pub struct SignTarget {
 
 #[tracing::instrument(level = "trace")]
 pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> crate::Result<()> {
-    tracing::info!("Signing with identity \"{}\"", identity);
-
     let packager_keychain = if let (Some(certificate_encoded), Some(certificate_password)) = (
         std::env::var_os("APPLE_CERTIFICATE"),
         std::env::var_os("APPLE_CERTIFICATE_PASSWORD"),
@@ -166,8 +164,6 @@ pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> cr
     } else {
         false
     };
-
-    tracing::info!("Signing app bundle...");
 
     for target in targets {
         sign(
@@ -195,7 +191,11 @@ fn sign(
     is_an_executable: bool,
     pcakger_keychain: bool,
 ) -> crate::Result<()> {
-    tracing::info!("Signing {}", path_to_sign.display());
+    tracing::info!(
+        "Signing {} with identity \"{}\"",
+        path_to_sign.display(),
+        identity
+    );
 
     let mut args = vec!["--force", "-s", identity];
 
