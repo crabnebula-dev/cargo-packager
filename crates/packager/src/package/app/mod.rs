@@ -4,10 +4,19 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use std::path::{Path, PathBuf};
+use std::{
+    ffi::OsStr,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use super::Context;
-use crate::{codesign, config::Config, util};
+use crate::{
+    codesign::{self, SignTarget},
+    config::Config,
+    shell::CommandExt,
+    util,
+};
 
 #[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
@@ -28,6 +37,9 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     let resources_dir = contents_directory.join("Resources");
     let bin_dir = contents_directory.join("MacOS");
+    std::fs::create_dir_all(&bin_dir)?;
+
+    let mut sign_paths = Vec::new();
 
     let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
 
@@ -35,20 +47,39 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     create_info_plist(&contents_directory, bundle_icon_file, config)?;
 
     tracing::debug!("Copying frameworks");
-    copy_frameworks_to_bundle(&contents_directory, config)?;
+    let framework_paths = copy_frameworks_to_bundle(&contents_directory, config)?;
+    sign_paths.extend(
+        framework_paths
+            .into_iter()
+            .filter(|p| {
+                let ext = p.extension();
+                ext == Some(OsStr::new("framework")) || ext == Some(OsStr::new("dylib"))
+            })
+            .map(|path| SignTarget {
+                path,
+                is_an_executable: false,
+            }),
+    );
 
     tracing::debug!("Copying resources");
     config.copy_resources(&resources_dir)?;
 
     tracing::debug!("Copying external binaries");
-    config.copy_external_binaries(&bin_dir)?;
+    let bin_paths = config.copy_external_binaries(&bin_dir)?;
+    sign_paths.extend(bin_paths.into_iter().map(|path| SignTarget {
+        path,
+        is_an_executable: true,
+    }));
 
     tracing::debug!("Copying binaries");
-    let bin_dir = contents_directory.join("MacOS");
-    std::fs::create_dir_all(&bin_dir)?;
     for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
-        std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
+        let dest_path = bin_dir.join(&bin.filename);
+        std::fs::copy(&bin_path, &dest_path)?;
+        sign_paths.push(SignTarget {
+            path: dest_path,
+            is_an_executable: true,
+        });
     }
 
     if let Some(identity) = config
@@ -56,7 +87,19 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .and_then(|macos| macos.signing_identity.as_ref())
     {
         tracing::debug!("Codesigning {}", app_bundle_path.display());
-        codesign::try_sign(&app_bundle_path, identity, config, true)?;
+        // Sign frameworks and sidecar binaries first, per apple, signing must be done inside out
+        // https://developer.apple.com/forums/thread/701514
+        sign_paths.push(SignTarget {
+            path: app_bundle_path.clone(),
+            is_an_executable: true,
+        });
+
+        // Remove extra attributes, which could cause codesign to fail
+        // https://developer.apple.com/library/archive/qa/qa1940/_index.html
+        remove_extra_attr(&app_bundle_path)?;
+
+        // sign application
+        codesign::try_sign(sign_paths, identity, config)?;
 
         // notarization is required for distribution
         match codesign::notarize_auth() {
@@ -253,7 +296,12 @@ fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crat
 
 // Copies the macOS application bundle frameworks to the .app
 #[tracing::instrument(level = "trace")]
-fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crate::Result<()> {
+fn copy_frameworks_to_bundle(
+    contents_directory: &Path,
+    config: &Config,
+) -> crate::Result<Vec<PathBuf>> {
+    let mut paths = Vec::new();
+
     if let Some(frameworks) = config.macos().and_then(|m| m.frameworks.as_ref()) {
         let dest_dir = contents_directory.join("Frameworks");
         std::fs::create_dir_all(contents_directory)?;
@@ -264,7 +312,9 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                 let src_name = src_path
                     .file_name()
                     .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
-                copy_dir(&src_path, &dest_dir.join(src_name))?;
+                let dest_path = dest_dir.join(src_name);
+                copy_dir(&src_path, &dest_path)?;
+                paths.push(dest_path);
                 continue;
             } else if framework.ends_with(".dylib") {
                 let src_path = PathBuf::from(&framework);
@@ -275,7 +325,9 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
                     .file_name()
                     .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
                 std::fs::create_dir_all(&dest_dir)?;
-                std::fs::copy(&src_path, dest_dir.join(src_name))?;
+                let dest_path = dest_dir.join(src_name);
+                std::fs::copy(&src_path, &dest_path)?;
+                paths.push(dest_path);
                 continue;
             } else if framework.contains('/') {
                 return Err(crate::Error::InvalidFramework {
@@ -303,5 +355,14 @@ fn copy_frameworks_to_bundle(contents_directory: &Path, config: &Config) -> crat
         }
     }
 
-    Ok(())
+    Ok(paths)
+}
+
+fn remove_extra_attr(app_bundle_path: &Path) -> crate::Result<()> {
+    Command::new("xattr")
+        .arg("-cr")
+        .arg(app_bundle_path)
+        .output_ok()
+        .map(|_| ())
+        .map_err(crate::Error::FailedToRemoveExtendedAttributes)
 }

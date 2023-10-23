@@ -145,19 +145,14 @@ pub fn delete_keychain() {
         .output_ok();
 }
 
-#[tracing::instrument(level = "trace")]
-pub fn try_sign(
-    path_to_sign: &Path,
-    identity: &str,
-    config: &Config,
-    is_an_executable: bool,
-) -> crate::Result<()> {
-    tracing::info!(
-        "Signing {} with identity \"{}\"",
-        path_to_sign.display(),
-        identity
-    );
+#[derive(Debug)]
+pub struct SignTarget {
+    pub path: PathBuf,
+    pub is_an_executable: bool,
+}
 
+#[tracing::instrument(level = "trace")]
+pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> crate::Result<()> {
     let packager_keychain = if let (Some(certificate_encoded), Some(certificate_password)) = (
         std::env::var_os("APPLE_CERTIFICATE"),
         std::env::var_os("APPLE_CERTIFICATE_PASSWORD"),
@@ -170,20 +165,22 @@ pub fn try_sign(
         false
     };
 
-    let res = sign(
-        path_to_sign,
-        identity,
-        config,
-        is_an_executable,
-        packager_keychain,
-    );
+    for target in targets {
+        sign(
+            &target.path,
+            identity,
+            config,
+            target.is_an_executable,
+            packager_keychain,
+        )?;
+    }
 
     if packager_keychain {
         // delete the keychain again after signing
         delete_keychain();
     }
 
-    res
+    Ok(())
 }
 
 #[tracing::instrument(level = "trace")]
@@ -194,6 +191,12 @@ fn sign(
     is_an_executable: bool,
     pcakger_keychain: bool,
 ) -> crate::Result<()> {
+    tracing::info!(
+        "Signing {} with identity \"{}\"",
+        path_to_sign.display(),
+        identity
+    );
+
     let mut args = vec!["--force", "-s", identity];
 
     if pcakger_keychain {
@@ -269,7 +272,14 @@ pub fn notarize(
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
     {
-        try_sign(&zip_path, identity, config, false)?;
+        try_sign(
+            vec![SignTarget {
+                path: zip_path.clone(),
+                is_an_executable: false,
+            }],
+            identity,
+            config,
+        )?;
     };
 
     let zip_path_str = zip_path.to_string_lossy().to_string();

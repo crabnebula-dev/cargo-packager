@@ -1016,7 +1016,8 @@ impl Config {
     }
 
     #[allow(unused)]
-    pub(crate) fn copy_external_binaries(&self, path: &Path) -> crate::Result<()> {
+    pub(crate) fn copy_external_binaries(&self, path: &Path) -> crate::Result<Vec<PathBuf>> {
+        let mut paths = Vec::new();
         if let Some(external_binaries) = &self.external_binaries {
             for src in external_binaries {
                 let src = dunce::canonicalize(PathBuf::from(src))?;
@@ -1026,11 +1027,12 @@ impl Config {
                     .to_string_lossy()
                     .replace(&format!("-{}", self.target_triple()), "");
                 let dest = path.join(file_name_no_triple);
-                std::fs::copy(src, dest)?;
+                std::fs::copy(src, &dest)?;
+                paths.push(dest);
             }
         }
 
-        Ok(())
+        Ok(paths)
     }
 }
 
