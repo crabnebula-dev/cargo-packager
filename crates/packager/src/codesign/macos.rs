@@ -348,13 +348,14 @@ fn staple_app(app_bundle_path: PathBuf) -> crate::Result<()> {
 #[derive(Debug)]
 pub enum NotarizeAuth {
     AppleId {
-        apple_id: String,
-        password: String,
+        apple_id: OsString,
+        password: OsString,
+        team_id: OsString,
     },
     ApiKey {
-        key: String,
+        key: OsString,
         key_path: PathBuf,
-        issuer: String,
+        issuer: OsString,
     },
 }
 
@@ -365,11 +366,20 @@ pub trait NotarytoolCmdExt {
 impl NotarytoolCmdExt for Command {
     fn notarytool_args(&mut self, auth: &NotarizeAuth) -> &mut Self {
         match auth {
-            NotarizeAuth::AppleId { apple_id, password } => self
-                .arg("--apple-id")
-                .arg(apple_id)
-                .arg("--password")
-                .arg(password),
+            NotarizeAuth::AppleId {
+                apple_id,
+                password,
+                team_id,
+            } => {
+                self.arg("--apple-id")
+                    .arg(apple_id)
+                    .arg("--password")
+                    .arg(password)
+                    .arg("--team-id")
+                    .arg(team_id);
+
+                self
+            }
             NotarizeAuth::ApiKey {
                 key,
                 key_path,
@@ -390,50 +400,28 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
     match (
         std::env::var_os("APPLE_ID"),
         std::env::var_os("APPLE_PASSWORD"),
+        std::env::var_os("APPLE_TEAM_ID"),
     ) {
-        (Some(apple_id), Some(apple_password)) => {
-            let apple_id = apple_id
-                .to_str()
-                .expect("failed to convert APPLE_ID to string")
-                .to_string();
-            let password = apple_password
-                .to_str()
-                .expect("failed to convert APPLE_PASSWORD to string")
-                .to_string();
-            Ok(NotarizeAuth::AppleId { apple_id, password })
-        }
+        (Some(apple_id), Some(password), Some(team_id)) => Ok(NotarizeAuth::AppleId {
+            apple_id,
+            password,
+            team_id,
+        }),
         _ => {
             match (
                 std::env::var_os("APPLE_API_KEY"),
                 std::env::var_os("APPLE_API_ISSUER"),
                 std::env::var("APPLE_API_KEY_PATH"),
             ) {
-                (Some(api_key), Some(api_issuer), Ok(key_path)) => {
-                    let key = api_key
-                        .to_str()
-                        .expect("failed to convert APPLE_API_KEY to string")
-                        .to_string();
-                    let issuer = api_issuer
-                        .to_str()
-                        .expect("failed to convert APPLE_API_ISSUER to string")
-                        .to_string();
-                    Ok(NotarizeAuth::ApiKey {
-                        key,
-                        key_path: key_path.into(),
-                        issuer,
-                    })
-                }
-                (Some(api_key), Some(api_issuer), Err(_)) => {
-                    let key = api_key
-                        .to_str()
-                        .expect("failed to convert APPLE_API_KEY to string")
-                        .to_string();
-                    let issuer = api_issuer
-                        .to_str()
-                        .expect("failed to convert APPLE_API_ISSUER to string")
-                        .to_string();
-
-                    let api_key_file_name = format!("AuthKey_{key}.p8");
+                (Some(key), Some(issuer), Ok(key_path)) => Ok(NotarizeAuth::ApiKey {
+                    key,
+                    key_path: key_path.into(),
+                    issuer,
+                }),
+                (Some(key), Some(issuer), Err(_)) => {
+                    let mut api_key_file_name = OsString::from("AuthKey_");
+                    api_key_file_name.push(&key);
+                    api_key_file_name.push(".p8");
                     let mut key_path = None;
 
                     let mut search_paths = vec!["./private_keys".into()];
@@ -458,7 +446,9 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
                         })
                     } else {
                         Err(Error::ApiKeyMissing {
-                            filename: api_key_file_name,
+                            filename: api_key_file_name
+                                .into_string()
+                                .expect("failed to convert api_key_file_name to string"),
                         })
                     }
                 }
@@ -468,7 +458,7 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
     }
 }
 
-fn find_api_key(folder: PathBuf, file_name: &str) -> Option<PathBuf> {
+fn find_api_key(folder: PathBuf, file_name: &OsString) -> Option<PathBuf> {
     let path = folder.join(file_name);
     if path.exists() {
         Some(path)

@@ -170,7 +170,7 @@ pub enum Error {
         filename: String,
     },
     /// Missing notarize environment variables.
-    #[error("Could not find APPLE_ID & APPLE_PASSWORD or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
+    #[error("Could not find APPLE_ID & APPLE_PASSWORD & APPLE_TEAM_ID or APPLE_API_KEY & APPLE_API_ISSUER & APPLE_API_KEY_PATH environment variables found")]
     MissingNotarizeAuthVars,
     /// Failed to list keychains
     #[error("Failed to list keychains: {0}")]
