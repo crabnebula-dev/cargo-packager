@@ -20,6 +20,10 @@ wails build | grep "Built" | cut -d " " -f 2 | read buildpath
 
 echo "Your binary is available at ${buildpath}"
 mkdir -p ./dist
+
+# I am stupid why doesn't this work
 # cp ${buildpath} ./dist/
 cp ./build/bin/wails_example.app/Contents/MacOS/wails_example ./dist
+
+# also doesn't work here, sadly
 # cargo r -p cargo-packager -- -p wails-example --release -c packager.json
