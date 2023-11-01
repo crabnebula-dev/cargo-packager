@@ -75,6 +75,7 @@ Examples list (non-exhaustive):
 - [`egui`](./examples/egui/)
 - [`deno`](./examples/deno/)
 - [`slint`](./examples/slint/)
+- [`wails`](./examples/wails)
 
 ## Library
 
