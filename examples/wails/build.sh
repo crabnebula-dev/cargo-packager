@@ -19,6 +19,7 @@ fi
 wails build | grep "Built" | cut -d " " -f 2 | read buildpath
 
 echo "Your binary is available at ${buildpath}"
-
-# this is broken and I am lost like a donkey at Karneval
-cargo r -p cargo-packager -- -p wails-example --release --config binaries=`[{ "filename": ${buildpath}, "main": true }]`
+mkdir -p ./dist
+# cp ${buildpath} ./dist/
+cp ./build/bin/wails_example.app/Contents/MacOS/wails_example ./dist
+# cargo r -p cargo-packager -- -p wails-example --release -c packager.json

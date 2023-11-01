@@ -1,12 +1,12 @@
 {
-  "$schema": "../../crates/config/schema.json",
+  "$schema": "../../crates/packager/schema.json",
   "name": "wails-example",
-  "outDir": "./dist",
-  "beforePackagingCommand": "./build.sh",
-  "productName": "Wails example",
+  "outDir": "./wails_example/dist/",
+  "beforePackagingCommand": "",
+  "productName": "wails_example",
   "version": "0.0.0",
   "identifier": "com.wails.example",
-  "resources": ["README.md"],
-  "binaries": [{ "filename": "/Users/denjell/git/cargo-packager/examples/wails/wails_example/build/bin/wails_example.app/Contents/MacOS/wails_example", "main": true }],
-  "icons": ["appicon.png"]
+  "resources": [],
+  "binaries": [{ "filename": "wails_example", "main": true }],
+  "icons": ["./wails_example/build/bin/wails_example.app/Contents/Resources/iconfile.icns"]
 }
