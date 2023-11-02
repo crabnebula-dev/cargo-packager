@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "examples/*"]
+members = ["crates/*", "examples/*", "bindings/*/nodejs"]
 exclude = ["examples/deno"]
 resolver = "2"
 
@@ -20,3 +20,10 @@ dirs = "5.0"
 semver = "1"
 base64 = "0.21"
 tracing = "0.1"
+
+[profile.release-size-optimized]
+inherits = "release"
+codegen-units = 1
+lto = true
+incremental = false
+opt-level = "s"

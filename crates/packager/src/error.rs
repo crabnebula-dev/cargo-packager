@@ -11,6 +11,9 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 /// Errors returned by cargo-packager.
 pub enum Error {
+    /// Clap error.
+    #[error(transparent)]
+    Clap(#[from] clap::error::Error),
     /// Error while reading cargo metadata.
     #[error("Failed to read cargo metadata: {0}")]
     Metadata(#[from] cargo_metadata::Error),

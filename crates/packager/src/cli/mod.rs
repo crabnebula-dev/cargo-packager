@@ -6,11 +6,7 @@
 
 #![cfg(feature = "cli")]
 
-use std::{
-    ffi::OsStr,
-    fmt::Write,
-    path::{Path, PathBuf},
-};
+use std::{ffi::OsString, fmt::Write, path::PathBuf};
 
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
@@ -85,7 +81,7 @@ pub(crate) struct Cli {
 }
 
 #[tracing::instrument(level = "trace")]
-fn try_run(cli: Cli) -> Result<()> {
+fn run_cli(cli: Cli) -> Result<()> {
     // run subcommand and exit if one was specified,
     // otherwise run the default packaging command
     if let Some(command) = cli.command {
@@ -252,29 +248,34 @@ fn parse_log_level(verbose: u8) -> tracing::Level {
 }
 
 /// Run the packager CLI
-pub fn run() {
-    // prepare cli args
-    let mut args = std::env::args_os().peekable();
-    if let Some("cargo-packager") = args
-        .next()
-        .as_deref()
-        .map(Path::new)
-        .and_then(Path::file_stem)
-        .and_then(OsStr::to_str)
-    {
-        if args.peek().and_then(|s| s.to_str()) == Some("packager") {
-            // remove the extra cargo subcommand
-            args.next();
-        }
+pub fn run<I, A>(args: I, bin_name: Option<String>)
+where
+    I: IntoIterator<Item = A>,
+    A: Into<OsString> + Clone,
+{
+    if let Err(e) = try_run(args, bin_name) {
+        tracing::error!("{}", e);
+        std::process::exit(1);
     }
+}
 
-    let cli = Cli::command();
-    let matches = cli.get_matches_from(args);
-    let res = Cli::from_arg_matches(&matches).map_err(|e| e.format(&mut Cli::command()));
-    let cli = match res {
-        Ok(s) => s,
-        Err(e) => e.exit(),
+/// Try run the packager CLI
+pub fn try_run<I, A>(args: I, bin_name: Option<String>) -> Result<()>
+where
+    I: IntoIterator<Item = A>,
+    A: Into<OsString> + Clone,
+{
+    let cli = match &bin_name {
+        Some(bin_name) => Cli::command().bin_name(bin_name),
+        None => Cli::command(),
     };
+    let matches = cli.get_matches_from(args);
+    let cli = Cli::from_arg_matches(&matches).map_err(|e| {
+        e.format(&mut match &bin_name {
+            Some(bin_name) => Cli::command().bin_name(bin_name),
+            None => Cli::command(),
+        })
+    })?;
 
     if !cli.quite {
         let level = parse_log_level(cli.verbose);
@@ -292,8 +293,5 @@ pub fn run() {
             .init();
     }
 
-    if let Err(e) = try_run(cli) {
-        tracing::error!("{}", e);
-        std::process::exit(1);
-    }
+    run_cli(cli)
 }
