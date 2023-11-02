@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "main": "main.js",
   "types": "main.d.ts",
+  "author": {
+    "name": "CrabNebula Ltd."
+  },
+  "description": "Executable packager and bundler distributed as a CLI and library",
   "bin": {
     "packager": "./packager.js"
   },
