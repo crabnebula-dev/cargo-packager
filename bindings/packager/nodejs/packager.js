@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const cli = require('./main')
+const cli = require('./build')
 const path = require('path')
 
 const [bin, script, ...args] = process.argv

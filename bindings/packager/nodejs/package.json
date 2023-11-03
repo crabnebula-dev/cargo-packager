@@ -1,8 +1,8 @@
 {
   "name": "@crabnebula/packager",
   "version": "0.0.0",
-  "main": "main.js",
-  "types": "main.d.ts",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "author": {
     "name": "CrabNebula Ltd."
   },
@@ -27,7 +27,9 @@
   "license": "MIT",
   "devDependencies": {
     "@napi-rs/cli": "^2.16.5",
-    "ava": "^5.1.1"
+    "@types/node": "^20.8.10",
+    "ava": "^5.1.1",
+    "typescript": "^5.2.2"
   },
   "ava": {
     "timeout": "3m"
@@ -37,8 +39,8 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --platform --profile release-size-optimized",
-    "build:debug": "napi build --platform",
+    "build": "napi build --platform --profile release-size-optimized && tsc",
+    "build:debug": "napi build --platform && tsc",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
     "universal": "napi universal",
