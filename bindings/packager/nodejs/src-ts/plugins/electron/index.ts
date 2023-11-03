@@ -1,9 +1,10 @@
-import type { Config, Resource } from "../config";
-import fs from "fs";
+import type { Config, Resource } from "../../config";
+import fs from "fs-extra";
 import path from "path";
 import os from "os";
 import { download as downloadElectron } from "@electron/get";
 import extractZip from "extract-zip";
+import { Pruner, isModule, normalizePath } from "./prune";
 
 function getPackageJsonPath(): string | null {
   let appDir = process.cwd();
@@ -43,6 +44,8 @@ export default async function run(): Promise<Partial<Config> | null> {
       .readFileSync(path.resolve(path.dirname(electronPath), "package.json"))
       .toString()
   );
+
+  // TODO: cache
   const zipPath = await downloadElectron(electronPackageJson.version);
   const zipDir = fs.mkdtempSync(os.tmpdir());
   await extractZip(zipPath, {
@@ -64,8 +67,36 @@ export default async function run(): Promise<Partial<Config> | null> {
       resources = fs
         .readdirSync(resourcesPath)
         .map((p) => path.join(resourcesPath, p));
+
+      const appPath = path.dirname(packageJsonPath);
+      const appTempPath = fs.mkdtempSync(
+        path.join(os.tmpdir(), packageJson.name || "app-temp")
+      );
+      const pruner = new Pruner(appPath, true);
+      const filterFunc = (_name: string): boolean => true;
+      // TODO: we should also filter the output directory
+      await fs.copy(appPath, appTempPath, {
+        filter: async (file: string) => {
+          const fullPath = path.resolve(file);
+          let name = fullPath.split(appPath)[1];
+          if (path.sep === "\\") {
+            name = normalizePath(name);
+          }
+
+          if (name.startsWith("/node_modules/")) {
+            if (await isModule(file)) {
+              return await pruner.pruneModule(name);
+            } else {
+              return filterFunc(name);
+            }
+          }
+
+          return filterFunc(name);
+        },
+      });
+
       resources.push({
-        src: path.dirname(packageJsonPath),
+        src: appTempPath,
         target: "app",
       });
 
