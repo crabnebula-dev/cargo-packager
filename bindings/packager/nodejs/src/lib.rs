@@ -1,23 +1,17 @@
-use napi::{
-    threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-    Error, JsFunction, Result, Status,
-};
+use napi::{Error, Result, Status};
 
 #[napi_derive::napi]
-pub fn cli(args: Vec<String>, bin_name: Option<String>, callback: JsFunction) -> Result<()> {
-    let function: ThreadsafeFunction<bool, ErrorStrategy::CalleeHandled> = callback
-        .create_threadsafe_function(0, |ctx| ctx.env.get_boolean(ctx.value).map(|v| vec![v]))?;
+pub fn cli(args: Vec<String>, bin_name: Option<String>) -> Result<()> {
+    cargo_packager::cli::try_run(args, bin_name)
+        .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))
+}
 
-    // we need to run in a separate thread so Node.js (e.g. vue-cli-plugin-tauri) consumers
-    // can do work while `tauri dev` is running.
-    std::thread::spawn(move || match cargo_packager::cli::try_run(args, bin_name) {
-        Ok(_) => function.call(Ok(true), ThreadsafeFunctionCallMode::Blocking),
-        Err(e) => function.call(
-            Err(Error::new(Status::GenericFailure, format!("{:#}", e))),
-            ThreadsafeFunctionCallMode::Blocking,
-        ),
-    });
-
+#[napi_derive::napi]
+pub fn package(config: String) -> Result<()> {
+    let config = serde_json::from_str(&config)
+        .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
+    cargo_packager::package(&config)
+        .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
     Ok(())
 }
 
