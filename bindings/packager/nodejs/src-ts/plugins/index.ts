@@ -1,4 +1,4 @@
-import type { Config } from "..";
+import type { Config } from "../config";
 import electron from "./electron";
 
 export default async function run(): Promise<Partial<Config> | null> {

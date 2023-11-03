@@ -23,6 +23,7 @@
     "build/",
     "__test__/",
     "index.js",
-    "packager.js"
+    "packager.js",
+    "generate-config-type.js"
   ]
 }

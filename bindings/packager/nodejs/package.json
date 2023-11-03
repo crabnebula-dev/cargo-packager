@@ -29,6 +29,7 @@
     "@napi-rs/cli": "^2.16.5",
     "@types/node": "^20.8.10",
     "ava": "^5.1.1",
+    "json-schema-to-typescript": "^13.1.1",
     "typescript": "^5.2.2"
   },
   "ava": {
@@ -39,8 +40,9 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --platform --profile release-size-optimized && tsc",
-    "build:debug": "napi build --platform && tsc",
+    "build-ts": "node generate-config-type.js && tsc",
+    "build": "napi build --platform --profile release-size-optimized && pnpm build-ts",
+    "build:debug": "napi build --platform && pnpm build-ts",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
     "universal": "napi universal",

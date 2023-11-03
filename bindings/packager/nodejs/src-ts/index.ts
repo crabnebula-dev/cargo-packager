@@ -1,10 +1,9 @@
 import cargoPackager from "../index";
 import runPlugins from "./plugins";
 import merge from "deepmerge";
+import type { Config } from "./config";
 
 export type Resource = string | { src: string; target: string };
-
-export type Config = Record<string, unknown>;
 
 async function bundleApp(config: Config) {
   const conf = await runPlugins();

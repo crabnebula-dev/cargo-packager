@@ -1,4 +1,4 @@
-import type { Config, Resource } from "..";
+import type { Config, Resource } from "../config";
 import fs from "fs";
 import path from "path";
 import os from "os";
