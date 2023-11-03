@@ -51,6 +51,10 @@ module.exports = async () => {
 
       const resourcesPath = path.join(standaloneElectronPath, 'Contents/Resources')
       resources = fs.readdirSync(resourcesPath).map(p => path.join(resourcesPath, p))
+      resources.push({
+        src: path.dirname(packageJsonPath),
+        target: 'app'
+      })
 
       const frameworksPath = path.join(standaloneElectronPath, 'Contents/Frameworks')
       frameworks = fs.readdirSync(frameworksPath).map(p => path.join(frameworksPath, p))
