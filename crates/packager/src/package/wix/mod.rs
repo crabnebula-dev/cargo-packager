@@ -169,7 +169,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                     .into_string()
                     .unwrap_or_default(),
                 id: regex
-                    .replace_all(&bin.filename.replace('-', "_"), "")
+                    .replace_all(&bin.path.file_stem().unwrap().replace('-', "_"), "")
                     .to_string(),
             })
         }
@@ -477,7 +477,11 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     data.insert("manufacturer", to_json(manufacturer));
     let upgrade_code = Uuid::new_v5(
         &Uuid::NAMESPACE_DNS,
-        format!("{}.app.x64", &main_binary.filename).as_bytes(),
+        format!(
+            "{}.app.x64",
+            main_binary.path.file_stem().unwrap().to_string_lossy()
+        )
+        .as_bytes(),
     )
     .to_string();
 
@@ -717,7 +721,10 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         let msi_output_path = intermediates_path.join("output.msi");
         let msi_path = config.out_dir().join(format!(
             "{}_{}_{}_{}.msi",
-            main_binary.filename, app_version, arch, language
+            main_binary.path.file_stem().unwrap().to_string_lossy(),
+            app_version,
+            arch,
+            language
         ));
         std::fs::create_dir_all(
             msi_path

@@ -456,11 +456,11 @@
       "description": "A binary to package within the final package.",
       "type": "object",
       "required": [
-        "filename"
+        "path"
       ],
       "properties": {
-        "filename": {
-          "description": "File name and without `.exe` on Windows",
+        "path": {
+          "description": "Path to the binary. If it's relative, it will be resolved from [`Config::out_dir`].",
           "type": "string"
         },
         "main": {

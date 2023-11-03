@@ -423,7 +423,10 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         .iter()
         .find(|bin| bin.main)
         .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
-    data.insert("main_binary_name", to_json(&main_binary.filename));
+    data.insert(
+        "main_binary_name",
+        to_json(main_binary.path.file_stem().unwrap()),
+    );
     data.insert(
         "main_binary_path",
         to_json(config.binary_path(main_binary).with_extension("exe")),
@@ -494,7 +497,9 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     let installer_path = config.out_dir().join(format!(
         "{}_{}_{}-setup.exe",
-        main_binary.filename, config.version, arch
+        main_binary.path.file_stem().unwrap().to_string_lossy(),
+        config.version,
+        arch
     ));
     std::fs::create_dir_all(
         installer_path

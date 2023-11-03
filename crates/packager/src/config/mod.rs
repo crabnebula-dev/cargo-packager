@@ -631,8 +631,8 @@ impl Default for LogLevel {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Binary {
-    /// File name and without `.exe` on Windows
-    pub filename: String,
+    /// Path to the binary. If it's relative, it will be resolved from [`Config::out_dir`].
+    pub path: PathBuf,
     /// Whether this is the main binary or not
     #[serde(default)]
     pub main: bool,
@@ -871,7 +871,11 @@ impl Config {
 
     /// Returns the path to the specified binary.
     pub fn binary_path(&self, binary: &Binary) -> PathBuf {
-        self.out_dir().join(&binary.filename)
+        if binary.path.is_absolute() {
+            binary.path.clone()
+        } else {
+            self.out_dir().join(&binary.path)
+        }
     }
 
     /// Returns the package identifier
@@ -889,7 +893,12 @@ impl Config {
 
     /// Returns the out dir
     pub fn out_dir(&self) -> PathBuf {
-        dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
+        if self.out_dir.as_os_str().is_empty() {
+            // TODO: we should probably error out when the out dir isn't set
+            std::env::current_dir().expect("failed to resolve cwd")
+        } else {
+            dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
+        }
     }
 
     /// Returns the main binary
@@ -901,11 +910,11 @@ impl Config {
     }
 
     /// Returns the main binary name
-    pub fn main_binary_name(&self) -> crate::Result<&String> {
+    pub fn main_binary_name(&self) -> crate::Result<String> {
         self.binaries
             .iter()
             .find(|bin| bin.main)
-            .map(|b| &b.filename)
+            .map(|b| b.path.file_stem().unwrap().to_string_lossy().into_owned())
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
     }
 }

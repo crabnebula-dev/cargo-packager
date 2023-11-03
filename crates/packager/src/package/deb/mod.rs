@@ -153,7 +153,7 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
     std::fs::create_dir_all(&bin_dir)?;
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
-        std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
+        std::fs::copy(&bin_path, bin_dir.join(bin.path.file_name().unwrap()))?;
     }
 
     tracing::debug!("Copying resources");

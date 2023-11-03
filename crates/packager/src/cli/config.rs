@@ -162,7 +162,7 @@ pub fn load_configs_from_cargo_workspace(
                 .collect::<Vec<_>>();
             for target in &targets {
                 config.binaries.push(Binary {
-                    filename: target.name.clone(),
+                    path: target.name.clone().into(),
                     main: match targets.len() {
                         1 => true,
                         _ => target.name == package.name,
