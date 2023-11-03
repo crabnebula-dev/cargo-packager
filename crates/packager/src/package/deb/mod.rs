@@ -134,8 +134,8 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
                 .map(|category| category.gnome_desktop_categories())
                 .unwrap_or(""),
             comment: config.description.as_deref(),
-            exec: bin_name,
-            icon: bin_name,
+            exec: &bin_name,
+            icon: &bin_name,
             name: config.product_name.as_str(),
             mime_type,
         },
