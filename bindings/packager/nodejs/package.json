@@ -41,7 +41,7 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build-ts": "node generate-config-type.js && tsc",
+    "build-ts": "rm -r build/ && node generate-config-type.js && tsc",
     "build": "napi build --platform --profile release-size-optimized && pnpm build-ts",
     "build:debug": "napi build --platform && pnpm build-ts",
     "prepublishOnly": "napi prepublish -t npm",
