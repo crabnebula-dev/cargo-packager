@@ -5,6 +5,7 @@ import os from "os";
 import { download as downloadElectron } from "@electron/get";
 import extractZip from "extract-zip";
 import { Pruner, isModule, normalizePath } from "./prune";
+import merge from "deepmerge";
 
 function getPackageJsonPath(): string | null {
   let appDir = process.cwd();
@@ -28,7 +29,7 @@ export default async function run(): Promise<Partial<Config> | null> {
     return null;
   }
 
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath).toString());
+  const packageJson = JSON.parse((await fs.readFile(packageJsonPath)).toString());
 
   let electronPath;
   try {
@@ -39,15 +40,16 @@ export default async function run(): Promise<Partial<Config> | null> {
     return null;
   }
 
+  const userConfig = packageJson.packager || {};
+
   const electronPackageJson = JSON.parse(
-    fs
-      .readFileSync(path.resolve(path.dirname(electronPath), "package.json"))
+    (await fs.readFile(path.resolve(path.dirname(electronPath), "package.json")))
       .toString()
   );
 
   // TODO: cache
   const zipPath = await downloadElectron(electronPackageJson.version);
-  const zipDir = fs.mkdtempSync(path.join(os.tmpdir(), ".packager-electron"));
+  const zipDir = await fs.mkdtemp(path.join(os.tmpdir(), ".packager-electron"));
   await extractZip(zipPath, {
     dir: zipDir,
   });
@@ -55,7 +57,47 @@ export default async function run(): Promise<Partial<Config> | null> {
   const platformName = os.platform();
   let resources: Resource[] = [];
   let frameworks: string[] = [];
+  let debianFiles: {
+    [k: string]: string;
+  } | null = null;
   let binaryPath;
+
+  const appPath = path.dirname(packageJsonPath);
+  const appTempPath = await fs.mkdtemp(
+    path.join(os.tmpdir(), packageJson.name || "app-temp")
+  );
+
+  const pruner = new Pruner(appPath, true);
+
+  const outDir = userConfig.outDir ? path.resolve(userConfig.outDir) : null;
+  const ignoredDirs = outDir && outDir !== process.cwd() ? [outDir] : [];
+
+  const filterFunc = (_name: string): boolean => true;
+  await fs.copy(appPath, appTempPath, {
+    filter: async (file: string) => {
+      const fullPath = path.resolve(file);
+
+      if (ignoredDirs.includes(fullPath)) {
+        return false;
+      }
+
+      let name = fullPath.split(appPath)[1];
+      if (path.sep === "\\") {
+        name = normalizePath(name);
+      }
+
+      if (name.startsWith("/node_modules/")) {
+        if (await isModule(file)) {
+          return await pruner.pruneModule(name);
+        } else {
+          return filterFunc(name);
+        }
+      }
+
+      return filterFunc(name);
+    },
+  });
+
   switch (platformName) {
     case "darwin":
       var standaloneElectronPath = path.join(zipDir, "Electron.app");
@@ -64,37 +106,9 @@ export default async function run(): Promise<Partial<Config> | null> {
         standaloneElectronPath,
         "Contents/Resources"
       );
-      resources = fs
-        .readdirSync(resourcesPath)
+      resources = resources.concat((await fs.readdir(resourcesPath))
         .filter((p) => p !== "default_app.asar")
-        .map((p) => path.join(resourcesPath, p));
-
-      const appPath = path.dirname(packageJsonPath);
-      const appTempPath = fs.mkdtempSync(
-        path.join(os.tmpdir(), packageJson.name || "app-temp")
-      );
-      const pruner = new Pruner(appPath, true);
-      const filterFunc = (_name: string): boolean => true;
-      // TODO: we should also filter the output directory
-      await fs.copy(appPath, appTempPath, {
-        filter: async (file: string) => {
-          const fullPath = path.resolve(file);
-          let name = fullPath.split(appPath)[1];
-          if (path.sep === "\\") {
-            name = normalizePath(name);
-          }
-
-          if (name.startsWith("/node_modules/")) {
-            if (await isModule(file)) {
-              return await pruner.pruneModule(name);
-            } else {
-              return filterFunc(name);
-            }
-          }
-
-          return filterFunc(name);
-        },
-      });
+        .map((p) => path.join(resourcesPath, p)));
 
       resources.push({
         src: appTempPath,
@@ -105,8 +119,7 @@ export default async function run(): Promise<Partial<Config> | null> {
         standaloneElectronPath,
         "Contents/Frameworks"
       );
-      frameworks = fs
-        .readdirSync(frameworksPath)
+      frameworks = (await fs.readdir(frameworksPath))
         .map((p) => path.join(frameworksPath, p));
 
       binaryPath = path.join(standaloneElectronPath, "Contents/MacOS/Electron");
@@ -116,11 +129,30 @@ export default async function run(): Promise<Partial<Config> | null> {
       binaryPath = standaloneElectronPath;
       break;
     default:
-      var standaloneElectronPath = path.join(zipDir, "Electron");
-      binaryPath = standaloneElectronPath;
+      const binaryName = toKebabCase(userConfig.name || packageJson.productName || packageJson.name);
+
+      // rename the electron binary
+      await fs.rename(path.join(zipDir, 'electron'), path.join(zipDir, binaryName));
+
+      const electronFiles = await fs.readdir(zipDir);
+
+      const binTmpDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), `${packageJson.name || "app-temp"}-bin`)
+      );
+      binaryPath = path.join(binTmpDir, binaryName);
+      await fs.writeFile(binaryPath, binaryScript(binaryName));
+      await fs.chmod(binaryPath, 0o755);
+
+      // make linuxdeploy happy
+      process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH ? `${process.env.LD_LIBRARY_PATH}:${zipDir}` : zipDir
+      // electron needs everything at the same level :)
+      // resources only contains the default_app.asar so we ignore it
+      debianFiles = electronFiles.filter(f => !['resources'].includes(f)).reduce((acc, file) => ({ ...acc, [path.join(zipDir, file)]: `usr/lib/${binaryName}/${file}` }), {});
+      debianFiles[appTempPath] = `usr/lib/${binaryName}/resources/app`;
+
   }
 
-  return {
+  return merge({
     name: packageJson.name,
     productName: packageJson.productName || packageJson.name,
     version: packageJson.version,
@@ -128,11 +160,27 @@ export default async function run(): Promise<Partial<Config> | null> {
     macos: {
       frameworks,
     },
+    deb: {
+      files: debianFiles,
+    },
     binaries: [
       {
         path: binaryPath,
         main: true,
       },
     ],
-  };
+  }, userConfig);
+}
+
+const toKebabCase = (str: string) => str.split(/\.?(?=[A-Z])/).join('-').toLowerCase();
+
+function binaryScript(binaryName: string): string {
+  return `#!/usr/bin/env sh
+
+full_path=$(realpath $0)
+bin_dir_path=$(dirname $full_path)
+usr_dir_path=$(dirname $bin_dir_path)
+echo $usr_dir_path
+$usr_dir_path/lib/${binaryName}/${binaryName}
+`
 }

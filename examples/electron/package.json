@@ -19,5 +19,12 @@
   "homepage": "https://github.com/crabnebula-dev/cargo-packager#readme",
   "devDependencies": {
     "electron": "^27.0.3"
+  },
+  "packager": {
+    "outDir": "./dist",
+    "identifier": "com.electron.example",
+    "icons": [
+      "32x32.png"
+    ]
   }
 }

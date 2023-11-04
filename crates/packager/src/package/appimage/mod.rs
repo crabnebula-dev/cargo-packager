@@ -88,6 +88,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     // generate deb_folder structure
     tracing::debug!("Generating data");
     let icons = super::deb::generate_data(config, &appimage_deb_data_dir)?;
+    tracing::debug!("Copying files specified in `deb.files`");
+    super::deb::copy_custom_files(config, &appimage_deb_data_dir)?;
     let icons: Vec<super::deb::DebIcon> = icons.into_iter().collect();
 
     let main_binary_name = config.main_binary_name()?;
