@@ -47,7 +47,7 @@ export default async function run(): Promise<Partial<Config> | null> {
 
   // TODO: cache
   const zipPath = await downloadElectron(electronPackageJson.version);
-  const zipDir = fs.mkdtempSync(os.tmpdir());
+  const zipDir = fs.mkdtempSync(path.join(os.tmpdir(), ".packager-electron"));
   await extractZip(zipPath, {
     dir: zipDir,
   });
