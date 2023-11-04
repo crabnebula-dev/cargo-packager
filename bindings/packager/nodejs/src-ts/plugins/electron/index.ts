@@ -66,6 +66,7 @@ export default async function run(): Promise<Partial<Config> | null> {
       );
       resources = fs
         .readdirSync(resourcesPath)
+        .filter((p) => p !== "default_app.asar")
         .map((p) => path.join(resourcesPath, p));
 
       const appPath = path.dirname(packageJsonPath);
