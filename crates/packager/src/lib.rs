@@ -101,6 +101,35 @@ pub use sign::SigningConfig;
 
 pub use package::{package, PackageOuput};
 
+fn parse_log_level(verbose: u8) -> tracing::Level {
+    match verbose {
+        0 => tracing_subscriber::EnvFilter::builder()
+            .from_env_lossy()
+            .max_level_hint()
+            .and_then(|l| l.into_level())
+            .unwrap_or(tracing::Level::INFO),
+        1 => tracing::Level::DEBUG,
+        2.. => tracing::Level::TRACE,
+    }
+}
+
+/// Inits the tracing subscriber.
+pub fn init_tracing_subscriber(verbosity: u8) {
+    let level = parse_log_level(verbosity);
+
+    let debug = level == tracing::Level::DEBUG;
+    let tracing = level == tracing::Level::TRACE;
+
+    tracing_subscriber::fmt()
+        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
+        .without_time()
+        .with_target(debug)
+        .with_line_number(tracing)
+        .with_file(tracing)
+        .with_max_level(level)
+        .init();
+}
+
 /// Sign the specified packages and return the signatures paths.
 ///
 /// If `packages` contain a directory in the case of [`PackageFormat::App`]

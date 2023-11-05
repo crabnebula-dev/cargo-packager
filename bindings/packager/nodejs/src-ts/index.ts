@@ -3,13 +3,25 @@ import runPlugins from "./plugins";
 import merge from "deepmerge";
 import type { Config } from "./config";
 
-async function bundleApp(config: Config = {}) {
+let tracingEnabled = false;
+
+export interface Options {
+  verbosity?: number;
+}
+
+async function bundleApp(config: Config = {}, options?: Options) {
   const conf = await runPlugins();
 
   let packagerConfig = config;
   if (conf) {
     packagerConfig = merge(conf, config);
   }
+
+  if (!tracingEnabled) {
+    cargoPackager.initTracingSubscriber(options?.verbosity ?? 0);
+    tracingEnabled = true;
+  }
+
   cargoPackager.package(JSON.stringify(packagerConfig));
 }
 

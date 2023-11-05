@@ -16,6 +16,11 @@ pub fn package(config: String) -> Result<()> {
 }
 
 #[napi_derive::napi]
+pub fn init_tracing_subscriber(verbosity: u8) {
+    cargo_packager::init_tracing_subscriber(verbosity);
+}
+
+#[napi_derive::napi]
 pub fn log_error(error: String) {
     tracing::error!("{}", error);
 }

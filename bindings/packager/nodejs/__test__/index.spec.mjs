@@ -8,6 +8,5 @@ test('log error', async (t) => {
   process.env.CI = true
   process.chdir('../../../examples/electron')
   execSync('yarn install')
-  await process.she
-  t.is(await bundleApp(), undefined)
+  t.is(await bundleApp({}, { verbosity: 2 }), undefined)
 })

@@ -13,7 +13,7 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 use self::config::{find_config_files, load_configs_from_cargo_workspace, parse_config_file};
 use crate::{
     config::{Config, LogLevel, PackageFormat},
-    package, sign_outputs, util, Result, SigningConfig,
+    init_tracing_subscriber, package, parse_log_level, sign_outputs, util, Result, SigningConfig,
 };
 
 mod config;
@@ -235,18 +235,6 @@ fn run_cli(cli: Cli) -> Result<()> {
     Ok(())
 }
 
-fn parse_log_level(verbose: u8) -> tracing::Level {
-    match verbose {
-        0 => tracing_subscriber::EnvFilter::builder()
-            .from_env_lossy()
-            .max_level_hint()
-            .and_then(|l| l.into_level())
-            .unwrap_or(tracing::Level::INFO),
-        1 => tracing::Level::DEBUG,
-        2.. => tracing::Level::TRACE,
-    }
-}
-
 /// Run the packager CLI
 pub fn run<I, A>(args: I, bin_name: Option<String>)
 where
@@ -278,19 +266,7 @@ where
     })?;
 
     if !cli.quite {
-        let level = parse_log_level(cli.verbose);
-
-        let debug = level == tracing::Level::DEBUG;
-        let tracing = level == tracing::Level::TRACE;
-
-        tracing_subscriber::fmt()
-            .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
-            .without_time()
-            .with_target(debug)
-            .with_line_number(tracing)
-            .with_file(tracing)
-            .with_max_level(level)
-            .init();
+        init_tracing_subscriber(cli.verbose);
     }
 
     run_cli(cli)

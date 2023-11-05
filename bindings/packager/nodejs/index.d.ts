@@ -5,4 +5,5 @@
 
 export function cli(args: Array<string>, binName?: string | undefined | null): void
 export function package(config: string): void
+export function initTracingSubscriber(verbosity: number): void
 export function logError(error: string): void
