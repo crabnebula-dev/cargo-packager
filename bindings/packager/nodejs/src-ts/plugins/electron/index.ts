@@ -30,7 +30,6 @@ export default async function run(
     ).toString()
   );
 
-  // TODO: cache
   const zipPath = await downloadElectron(electronPackageJson.version);
   const zipDir = await fs.mkdtemp(path.join(os.tmpdir(), ".packager-electron"));
   await extractZip(zipPath, {
