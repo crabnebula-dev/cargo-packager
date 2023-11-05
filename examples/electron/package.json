@@ -24,7 +24,7 @@
     "outDir": "./dist",
     "identifier": "com.electron.example",
     "icons": [
-      "32x32.png"
+      "electron.png"
     ]
   }
 }
