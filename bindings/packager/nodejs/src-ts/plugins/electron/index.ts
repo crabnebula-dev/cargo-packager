@@ -1,42 +1,20 @@
 import type { Config, Resource } from "../../config";
+import type { PackageJson } from "..";
 import fs from "fs-extra";
 import path from "path";
 import os from "os";
 import { download as downloadElectron } from "@electron/get";
 import extractZip from "extract-zip";
 import { Pruner, isModule, normalizePath } from "./prune";
-import merge from "deepmerge";
 
-function getPackageJsonPath(): string | null {
-  let appDir = process.cwd();
-
-  while (appDir.length && appDir[appDir.length - 1] !== path.sep) {
-    const filepath = path.join(appDir, "package.json");
-    if (fs.existsSync(filepath)) {
-      return filepath;
-    }
-
-    appDir = path.normalize(path.join(appDir, ".."));
-  }
-
-  return null;
-}
-
-export default async function run(): Promise<Partial<Config> | null> {
-  const packageJsonPath = getPackageJsonPath();
-
-  if (packageJsonPath === null) {
-    return null;
-  }
-
-  const packageJson = JSON.parse(
-    (await fs.readFile(packageJsonPath)).toString()
-  );
-
+export default async function run(
+  appPath: string,
+  packageJson: PackageJson
+): Promise<Partial<Config> | null> {
   let electronPath;
   try {
     electronPath = require.resolve("electron", {
-      paths: [packageJsonPath],
+      paths: [appPath],
     });
   } catch (e) {
     return null;
@@ -67,7 +45,6 @@ export default async function run(): Promise<Partial<Config> | null> {
   } | null = null;
   let binaryPath;
 
-  const appPath = path.dirname(packageJsonPath);
   const appTempPath = await fs.mkdtemp(
     path.join(os.tmpdir(), packageJson.name || "app-temp")
   );
@@ -158,7 +135,10 @@ export default async function run(): Promise<Partial<Config> | null> {
       break;
     default:
       var binaryName = toKebabCase(
-        userConfig.name || packageJson.productName || packageJson.name
+        userConfig.name ||
+          packageJson.productName ||
+          packageJson.name ||
+          "Electron"
       );
 
       // rename the electron binary
@@ -194,27 +174,24 @@ export default async function run(): Promise<Partial<Config> | null> {
       debianFiles[appTempPath] = `usr/lib/${binaryName}/resources/app`;
   }
 
-  return merge(
-    {
-      name: packageJson.name,
-      productName: packageJson.productName || packageJson.name,
-      version: packageJson.version,
-      resources,
-      macos: {
-        frameworks,
-      },
-      deb: {
-        files: debianFiles,
-      },
-      binaries: [
-        {
-          path: binaryPath,
-          main: true,
-        },
-      ],
+  return {
+    name: packageJson.name,
+    productName: packageJson.productName || packageJson.name,
+    version: packageJson.version,
+    resources,
+    macos: {
+      frameworks,
     },
-    userConfig
-  );
+    deb: {
+      files: debianFiles,
+    },
+    binaries: [
+      {
+        path: binaryPath,
+        main: true,
+      },
+    ],
+  };
 }
 
 const toKebabCase = (str: string) =>
