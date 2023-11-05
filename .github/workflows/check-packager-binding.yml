@@ -43,6 +43,11 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.6.4
+
       - name: setup node
         uses: actions/setup-node@v2
         with:
