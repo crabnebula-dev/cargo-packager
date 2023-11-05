@@ -15,15 +15,9 @@ categories = [
   "development-tools::build-utils",
   "os"
 ]
-
-  [package.edition]
-  workspace = true
-
-  [package.license]
-  workspace = true
-
-  [package.repository]
-  workspace = true
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg", "doc_cfg" ]

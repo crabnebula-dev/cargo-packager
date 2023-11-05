@@ -1,7 +1,10 @@
 [package]
-edition = "2021"
 name = "crabnebula_packager"
 version = "0.0.0"
+publish = false
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
 
 [lib]
 crate-type = ["cdylib"]
