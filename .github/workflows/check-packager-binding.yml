@@ -64,5 +64,4 @@ jobs:
         run: |
           cd bindings/packager/nodejs
           pnpm install
-          pnpm build
           pnpm test
