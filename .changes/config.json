@@ -104,7 +104,7 @@
       ]
     },
     "@crabnebula/packager": {
-      "path": "./tooling/cli/node",
+      "path": "./bindings/packager/nodejs",
       "manager": "javascript",
       "dependencies": ["cargo-packager"],
       "prepublish": [],
