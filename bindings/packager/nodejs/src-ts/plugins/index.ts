@@ -48,5 +48,9 @@ export default async function run(): Promise<Partial<Config> | null> {
     config = config ? merge(electronConfig, config) : electronConfig;
   }
 
+  if (config?.outDir) {
+    await fs.ensureDir(config.outDir);
+  }
+
   return config;
 }
