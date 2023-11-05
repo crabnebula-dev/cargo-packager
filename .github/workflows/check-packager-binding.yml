@@ -1,0 +1,63 @@
+# Copyright 2019-2023 Tauri Programme within The Commons Conservancy
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
+
+name: test `@crabnebula/packager`
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/check-packager-binding.yml"
+      - "crates/packager/**"
+      - "bindings/packager/nodejs/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/check-packager-binding.yml"
+      - "crates/packager/**"
+      - "bindings/packager/nodejs/**"
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_PROFILE_DEV_DEBUG: 0 # This would add unnecessary bloat to the target folder, decreasing cache efficiency.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.platform }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18
+          cache: pnpm
+          cache-dependency-path: bindings/packager/nodejs/pnpm-lock.yaml
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/packager
+
+      - name: test
+        timeout-minutes: 30
+        run: |
+          cd bindings/packager/nodejs
+          pnpm install
+          pnpm build
+          pnpm test
