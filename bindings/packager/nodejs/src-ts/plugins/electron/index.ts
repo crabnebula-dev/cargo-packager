@@ -29,7 +29,9 @@ export default async function run(): Promise<Partial<Config> | null> {
     return null;
   }
 
-  const packageJson = JSON.parse((await fs.readFile(packageJsonPath)).toString());
+  const packageJson = JSON.parse(
+    (await fs.readFile(packageJsonPath)).toString()
+  );
 
   let electronPath;
   try {
@@ -43,8 +45,11 @@ export default async function run(): Promise<Partial<Config> | null> {
   const userConfig = packageJson.packager || {};
 
   const electronPackageJson = JSON.parse(
-    (await fs.readFile(path.resolve(path.dirname(electronPath), "package.json")))
-      .toString()
+    (
+      await fs.readFile(
+        path.resolve(path.dirname(electronPath), "package.json")
+      )
+    ).toString()
   );
 
   // TODO: cache
@@ -106,9 +111,11 @@ export default async function run(): Promise<Partial<Config> | null> {
         standaloneElectronPath,
         "Contents/Resources"
       );
-      resources = resources.concat((await fs.readdir(resourcesPath))
-        .filter((p) => p !== "default_app.asar")
-        .map((p) => path.join(resourcesPath, p)));
+      resources = resources.concat(
+        (await fs.readdir(resourcesPath))
+          .filter((p) => p !== "default_app.asar")
+          .map((p) => path.join(resourcesPath, p))
+      );
 
       resources.push({
         src: appTempPath,
@@ -119,20 +126,46 @@ export default async function run(): Promise<Partial<Config> | null> {
         standaloneElectronPath,
         "Contents/Frameworks"
       );
-      frameworks = (await fs.readdir(frameworksPath))
-        .map((p) => path.join(frameworksPath, p));
+      frameworks = (await fs.readdir(frameworksPath)).map((p) =>
+        path.join(frameworksPath, p)
+      );
 
       binaryPath = path.join(standaloneElectronPath, "Contents/MacOS/Electron");
       break;
     case "win32":
-      var standaloneElectronPath = path.join(zipDir, "Electron.exe");
-      binaryPath = standaloneElectronPath;
-      break;
-    default:
-      const binaryName = toKebabCase(userConfig.name || packageJson.productName || packageJson.name);
+      var binaryName: string =
+        userConfig.name ||
+        packageJson.productName ||
+        packageJson.name ||
+        "Electron";
+      binaryPath = path.join(zipDir, `${binaryName}.exe`);
+
+      resources = resources.concat(
+        (await fs.readdir(zipDir))
+          // resources only contains the default_app.asar so we ignore it
+          .filter((p) => p !== "resources" && p !== "electron.exe")
+          .map((p) => path.join(zipDir, p))
+      );
 
       // rename the electron binary
-      await fs.rename(path.join(zipDir, 'electron'), path.join(zipDir, binaryName));
+      await fs.rename(path.join(zipDir, "electron.exe"), binaryPath);
+
+      resources.push({
+        src: appTempPath,
+        target: "resources/app",
+      });
+
+      break;
+    default:
+      var binaryName = toKebabCase(
+        userConfig.name || packageJson.productName || packageJson.name
+      );
+
+      // rename the electron binary
+      await fs.rename(
+        path.join(zipDir, "electron"),
+        path.join(zipDir, binaryName)
+      );
 
       const electronFiles = await fs.readdir(zipDir);
 
@@ -144,35 +177,51 @@ export default async function run(): Promise<Partial<Config> | null> {
       await fs.chmod(binaryPath, 0o755);
 
       // make linuxdeploy happy
-      process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH ? `${process.env.LD_LIBRARY_PATH}:${zipDir}` : zipDir
+      process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
+        ? `${process.env.LD_LIBRARY_PATH}:${zipDir}`
+        : zipDir;
       // electron needs everything at the same level :)
       // resources only contains the default_app.asar so we ignore it
-      debianFiles = electronFiles.filter(f => !['resources'].includes(f)).reduce((acc, file) => ({ ...acc, [path.join(zipDir, file)]: `usr/lib/${binaryName}/${file}` }), {});
+      debianFiles = electronFiles
+        .filter((f) => !["resources"].includes(f))
+        .reduce(
+          (acc, file) => ({
+            ...acc,
+            [path.join(zipDir, file)]: `usr/lib/${binaryName}/${file}`,
+          }),
+          {}
+        );
       debianFiles[appTempPath] = `usr/lib/${binaryName}/resources/app`;
-
   }
 
-  return merge({
-    name: packageJson.name,
-    productName: packageJson.productName || packageJson.name,
-    version: packageJson.version,
-    resources,
-    macos: {
-      frameworks,
-    },
-    deb: {
-      files: debianFiles,
-    },
-    binaries: [
-      {
-        path: binaryPath,
-        main: true,
+  return merge(
+    {
+      name: packageJson.name,
+      productName: packageJson.productName || packageJson.name,
+      version: packageJson.version,
+      resources,
+      macos: {
+        frameworks,
       },
-    ],
-  }, userConfig);
+      deb: {
+        files: debianFiles,
+      },
+      binaries: [
+        {
+          path: binaryPath,
+          main: true,
+        },
+      ],
+    },
+    userConfig
+  );
 }
 
-const toKebabCase = (str: string) => str.split(/\.?(?=[A-Z])/).join('-').toLowerCase();
+const toKebabCase = (str: string) =>
+  str
+    .split(/\.?(?=[A-Z])/)
+    .join("-")
+    .toLowerCase();
 
 function binaryScript(binaryName: string): string {
   return `#!/usr/bin/env sh
@@ -182,5 +231,5 @@ bin_dir_path=$(dirname $full_path)
 usr_dir_path=$(dirname $bin_dir_path)
 echo $usr_dir_path
 $usr_dir_path/lib/${binaryName}/${binaryName}
-`
+`;
 }

@@ -169,7 +169,14 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                     .into_string()
                     .unwrap_or_default(),
                 id: regex
-                    .replace_all(&bin.path.file_stem().unwrap().replace('-', "_"), "")
+                    .replace_all(
+                        &bin.path
+                            .file_stem()
+                            .unwrap()
+                            .to_string_lossy()
+                            .replace('-', "_"),
+                        "",
+                    )
                     .to_string(),
             })
         }
