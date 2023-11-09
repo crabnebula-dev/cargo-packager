@@ -740,7 +740,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ar",
  "base64 0.21.4",
@@ -2813,9 +2813,9 @@ dependencies = [
 
 [[package]]
 name = "handlebars"
-version = "4.4.0"
+version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c39b3bc2a8f715298032cf5087e58573809374b08160aa7d750582bdb82d2683"
+checksum = "faa67bab9ff362228eb3d00bd024a4965d8231bbb7921167f0cfa66c6626b225"
 dependencies = [
  "log",
  "pest",
