@@ -3,7 +3,7 @@
 <img src=".github/splash.png" alt="cargo-packager splash" />
 
 Rust executable packager, bundler and updater. A tool and library to generate installers or app bundles for your executables.
-It also has a comptabile updater through [cargo-packager-updater](./crates/updater/).
+It also has a compatible updater through [cargo-packager-updater](./crates/updater/).
 
 ## CLI
 
