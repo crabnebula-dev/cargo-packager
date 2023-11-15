@@ -5,7 +5,7 @@ version = "0.0.0"
 product-name = "Wails example"
 identifier = "com.wails.example"
 resources = ["Cargo.toml", "src", "32x32.png"]
-icons = ["build/windows/icon.ico", "build/appicon.png"]
+icons = ["32x32.png"]
 binaries = [{ filename = "wails_example", main = true }]
 
 [deb]
