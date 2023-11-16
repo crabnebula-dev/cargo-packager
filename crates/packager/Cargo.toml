@@ -29,10 +29,13 @@ targets = [
 ]
 
 [features]
-default = [ "cli" ]
+default = [ "cli", "rustls" ]
 cli = [ "clap", "tracing-subscriber" ]
 schema = [ "schemars" ]
 tracing-subscriber = [ "dep:tracing-subscriber" ]
+native-tls = [ "ureq/native-tls" ]
+native-tls-vendored = [ "native-tls", "native-tls/vendored" ]
+rustls = [ "ureq/tls" ]
 
 [dependencies]
 thiserror = { workspace = true }
@@ -47,7 +50,7 @@ tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", optional = true, features = [ "env-filter" ] }
 toml = "0.8"
 cargo_metadata = "0.18"
-ureq = "2.8"
+ureq = { version = "2.8", default-features = false }
 hex = "0.4"
 sha1 = "0.10"
 sha2 = "0.10"
@@ -62,6 +65,7 @@ tar = "0.4"
 libflate = "2.0"
 strsim = "0.10"
 schemars = { workspace = true, optional = true }
+native-tls = { version = "0.2", optional = true }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 winreg = "0.51"
