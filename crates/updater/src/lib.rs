@@ -530,11 +530,6 @@ impl Update {
         self.install(bytes)
     }
 
-    #[cfg(mobile)]
-    fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
-        Ok(())
-    }
-
     // Windows
     //
     // ### Expected installers:
@@ -697,7 +692,7 @@ impl Update {
                 std::fs::rename(&self.extract_path, &tmp_app_image)?;
 
                 // if something went wrong during the extraction, we should restore previous app
-                if let Err(err) = std::fs::write(&self.extract_path, &bytes) {
+                if let Err(err) = std::fs::write(&self.extract_path, bytes) {
                     std::fs::rename(tmp_app_image, &self.extract_path)?;
                     return Err(err.into());
                 }

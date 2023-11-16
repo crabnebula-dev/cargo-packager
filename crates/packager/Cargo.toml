@@ -57,7 +57,7 @@ relative-path = "1.9"
 walkdir = "2"
 os_pipe = "1"
 minisign = "0.7"
-tar = "0.4"
+tar = { workspace = true }
 libflate = "2.0"
 strsim = "0.10"
 schemars = { workspace = true, optional = true }

@@ -801,6 +801,7 @@ dependencies = [
  "ctor 0.2.5",
  "dirs",
  "dunce",
+ "flate2",
  "http",
  "minisign-verify",
  "reqwest",
