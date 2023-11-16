@@ -7,4 +7,24 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+native-tls = ["reqwest/native-tls"]
+native-tls-vendored = ["reqwest/native-tls-vendored"]
+rustls-tls = ["reqwest/rustls-tls"]
+
 [dependencies]
+reqwest = { version = "0.11", default-features = false, features = [ "json", "stream", "blocking" ] }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+dunce = { workspace = true }
+dirs = { workspace = true }
+semver = { workspace = true }
+base64 = { workspace = true }
+time = { workspace = true, features = ["parsing", "formatting"] }
+http = "0.2"
+url = "2.4"
+minisign-verify = "0.2"
+tar = "0.4"
+ctor = "0.2"
+tempfile = "3.8"

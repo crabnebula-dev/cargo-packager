@@ -1,0 +1,42 @@
+{
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "./src-ui",
+    "distDir": "./src-ui",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "tauri-example-with-updater",
+    "version": "0.0.1"
+  },
+  "tauri": {
+    "bundle": {
+      "active": false,
+      "targets": "all",
+      "identifier": "com.tauri-with-updater.example",
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ]
+    },
+    "security": {
+      "csp": null,
+      "dangerousRemoteDomainIpcAccess": [
+        { "domain": "tauri.localhost", "windows": ["main"] }
+      ]
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": true,
+        "title": "tauri",
+        "width": 800,
+        "height": 600
+      }
+    ]
+  }
+}
