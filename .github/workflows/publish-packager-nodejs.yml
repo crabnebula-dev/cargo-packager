@@ -48,13 +48,14 @@ jobs:
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
             build: |-
+              cd bindings/packager/nodejs
               set -e &&
               pnpm build --target x86_64-unknown-linux-gnu &&
               strip *.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: set -e && pnpm build && strip *.node
+            build: cd bindings/packager/nodejs && set -e && pnpm build && strip *.node
           - host: macos-latest
             target: aarch64-apple-darwin
             build: |
@@ -64,6 +65,7 @@ jobs:
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |-
+              cd bindings/packager/nodejs
               set -e &&
               pnpm build --target aarch64-unknown-linux-gnu &&
               aarch64-unknown-linux-gnu-strip *.node
@@ -79,6 +81,7 @@ jobs:
             target: aarch64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
             build: |-
+              cd bindings/packager/nodejs
               set -e &&
               rustup target add aarch64-unknown-linux-musl &&
               pnpm build --target aarch64-unknown-linux-musl &&
@@ -155,7 +158,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: ${{ env.APP_NAME }}.*.node
+          path: bindings/packager/nodejs/${{ env.APP_NAME }}.*.node
           if-no-files-found: error
   test-macOS-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
@@ -192,7 +195,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: .
+          path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
@@ -228,7 +231,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: bindings-x86_64-unknown-linux-gnu
-          path: .
+          path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
@@ -266,7 +269,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: bindings-x86_64-unknown-linux-musl
-          path: .
+          path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
@@ -289,7 +292,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: bindings-aarch64-unknown-linux-gnu
-          path: .
+          path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
@@ -323,7 +326,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: bindings-aarch64-unknown-linux-musl
-          path: .
+          path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
@@ -362,7 +365,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: bindings-armv7-unknown-linux-gnueabihf
-          path: .
+          path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
@@ -391,7 +394,7 @@ jobs:
       - test-macOS-windows-binding
       - test-linux-x64-gnu-binding
       - test-linux-x64-musl-binding
-      - test-linux-aarch64-gnu-binding
+      - test-linux-aarch64-gnu-binding`
       - test-linux-aarch64-musl-binding
       - test-linux-arm-gnueabihf-binding
     steps:
@@ -412,7 +415,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
         with:
-          path: artifacts
+          path: bindings/packager/nodejs/artifacts
       - name: Move artifacts
         run: pnpm artifacts
       - name: List packages
