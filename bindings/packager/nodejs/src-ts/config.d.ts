@@ -264,7 +264,7 @@ export interface Config {
  */
 export interface Binary {
   /**
-   * Path to the binary. If it's relative, it will be resolved from [`Config::out_dir`].
+   * Path to the binary (without `.exe` on Windows). If it's relative, it will be resolved from [`Config::out_dir`].
    */
   path: string;
   /**
@@ -336,6 +336,12 @@ export interface AppImageConfig {
    * Hashmap of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy) plugin name and its URL to be downloaded and executed while packaing the appimage. For example, if you want to use the [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin, you'd specify `gtk` as the key and its url as the value.
    */
   linuxdeployPlugins?: {
+    [k: string]: string;
+  } | null;
+  /**
+   * List of custom files to add to the appimage package. Maps a dir/file to a dir/file inside the appimage package.
+   */
+  files?: {
     [k: string]: string;
   } | null;
 }

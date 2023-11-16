@@ -184,6 +184,9 @@ export default async function run(
     deb: {
       files: debianFiles,
     },
+    appimage: {
+      files: debianFiles,
+    },
     binaries: [
       {
         path: binaryPath,

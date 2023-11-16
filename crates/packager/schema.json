@@ -460,7 +460,7 @@
       ],
       "properties": {
         "path": {
-          "description": "Path to the binary. If it's relative, it will be resolved from [`Config::out_dir`].",
+          "description": "Path to the binary (without `.exe` on Windows). If it's relative, it will be resolved from [`Config::out_dir`].",
           "type": "string"
         },
         "main": {
@@ -645,6 +645,16 @@
         },
         "linuxdeployPlugins": {
           "description": "Hashmap of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy) plugin name and its URL to be downloaded and executed while packaing the appimage. For example, if you want to use the [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin, you'd specify `gtk` as the key and its url as the value.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "description": "List of custom files to add to the appimage package. Maps a dir/file to a dir/file inside the appimage package.",
           "type": [
             "object",
             "null"

@@ -277,6 +277,9 @@ pub struct AppImageConfig {
     /// you'd specify `gtk` as the key and its url as the value.
     #[serde(alias = "linuxdeploy-plugins", alias = "linuxdeploy_plugins")]
     pub linuxdeploy_plugins: Option<HashMap<String, String>>,
+    /// List of custom files to add to the appimage package.
+    /// Maps a dir/file to a dir/file inside the appimage package.
+    pub files: Option<HashMap<String, String>>,
 }
 
 /// The macOS configuration.
