@@ -162,7 +162,7 @@ export default async function run(
       // electron needs everything at the same level :)
       // resources only contains the default_app.asar so we ignore it
       debianFiles = electronFiles
-        .filter((f) => !["resources"].includes(f))
+        .filter((f) => f !== "resources")
         .reduce(
           (acc, file) => ({
             ...acc,
