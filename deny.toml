@@ -8,7 +8,14 @@ targets = [
 ]
 
 # exclude examples and their dependecies
-exclude = ["dioxus-example", "egui-example", "slint-example", "tauri-example", "wry-example"]
+exclude = [
+    "dioxus-example",
+    "egui-example",
+    "slint-example",
+    "tauri-example",
+    "tauri-example-with-updater",
+    "wry-example",
+]
 
 [licenses]
 # List of explicitly allowed licenses
@@ -24,7 +31,7 @@ allow = [
     "MPL-2.0",
     "BSD-3-Clause",
     "OpenSSL",
-    "Zlib"
+    "Zlib",
 ]
 
 # Sigh
