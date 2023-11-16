@@ -300,6 +300,11 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
           pnpm config set supportedArchitectures.cpu "arm64"
@@ -334,6 +339,11 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
           pnpm config set supportedArchitectures.cpu "arm64"
@@ -373,6 +383,11 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
           pnpm config set supportedArchitectures.cpu "arm"
