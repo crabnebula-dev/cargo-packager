@@ -94,7 +94,7 @@ fn package_paths(root_dir: &Path, version: &str) -> Vec<(UpdaterFormat, PathBuf)
     vec![(
         UpdaterFormat::AppImage,
         root_dir.join(format!(
-            "target/debug/cargo-packager-updater-app-test_{version}_amd64.AppImage"
+            "target/debug/cargo-packager-updater-app-test_{version}_x86_64.AppImage"
         )),
     )]
 }
