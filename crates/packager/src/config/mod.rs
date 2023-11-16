@@ -631,7 +631,7 @@ impl Default for LogLevel {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Binary {
-    /// Path to the binary. If it's relative, it will be resolved from [`Config::out_dir`].
+    /// Path to the binary (without `.exe` on Windows). If it's relative, it will be resolved from [`Config::out_dir`].
     pub path: PathBuf,
     /// Whether this is the main binary or not
     #[serde(default)]
