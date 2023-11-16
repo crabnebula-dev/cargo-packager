@@ -1,0 +1,5 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "wails-example",
+  "outputfilename": "wails_example"
+}
