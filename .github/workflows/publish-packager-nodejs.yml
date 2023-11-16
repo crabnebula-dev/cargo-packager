@@ -17,6 +17,9 @@ on:
         required: true
   repository_dispatch:
     types: [publish-packager-nodejs]
+  pull_request:
+    branches:
+      - main
 
 defaults:
   run:
