@@ -53,7 +53,6 @@ export default async function run(
   const outDir = userConfig.outDir ? path.resolve(userConfig.outDir) : null;
   const ignoredDirs = outDir && outDir !== process.cwd() ? [outDir] : [];
 
-  const filterFunc = (_name: string): boolean => true;
   await fs.copy(appPath, appTempPath, {
     filter: async (file: string) => {
       const fullPath = path.resolve(file);
@@ -70,12 +69,10 @@ export default async function run(
       if (name.startsWith("/node_modules/")) {
         if (await isModule(file)) {
           return await pruner.pruneModule(name);
-        } else {
-          return filterFunc(name);
         }
       }
 
-      return filterFunc(name);
+      return true;
     },
   });
 
