@@ -897,7 +897,6 @@ impl Config {
     /// Returns the out dir
     pub fn out_dir(&self) -> PathBuf {
         if self.out_dir.as_os_str().is_empty() {
-            // TODO: we should probably error out when the out dir isn't set
             std::env::current_dir().expect("failed to resolve cwd")
         } else {
             dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
