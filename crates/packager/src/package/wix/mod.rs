@@ -479,7 +479,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let app_version = convert_version(&config.version)?;
 
     data.insert("product_name", to_json(&config.product_name));
-    data.insert("version", to_json(&app_version));
+    data.insert("version", to_json(app_version));
     let identifier = config.identifier();
     let manufacturer = config.publisher();
     data.insert("identifier", to_json(identifier));
