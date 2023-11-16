@@ -11,7 +11,7 @@ fn version() -> &'static str {
 }
 
 const UPDATER_PUB_KEY: &str = include_str!("../dummy.key.pub");
-const UPDATER_ENDPOINT: &str = "https://basic-bundle-rough-hat-1fe8.amr-bashir2015.workers.dev";
+const UPDATER_ENDPOINT: &str = "http://localhost:2342";
 
 #[tauri::command]
 fn check_update<R: Runtime>(app: AppHandle<R>) -> Result<(bool, Option<String>), ()> {

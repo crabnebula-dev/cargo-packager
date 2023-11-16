@@ -31,7 +31,7 @@ pub enum Error {
     #[error("Unsupported update format for the current target")]
     UnsupportedUpdateFormat,
     /// Operating system is not supported.
-    #[error("Unsupported OS, expected one of `linux`, `darwin` or `windows`.")]
+    #[error("Unsupported OS, expected one of `linux`, `macos` or `windows`.")]
     UnsupportedOs,
     /// Failed to determine updater package extract path
     #[error("Failed to determine updater package extract path.")]

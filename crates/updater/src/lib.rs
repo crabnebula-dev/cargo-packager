@@ -28,9 +28,11 @@ mod current_exe;
 mod custom_serialization;
 mod error;
 
-pub use error::*;
+pub use crate::error::*;
 pub use http;
 pub use reqwest;
+pub use semver;
+pub use url;
 
 /// Install modes for the Windows update.
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -68,6 +70,8 @@ impl WindowsUpdateInstallMode {
 /// The updater configuration for Windows.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct UpdaterWindowsConfig {
+    /// Additional arguments given to the NSIS or WiX installer.
+    pub installer_args: Vec<String>,
     /// The installation mode for the update on Windows. Defaults to `passive`.
     pub install_mode: WindowsUpdateInstallMode,
 }
@@ -76,8 +80,6 @@ pub struct UpdaterWindowsConfig {
 #[derive(Debug, Clone, Default)]
 pub struct Config {
     pub endpoints: Vec<Url>,
-    /// Additional arguments given to the NSIS or WiX installer.
-    pub installer_args: Vec<String>,
     /// Signature public key.
     pub pubkey: String,
     /// The Windows configuration for the updater.
@@ -175,10 +177,8 @@ pub struct UpdaterBuilder {
     version_comparator: Option<Box<dyn Fn(Version, RemoteRelease) -> bool + Send + Sync>>,
     executable_path: Option<PathBuf>,
     target: Option<String>,
-    endpoints: Option<Vec<Url>>,
     headers: HeaderMap,
     timeout: Option<Duration>,
-    installer_args: Option<Vec<String>>,
 }
 
 impl UpdaterBuilder {
@@ -189,10 +189,8 @@ impl UpdaterBuilder {
             version_comparator: None,
             executable_path: None,
             target: None,
-            endpoints: None,
             headers: Default::default(),
             timeout: None,
-            installer_args: None,
         }
     }
 
@@ -204,13 +202,18 @@ impl UpdaterBuilder {
         self
     }
 
+    pub fn pub_key(mut self, pub_key: impl Into<String>) -> Self {
+        self.config.pubkey = pub_key.into();
+        self
+    }
+
     pub fn target(mut self, target: impl Into<String>) -> Self {
         self.target.replace(target.into());
         self
     }
 
     pub fn endpoints(mut self, endpoints: Vec<Url>) -> Self {
-        self.endpoints.replace(endpoints);
+        self.config.endpoints = endpoints;
         self
     }
 
@@ -244,17 +247,12 @@ impl UpdaterBuilder {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.installer_args
-            .replace(args.into_iter().map(Into::into).collect());
+        self.config.windows.installer_args = args.into_iter().map(Into::into).collect();
         self
     }
 
     pub fn build(self) -> Result<Updater> {
-        let endpoints = self
-            .endpoints
-            .unwrap_or_else(|| self.config.endpoints.clone());
-
-        if endpoints.is_empty() {
+        if self.config.endpoints.is_empty() {
             return Err(Error::EmptyEndpoints);
         };
 
@@ -276,14 +274,10 @@ impl UpdaterBuilder {
         };
 
         Ok(Updater {
-            installer_args: self
-                .installer_args
-                .unwrap_or(self.config.installer_args.clone()),
             config: self.config,
             current_version: self.current_version,
             version_comparator: self.version_comparator,
             timeout: self.timeout,
-            endpoints,
             arch,
             target,
             json_target,
@@ -298,9 +292,6 @@ pub struct Updater {
     current_version: Version,
     version_comparator: Option<Box<dyn Fn(Version, RemoteRelease) -> bool + Send + Sync>>,
     timeout: Option<Duration>,
-    endpoints: Vec<Url>,
-    #[allow(dead_code)]
-    installer_args: Vec<String>,
     arch: &'static str,
     // The `{{target}}` variable we replace in the endpoint
     target: String,
@@ -329,12 +320,12 @@ impl Updater {
 
         let mut remote_release: Option<RemoteRelease> = None;
         let mut last_error: Option<Error> = None;
-        for url in &self.endpoints {
+        for url in &self.config.endpoints {
             // replace {{current_version}}, {{target}} and {{arch}} in the provided URL
             // this is useful if we need to query example
             // https://releases.myapp.com/update/{{target}}/{{arch}}/{{current_version}}
             // will be translated into ->
-            // https://releases.myapp.com/update/darwin/aarch64/1.0.0
+            // https://releases.myapp.com/update/macos/aarch64/1.0.0
             // The main objective is if the update URL is defined via the Cargo.toml
             // the URL will be generated dynamically
             let url: Url = url
@@ -394,7 +385,6 @@ impl Updater {
                 config: self.config.clone(),
                 target: self.target.clone(),
                 extract_path: self.extract_path.clone(),
-                installer_args: self.installer_args.clone(),
                 version: release.version.to_string(),
                 date: release.pub_date,
                 download_url: release.download_url(&self.json_target)?.to_owned(),
@@ -428,8 +418,6 @@ pub struct Update {
     /// Extract path
     #[allow(unused)]
     extract_path: PathBuf,
-    #[allow(unused)]
-    installer_args: Vec<String>,
     /// Download URL announced
     pub download_url: Url,
     /// Signature announced
@@ -576,7 +564,9 @@ impl Update {
                     .arg(
                         [
                             self.config.windows.install_mode.nsis_args(),
-                            self.installer_args
+                            self.config
+                                .windows
+                                .installer_args
                                 .iter()
                                 .map(AsRef::as_ref)
                                 .collect::<Vec<_>>()
