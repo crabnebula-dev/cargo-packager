@@ -42,7 +42,7 @@
   "scripts": {
     "artifacts": "napi artifacts",
     "build-ts": "rm -rf build/ && node generate-config-type.js && tsc",
-    "build": "napi build --platform --profile release-size-optimized && pnpm build-ts",
+    "build": "pnpm build-ts && napi build --platform --profile release-size-optimized",
     "build:debug": "napi build --platform && pnpm build-ts",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
     "test": "ava --no-worker-threads",
