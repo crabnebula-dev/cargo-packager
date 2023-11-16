@@ -15,9 +15,11 @@ const UPDATER_ENDPOINT: &str = "https://basic-bundle-rough-hat-1fe8.amr-bashir20
 
 #[tauri::command]
 fn check_update<R: Runtime>(app: AppHandle<R>) -> Result<(bool, Option<String>), ()> {
-    let mut config = Config::default();
-    config.pubkey = UPDATER_PUB_KEY.into();
-    config.endpoints = vec![UPDATER_ENDPOINT.parse().unwrap()];
+    let config = Config {
+        pubkey: UPDATER_PUB_KEY.into(),
+        endpoints: vec![UPDATER_ENDPOINT.parse().unwrap()],
+        ..Default::default()
+    };
 
     let updater = {
         #[allow(unused_mut)]
