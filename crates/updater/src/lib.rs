@@ -547,8 +547,7 @@ impl Update {
         };
 
         let mut temp_file = tempfile::Builder::new().suffix(extension).tempfile()?;
-        temp_file.write(&bytes)?;
-        temp_file.flush()?;
+        temp_file.write_all(&bytes)?;
         let (f, path) = temp_file.keep()?;
         drop(f);
 
