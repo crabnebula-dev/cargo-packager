@@ -32,6 +32,7 @@ targets = [
 default = [ "cli" ]
 cli = [ "clap", "tracing-subscriber" ]
 schema = [ "schemars" ]
+tracing-subscriber = [ "dep:tracing-subscriber" ]
 
 [dependencies]
 thiserror = { workspace = true }
