@@ -511,7 +511,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
 
     data.insert(
         "app_exe_source",
-        to_json(&app_exe_source.with_extension("exe")),
+        to_json(app_exe_source.with_extension("exe")),
     );
 
     // copy icon from `settings.windows().icon_path` folder to resource folder near msi

@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 fn main() {
+    #[allow(clippy::option_env_unwrap)]
     let version = option_env!("APP_VERSION").unwrap();
     let mut builder = cargo_packager_updater::UpdaterBuilder::new(
         version.parse().unwrap(),

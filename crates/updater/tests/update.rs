@@ -40,10 +40,10 @@ fn build_app(cwd: &Path, root_dir: &Path, version: &str, target: &[UpdaterFormat
             "--",
             "--verbose",
             "-f",
-           &target.into_iter().map(|t|t.name()).collect::<Vec<_>>().join(","),
+           &target.iter().map(|t|t.name()).collect::<Vec<_>>().join(","),
             "-c",
         ])
-        .arg(format!(r#"{{"outDir":"{}","beforePackagingCommand": "cargo build", "identifier": "com.updater-app.test", "productName": "CargoPackagerAppUpdaterTest", "version": "{version}", "icons": ["32x32.png"], "binaries": [{{"filename": "cargo-packager-updater-app-test", "main": true}}]}}"#, root_dir.join("target/debug").to_string_lossy().replace("\\\\?\\", "").replace("\\", "\\\\")))
+        .arg(format!(r#"{{"outDir":"{}","beforePackagingCommand": "cargo build", "identifier": "com.updater-app.test", "productName": "CargoPackagerAppUpdaterTest", "version": "{version}", "icons": ["32x32.png"], "binaries": [{{"filename": "cargo-packager-updater-app-test", "main": true}}]}}"#, root_dir.join("target/debug").to_string_lossy().replace("\\\\?\\", "").replace('\\', "\\\\")))
         .env("CARGO_PACKAGER_SIGN_PRIVATE_KEY", UPDATER_PRIVATE_KEY)
         .env("CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD", "")
         // This is read by the updater app test
