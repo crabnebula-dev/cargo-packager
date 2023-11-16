@@ -45,6 +45,7 @@
     "build": "pnpm build-ts && napi build --platform --profile release-size-optimized",
     "build:debug": "napi build --platform && pnpm build-ts",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
+    "pretest": "pnpm build-ts",
     "test": "ava --no-worker-threads",
     "universal": "napi universal",
     "version": "napi version"
