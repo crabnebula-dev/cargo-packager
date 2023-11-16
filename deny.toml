@@ -16,6 +16,7 @@ exclude = [
     "tauri-example",
     "tauri-example-with-updater",
     "wry-example",
+    "cargo-packager-updater-app-test",
 ]
 
 [licenses]

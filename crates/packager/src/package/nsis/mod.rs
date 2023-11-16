@@ -474,7 +474,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     }
 
     write_ut16_le_with_bom(
-        &intermediates_path.join("FileAssociation.nsh"),
+        intermediates_path.join("FileAssociation.nsh"),
         include_str!("./FileAssociation.nsh"),
     )?;
 
