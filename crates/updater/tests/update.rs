@@ -43,7 +43,7 @@ fn build_app(cwd: &Path, root_dir: &Path, version: &str, target: &[UpdaterFormat
            &target.into_iter().map(|t|t.name()).collect::<Vec<_>>().join(","),
             "-c",
         ])
-        .arg(format!(r#"{{"outDir":"{}","beforePackagingCommand": "cargo build", "identifier": "com.updater-app.test", "productName": "Cargo packager app updater test", "version": "{version}", "icons": ["32x32.png"], "binaries": [{{"filename": "cargo-packager-updater-app-test", "main": true}}]}}"#, root_dir.join("target/debug").to_string_lossy().replace("\\\\?\\", "").replace("\\", "\\\\")))
+        .arg(format!(r#"{{"outDir":"{}","beforePackagingCommand": "cargo build", "identifier": "com.updater-app.test", "productName": "CargoPackagerAppUpdaterTest", "version": "{version}", "icons": ["32x32.png"], "binaries": [{{"filename": "cargo-packager-updater-app-test", "main": true}}]}}"#, root_dir.join("target/debug").to_string_lossy().replace("\\\\?\\", "").replace("\\", "\\\\")))
         .env("CARGO_PACKAGER_SIGN_PRIVATE_KEY", UPDATER_PRIVATE_KEY)
         .env("CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD", "")
         // This is read by the updater app test
@@ -103,7 +103,7 @@ fn package_paths(root_dir: &Path, version: &str) -> Vec<(UpdaterFormat, PathBuf)
 fn package_paths(root_dir: &Path, _version: &str) -> Vec<(UpdaterFormat, PathBuf)> {
     vec![(
         UpdaterFormat::App,
-        root_dir.join("target/debug/cargo-packager-updater-app-test.app"),
+        root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app"),
     )]
 }
 
@@ -138,7 +138,11 @@ fn update_app() {
 
     for (updater_format, out_package_path) in package_paths(&root_dir, "1.0.0") {
         let out_package_ext = out_package_path.extension().unwrap().to_str().unwrap();
+        #[cfg(not(target_os = "macos"))]
         let signature_path = out_package_path.with_extension(format!("{out_package_ext}.sig"));
+        #[cfg(target_os = "macos")]
+        let signature_path =
+            out_package_path.with_extension(format!("{out_package_ext}.tar.gz.sig"));
         let signature = std::fs::read_to_string(&signature_path).unwrap_or_else(|_| {
             panic!("failed to read signature file {}", signature_path.display())
         });
