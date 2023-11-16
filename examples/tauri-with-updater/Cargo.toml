@@ -21,7 +21,7 @@ cargo-packager-updater = { path = "../../crates/updater" }
 custom-protocol = ["tauri/custom-protocol"]
 
 [package.metadata.packager]
-before-packaging-command = "cargo tauri build --debug"
+before-packaging-command = "cargo tauri build"
 product-name = "Tauri example (with updater)"
 identifier = "com.tauri-with-updater.example"
 resources = [
