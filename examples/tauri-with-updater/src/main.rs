@@ -24,7 +24,13 @@ fn check_update<R: Runtime>(app: AppHandle<R>) -> Result<(bool, Option<String>),
     let updater = {
         #[allow(unused_mut)]
         let mut updater_builder = UpdaterBuilder::new(app.package_info().version.clone(), config);
-        #[cfg(target_os = "linux")]
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        ))]
         {
             if let Some(appimage) = app.env().appimage {
                 updater_builder = updater_builder.executable_path(appimage)
