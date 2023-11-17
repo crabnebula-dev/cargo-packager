@@ -30,9 +30,8 @@ targets = [
 
 [features]
 default = [ "cli", "rustls" ]
-cli = [ "clap", "tracing-subscriber" ]
+cli = [ "clap", "dep:tracing-subscriber" ]
 schema = [ "schemars" ]
-tracing-subscriber = [ "dep:tracing-subscriber" ]
 native-tls = [ "ureq/native-tls" ]
 native-tls-vendored = [ "native-tls", "native-tls/vendored" ]
 rustls = [ "ureq/tls" ]
