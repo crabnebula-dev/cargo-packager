@@ -138,14 +138,29 @@ fn update_app() {
 
     for (updater_format, out_package_path) in package_paths(&root_dir, "1.0.0") {
         let out_package_ext = out_package_path.extension().unwrap().to_str().unwrap();
-        #[cfg(not(target_os = "macos"))]
-        let signature_path = out_package_path.with_extension(format!("{out_package_ext}.sig"));
-        #[cfg(target_os = "macos")]
-        let signature_path =
-            out_package_path.with_extension(format!("{out_package_ext}.tar.gz.sig"));
+
+        let out_updater_path = if out_package_path.is_dir() {
+            let updater_zip_ext = if cfg!(windows) { "zip" } else { "tar.gz" };
+
+            out_package_path.with_extension(format!("{}.{}", out_package_ext, updater_zip_ext))
+        } else {
+            out_package_path
+        };
+
+        let signature_path = out_updater_path.with_extension(format!(
+            "{}.sig",
+            out_updater_path.extension().unwrap().to_str().unwrap()
+        ));
         let signature = std::fs::read_to_string(&signature_path).unwrap_or_else(|_| {
             panic!("failed to read signature file {}", signature_path.display())
         });
+
+        // we need to move it otherwise it'll be overwritten when we build the next app
+        let updater_path = out_updater_path.with_file_name(format!(
+            "update-{}",
+            out_updater_path.file_name().unwrap().to_str().unwrap()
+        ));
+        std::fs::rename(&out_updater_path, &updater_path).expect("failed to rename bundle");
 
         let target = target.clone();
         std::thread::spawn(move || {
@@ -187,8 +202,8 @@ fn update_app() {
                         }
                         "/download" => {
                             let _ = request.respond(tiny_http::Response::from_file(
-                                File::open(&out_package_path).unwrap_or_else(|_| {
-                                    panic!("failed to open package {}", out_package_path.display())
+                                File::open(&updater_path).unwrap_or_else(|_| {
+                                    panic!("failed to open package {}", updater_path.display())
                                 }),
                             ));
                             // close server
