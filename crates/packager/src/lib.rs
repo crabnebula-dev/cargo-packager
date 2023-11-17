@@ -114,7 +114,8 @@ fn parse_log_level(verbose: u8) -> tracing::Level {
 }
 
 /// Inits the tracing subscriber.
-#[cfg(feature = "tracing-subscriber")]
+#[cfg(feature = "cli")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "cli")))]
 pub fn init_tracing_subscriber(verbosity: u8) {
     let level = parse_log_level(verbosity);
 
