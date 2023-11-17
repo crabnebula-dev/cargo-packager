@@ -678,7 +678,9 @@ impl Update {
                     .keep()?;
 
                 // create a backup of our current app image
-                std::fs::rename(&self.extract_path, &tmp_app_image)?;
+                if let Err(_) = std::fs::rename(&self.extract_path, &tmp_app_image) {
+                    continue;
+                }
 
                 // if something went wrong during the extraction, we should restore previous app
                 if let Err(err) = std::fs::write(&self.extract_path, bytes) {
