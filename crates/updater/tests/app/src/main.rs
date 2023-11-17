@@ -14,17 +14,35 @@ fn main() {
             ..Default::default()
         },
     );
-    if std::env::var("UPDATER_FORMAT").unwrap_or_default() == "nsis" {
-        // /D sets the default installation directory ($INSTDIR),
-        // overriding InstallDir and InstallDirRegKey.
-        // It must be the last parameter used in the command line and must not contain any quotes, even if the path contains spaces.
-        // Only absolute paths are supported.
-        // NOTE: we only need this because this is an integration test and we don't want to install the app in the programs folder
-        builder = builder.installer_args(vec![format!(
-            "/D={}",
-            std::env::current_exe().unwrap().parent().unwrap().display()
-        )]);
+    let format = std::env::var("UPDATER_FORMAT").unwrap_or_default();
+
+    match format.as_str() {
+        "nsis" => {
+            // /D sets the default installation directory ($INSTDIR),
+            // overriding InstallDir and InstallDirRegKey.
+            // It must be the last parameter used in the command line and must not contain any quotes, even if the path contains spaces.
+            // Only absolute paths are supported.
+            // NOTE: we only need this because this is an integration test and we don't want to install the app in the programs folder
+            builder = builder.installer_args(vec![format!(
+                "/D={}",
+                std::env::current_exe().unwrap().parent().unwrap().display()
+            )]);
+        }
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        ))]
+        "appimage" => {
+            if let Some(p) = std::env::var_os("APPIMAGE") {
+                builder = builder.executable_path(p);
+            }
+        }
+        _ => {}
     }
+
     let updater = builder.build().unwrap();
 
     println!("{version}");
