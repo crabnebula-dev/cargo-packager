@@ -686,11 +686,16 @@ impl Update {
                         .tempfile_in(tmp_dir)?
                         .keep()?;
 
+                    // get metadata to restore later
+                    let metadata = self.extract_path.metadata()?;
+
                     // create a backup of our current app image
                     std::fs::rename(&self.extract_path, &tmp_app_image)?;
 
                     // if something went wrong during the extraction, we should restore previous app
-                    if let Err(err) = std::fs::write(&self.extract_path, bytes) {
+                    if let Err(err) = std::fs::write(&self.extract_path, bytes).and_then(|_| {
+                        std::fs::set_permissions(&self.extract_path, metadata.permissions())
+                    }) {
                         std::fs::rename(tmp_app_image, &self.extract_path)?;
                         return Err(err.into());
                     }
