@@ -663,33 +663,42 @@ impl Update {
             _ => return Err(crate::Error::UnsupportedUpdateFormat),
         };
 
+        let extract_path_metadata = self.extract_path.metadata()?;
         let tmp_dir_locations = vec![
             Box::new(|| Some(std::env::temp_dir())) as Box<dyn FnOnce() -> Option<PathBuf>>,
             Box::new(dirs::cache_dir),
             Box::new(|| Some(self.extract_path.parent().unwrap().to_path_buf())),
         ];
 
+        dbg!(&self.extract_path);
         for tmp_dir_location in tmp_dir_locations {
-            if let Some(tmp_dir_location) = tmp_dir_location() {
-                let (_, tmp_app_image) = tempfile::Builder::new()
-                    .prefix("current_app")
-                    .suffix(".AppImage")
-                    .tempfile_in(tmp_dir_location)?
-                    .keep()?;
+            if let Some(tmp_dir) = tmp_dir_location() {
+                use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
-                // create a backup of our current app image
-                if let Err(_) = std::fs::rename(&self.extract_path, &tmp_app_image) {
-                    continue;
+                let tmp_dir_metadata = tmp_dir.metadata()?;
+                if extract_path_metadata.dev() == tmp_dir_metadata.dev() {
+                    let mut perms = tmp_dir_metadata.permissions();
+                    perms.set_mode(0o700);
+                    std::fs::set_permissions(&tmp_dir, perms)?;
+
+                    let (_, tmp_app_image) = tempfile::Builder::new()
+                        .prefix("current_app")
+                        .suffix(".AppImage")
+                        .tempfile_in(tmp_dir)?
+                        .keep()?;
+
+                    // create a backup of our current app image
+                    std::fs::rename(&self.extract_path, &tmp_app_image)?;
+
+                    // if something went wrong during the extraction, we should restore previous app
+                    if let Err(err) = std::fs::write(&self.extract_path, bytes) {
+                        std::fs::rename(tmp_app_image, &self.extract_path)?;
+                        return Err(err.into());
+                    }
+
+                    // early finish we have everything we need here
+                    return Ok(());
                 }
-
-                // if something went wrong during the extraction, we should restore previous app
-                if let Err(err) = std::fs::write(&self.extract_path, bytes) {
-                    std::fs::rename(tmp_app_image, &self.extract_path)?;
-                    return Err(err.into());
-                }
-
-                // early finish we have everything we need here
-                return Ok(());
             }
         }
 

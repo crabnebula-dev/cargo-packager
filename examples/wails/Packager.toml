@@ -6,7 +6,7 @@ product-name = "Wails example"
 identifier = "com.wails.example"
 resources = ["Cargo.toml", "src", "32x32.png"]
 icons = ["32x32.png"]
-binaries = [{ filename = "wails_example", main = true }]
+binaries = [{ path = "wails_example", main = true }]
 
 [deb]
 depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0"]
