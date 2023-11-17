@@ -139,15 +139,15 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
-            let binary_path = cwd.join(src);
-            let src = PathBuf::from(src);
-            let dest_filename = src
+            let src = PathBuf::from(src).with_extension("exe");
+            let bin_path = dunce::canonicalize(cwd.join(src))?;
+            let dest_filename = bin_path
                 .file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
+                .ok_or_else(|| crate::Error::FailedToExtractFilename(bin_path.clone()))?
                 .to_string_lossy()
                 .replace(&format!("-{}", config.target_triple()), "");
             let dest = tmp_dir.join(&dest_filename);
-            std::fs::copy(binary_path, &dest)?;
+            std::fs::copy(bin_path, &dest)?;
 
             binaries.push(Binary {
                 guid: Uuid::new_v4().to_string(),
@@ -165,11 +165,19 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                 guid: Uuid::new_v4().to_string(),
                 path: config
                     .binary_path(bin)
+                    .with_extension("exe")
                     .into_os_string()
                     .into_string()
                     .unwrap_or_default(),
                 id: regex
-                    .replace_all(&bin.filename.replace('-', "_"), "")
+                    .replace_all(
+                        &bin.path
+                            .file_stem()
+                            .unwrap()
+                            .to_string_lossy()
+                            .replace('-', "_"),
+                        "",
+                    )
                     .to_string(),
             })
         }
@@ -457,10 +465,11 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     };
 
     let main_binary = config.main_binary()?;
-    let app_exe_source = config.binary_path(main_binary);
-    let signing_path = app_exe_source.with_extension("exe");
-    tracing::debug!("Codesigning {}", signing_path.display());
-    codesign::try_sign(&signing_path, config)?;
+    let main_binary_name = config.main_binary_name()?;
+    let main_binary_path = config.binary_path(main_binary).with_extension("exe");
+
+    tracing::debug!("Codesigning {}", main_binary_path.display());
+    codesign::try_sign(&main_binary_path, config)?;
 
     let intermediates_path = intermediates_path.join("wix").join(arch);
     util::create_clean_dir(&intermediates_path)?;
@@ -470,14 +479,14 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let app_version = convert_version(&config.version)?;
 
     data.insert("product_name", to_json(&config.product_name));
-    data.insert("version", to_json(&app_version));
+    data.insert("version", to_json(app_version));
     let identifier = config.identifier();
     let manufacturer = config.publisher();
     data.insert("identifier", to_json(identifier));
     data.insert("manufacturer", to_json(manufacturer));
     let upgrade_code = Uuid::new_v5(
         &Uuid::NAMESPACE_DNS,
-        format!("{}.app.x64", &main_binary.filename).as_bytes(),
+        format!("{}.app.x64", main_binary_name).as_bytes(),
     )
     .to_string();
 
@@ -509,10 +518,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     data.insert("resources", to_json(resources_wix_string));
     data.insert("resource_file_ids", to_json(files_ids));
 
-    data.insert(
-        "app_exe_source",
-        to_json(&app_exe_source.with_extension("exe")),
-    );
+    data.insert("app_exe_source", to_json(&main_binary_path));
 
     // copy icon from `settings.windows().icon_path` folder to resource folder near msi
     if let Some(icon) = config.find_ico() {
@@ -717,7 +723,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         let msi_output_path = intermediates_path.join("output.msi");
         let msi_path = config.out_dir().join(format!(
             "{}_{}_{}_{}.msi",
-            main_binary.filename, app_version, arch, language
+            main_binary_name, config.version, arch, language
         ));
         std::fs::create_dir_all(
             msi_path

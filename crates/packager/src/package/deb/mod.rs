@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeSet, HashMap},
     ffi::OsStr,
     fs::File,
     io::Write,
@@ -134,8 +134,8 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
                 .map(|category| category.gnome_desktop_categories())
                 .unwrap_or(""),
             comment: config.description.as_deref(),
-            exec: bin_name,
-            icon: bin_name,
+            exec: &bin_name,
+            icon: &bin_name,
             name: config.product_name.as_str(),
             mime_type,
         },
@@ -153,7 +153,7 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
     std::fs::create_dir_all(&bin_dir)?;
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
-        std::fs::copy(&bin_path, bin_dir.join(&bin.filename))?;
+        std::fs::copy(&bin_path, bin_dir.join(bin.path.file_name().unwrap()))?;
     }
 
     tracing::debug!("Copying resources");
@@ -194,39 +194,39 @@ pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
 
 /// Copies user-defined files to the deb package.
 #[tracing::instrument(level = "trace")]
-fn copy_custom_files(config: &Config, data_dir: &Path) -> crate::Result<()> {
-    if let Some(files) = config.deb().and_then(|d| d.files.as_ref()) {
-        for (src, target) in files.iter() {
-            let src = Path::new(src).canonicalize()?;
-            let target = Path::new(target);
-            let target = if target.is_absolute() {
-                target.strip_prefix("/").unwrap()
-            } else {
-                target
-            };
+pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> crate::Result<()> {
+    for (src, target) in files.iter() {
+        let src = Path::new(src).canonicalize()?;
+        let target = Path::new(target);
+        let target = if target.is_absolute() {
+            target.strip_prefix("/").unwrap()
+        } else {
+            target
+        };
 
-            if src.is_file() {
-                let dest = data_dir.join(target);
-                let parent = dest
-                    .parent()
-                    .ok_or_else(|| crate::Error::ParentDirNotFound(dest.clone()))?;
-                std::fs::create_dir_all(parent)?;
-                std::fs::copy(src, dest)?;
-            } else if src.is_dir() {
-                for entry in walkdir::WalkDir::new(&src) {
-                    let entry = entry?;
-                    let path = entry.path();
-                    if path.is_file() {
-                        let relative = path.relative_to(&src)?.to_path("");
-                        let parent = data_dir.join(target);
-                        let dest = parent.join(relative);
-                        std::fs::create_dir_all(parent)?;
-                        std::fs::copy(path, dest)?;
-                    }
+        if src.is_file() {
+            let dest = data_dir.join(target);
+            let parent = dest
+                .parent()
+                .ok_or_else(|| crate::Error::ParentDirNotFound(dest.clone()))?;
+            std::fs::create_dir_all(parent)?;
+            std::fs::copy(src, dest)?;
+        } else if src.is_dir() {
+            let dest_dir = data_dir.join(target);
+
+            for entry in walkdir::WalkDir::new(&src) {
+                let entry = entry?;
+                let path = entry.path();
+                if path.is_file() {
+                    let relative = path.relative_to(&src)?.to_path("");
+                    let dest = dest_dir.join(relative);
+                    std::fs::create_dir_all(dest.parent().unwrap())?;
+                    std::fs::copy(path, dest)?;
                 }
             }
         }
     }
+
     Ok(())
 }
 
@@ -368,8 +368,10 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let data_dir = deb_dir.join("data");
     let _ = generate_data(config, &data_dir)?;
 
-    tracing::debug!("Copying files specifeid in `deb.files`");
-    copy_custom_files(config, &data_dir)?;
+    tracing::debug!("Copying files specified in `deb.files`");
+    if let Some(files) = config.deb().and_then(|d| d.files.as_ref()) {
+        copy_custom_files(files, &data_dir)?;
+    }
 
     let control_dir = deb_dir.join("control");
     tracing::debug!("Generating control file");

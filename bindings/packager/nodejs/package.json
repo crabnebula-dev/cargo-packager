@@ -1,0 +1,62 @@
+{
+  "name": "@crabnebula/packager",
+  "version": "0.0.0",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "author": {
+    "name": "CrabNebula Ltd."
+  },
+  "description": "Executable packager and bundler distributed as a CLI and library",
+  "bin": {
+    "packager": "./packager.js"
+  },
+  "napi": {
+    "name": "packager",
+    "triples": {
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-unknown-linux-musl",
+        "aarch64-pc-windows-msvc",
+        "armv7-unknown-linux-gnueabihf",
+        "x86_64-unknown-linux-musl",
+        "i686-pc-windows-msvc"
+      ]
+    }
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.16.5",
+    "@types/fs-extra": "^11.0.3",
+    "@types/node": "^20.8.10",
+    "ava": "^5.1.1",
+    "json-schema-to-typescript": "^13.1.1",
+    "typescript": "^5.2.2"
+  },
+  "ava": {
+    "timeout": "3m"
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build:config": "node generate-config-type.js",
+    "build:ts": "rm -rf build/ && tsc",
+    "build": "pnpm build:config && pnpm build:ts && napi build --platform --profile release-size-optimized",
+    "build:debug": "pnpm build:config && pnpm build:ts && napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
+    "pretest": "npm run build:ts",
+    "test": "ava --no-worker-threads",
+    "universal": "napi universal",
+    "version": "napi version"
+  },
+  "packageManager": "pnpm@8.7.1",
+  "dependencies": {
+    "@electron/get": "^3.0.0",
+    "deepmerge": "^4.3.1",
+    "extract-zip": "^2.0.1",
+    "fs-extra": "^11.1.1",
+    "galactus": "^1.0.0"
+  }
+}
