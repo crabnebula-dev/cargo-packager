@@ -1,4 +1,4 @@
-name: publish `@crabnebula/packager`
+name: Publish `@crabnebula/packager`
 
 env:
   DEBUG: napi:*
