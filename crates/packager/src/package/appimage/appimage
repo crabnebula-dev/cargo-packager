@@ -10,7 +10,7 @@ set -euxo pipefail
 export ARCH={{arch}}
 
 mkdir -p "{{app_name}}.AppDir"
-cp -r ../appimage_deb/data/usr "{{app_name}}.AppDir"
+cp -r ../appimage_deb/data/* "{{app_name}}.AppDir"
 
 cd "{{app_name}}.AppDir"
 mkdir -p "usr/bin"

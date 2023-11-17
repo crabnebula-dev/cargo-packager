@@ -80,6 +80,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
+            let src = PathBuf::from(src).with_extension("exe");
             let bin_path = dunce::canonicalize(cwd.join(src))?;
             let dest_filename = bin_path
                 .file_name()
@@ -92,7 +93,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
 
     for bin in &config.binaries {
         if !bin.main {
-            let bin_path = config.binary_path(bin);
+            let bin_path = config.binary_path(bin).with_extension("exe");
             let dest_filename = bin_path
                 .file_name()
                 .ok_or_else(|| crate::Error::FailedToExtractFilename(bin_path.clone()))?
@@ -285,13 +286,14 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         target => return Err(crate::Error::UnsupportedArch("nsis".into(), target.into())),
     };
 
+    let main_binary = config.main_binary()?;
+    let main_binary_name = config.main_binary_name()?;
+    let main_binary_path = config.binary_path(main_binary).with_extension("exe");
+
     #[cfg(target_os = "windows")]
     {
-        let main_binary = config.main_binary()?;
-        let app_exe_source = config.binary_path(main_binary);
-        let signing_path = app_exe_source.with_extension("exe");
-        tracing::debug!("Codesigning {}", signing_path.display());
-        codesign::try_sign(&signing_path, config)?;
+        tracing::debug!("Codesigning {}", main_binary_path.display());
+        codesign::try_sign(&main_binary_path, config)?;
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -418,16 +420,8 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         ),
     );
 
-    let main_binary = config
-        .binaries
-        .iter()
-        .find(|bin| bin.main)
-        .ok_or_else(|| crate::Error::MainBinaryNotFound)?;
-    data.insert("main_binary_name", to_json(&main_binary.filename));
-    data.insert(
-        "main_binary_path",
-        to_json(config.binary_path(main_binary).with_extension("exe")),
-    );
+    data.insert("main_binary_name", to_json(&main_binary_name));
+    data.insert("main_binary_path", to_json(main_binary_path));
 
     if let Some(file_associations) = &config.file_associations {
         data.insert("file_associations", to_json(file_associations));
@@ -494,7 +488,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     let installer_path = config.out_dir().join(format!(
         "{}_{}_{}-setup.exe",
-        main_binary.filename, config.version, arch
+        main_binary_name, config.version, arch
     ));
     std::fs::create_dir_all(
         installer_path

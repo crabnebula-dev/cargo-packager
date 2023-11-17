@@ -1,7 +1,7 @@
 [package]
 name = "cargo-packager"
 version = "0.3.0"
-description = "Rust executable packager and bundler CLI and library."
+description = "Executable packager and bundler distributed as a CLI and library."
 authors = [
   "CrabNebula Ltd.",
   "Tauri Programme within The Commons Conservancy",
@@ -29,9 +29,12 @@ targets = [
 ]
 
 [features]
-default = [ "cli" ]
-cli = [ "clap", "tracing-subscriber" ]
+default = [ "cli", "rustls" ]
+cli = [ "clap", "dep:tracing-subscriber" ]
 schema = [ "schemars" ]
+native-tls = [ "ureq/native-tls" ]
+native-tls-vendored = [ "native-tls", "native-tls/vendored" ]
+rustls = [ "ureq/tls" ]
 
 [dependencies]
 thiserror = { workspace = true }
@@ -46,7 +49,7 @@ tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", optional = true, features = [ "env-filter" ] }
 toml = "0.8"
 cargo_metadata = "0.18"
-ureq = "2.8"
+ureq = { version = "2.8", default-features = false }
 hex = "0.4"
 sha1 = "0.10"
 sha2 = "0.10"
@@ -61,6 +64,7 @@ tar = { workspace = true }
 libflate = "2.0"
 strsim = "0.10"
 schemars = { workspace = true, optional = true }
+native-tls = { version = "0.2", optional = true }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 winreg = "0.51"
@@ -69,7 +73,7 @@ uuid = { version = "1", features = [ "v4", "v5" ] }
 regex = "1.10"
 
   [target."cfg(target_os = \"windows\")".dependencies.windows-sys]
-  version = "0.48"
+  version = "0.52"
   features = [
   "Win32_System_SystemInformation",
   "Win32_System_Diagnostics_Debug"

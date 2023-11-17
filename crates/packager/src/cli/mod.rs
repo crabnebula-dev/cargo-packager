@@ -6,18 +6,14 @@
 
 #![cfg(feature = "cli")]
 
-use std::{
-    ffi::OsStr,
-    fmt::Write,
-    path::{Path, PathBuf},
-};
+use std::{ffi::OsString, fmt::Write, path::PathBuf};
 
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
 use self::config::{find_config_files, load_configs_from_cargo_workspace, parse_config_file};
 use crate::{
     config::{Config, LogLevel, PackageFormat},
-    package, sign_outputs, util, Result, SigningConfig,
+    init_tracing_subscriber, package, parse_log_level, sign_outputs, util, Result, SigningConfig,
 };
 
 mod config;
@@ -85,7 +81,7 @@ pub(crate) struct Cli {
 }
 
 #[tracing::instrument(level = "trace")]
-fn try_run(cli: Cli) -> Result<()> {
+fn run_cli(cli: Cli) -> Result<()> {
     // run subcommand and exit if one was specified,
     // otherwise run the default packaging command
     if let Some(command) = cli.command {
@@ -239,61 +235,39 @@ fn try_run(cli: Cli) -> Result<()> {
     Ok(())
 }
 
-fn parse_log_level(verbose: u8) -> tracing::Level {
-    match verbose {
-        0 => tracing_subscriber::EnvFilter::builder()
-            .from_env_lossy()
-            .max_level_hint()
-            .and_then(|l| l.into_level())
-            .unwrap_or(tracing::Level::INFO),
-        1 => tracing::Level::DEBUG,
-        2.. => tracing::Level::TRACE,
-    }
-}
-
 /// Run the packager CLI
-pub fn run() {
-    // prepare cli args
-    let mut args = std::env::args_os().peekable();
-    if let Some("cargo-packager") = args
-        .next()
-        .as_deref()
-        .map(Path::new)
-        .and_then(Path::file_stem)
-        .and_then(OsStr::to_str)
-    {
-        if args.peek().and_then(|s| s.to_str()) == Some("packager") {
-            // remove the extra cargo subcommand
-            args.next();
-        }
-    }
-
-    let cli = Cli::command();
-    let matches = cli.get_matches_from(args);
-    let res = Cli::from_arg_matches(&matches).map_err(|e| e.format(&mut Cli::command()));
-    let cli = match res {
-        Ok(s) => s,
-        Err(e) => e.exit(),
-    };
-
-    if !cli.quite {
-        let level = parse_log_level(cli.verbose);
-
-        let debug = level == tracing::Level::DEBUG;
-        let tracing = level == tracing::Level::TRACE;
-
-        tracing_subscriber::fmt()
-            .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
-            .without_time()
-            .with_target(debug)
-            .with_line_number(tracing)
-            .with_file(tracing)
-            .with_max_level(level)
-            .init();
-    }
-
-    if let Err(e) = try_run(cli) {
+pub fn run<I, A>(args: I, bin_name: Option<String>)
+where
+    I: IntoIterator<Item = A>,
+    A: Into<OsString> + Clone,
+{
+    if let Err(e) = try_run(args, bin_name) {
         tracing::error!("{}", e);
         std::process::exit(1);
     }
+}
+
+/// Try run the packager CLI
+pub fn try_run<I, A>(args: I, bin_name: Option<String>) -> Result<()>
+where
+    I: IntoIterator<Item = A>,
+    A: Into<OsString> + Clone,
+{
+    let cli = match &bin_name {
+        Some(bin_name) => Cli::command().bin_name(bin_name),
+        None => Cli::command(),
+    };
+    let matches = cli.get_matches_from(args);
+    let cli = Cli::from_arg_matches(&matches).map_err(|e| {
+        e.format(&mut match &bin_name {
+            Some(bin_name) => Cli::command().bin_name(bin_name),
+            None => Cli::command(),
+        })
+    })?;
+
+    if !cli.quite {
+        init_tracing_subscriber(cli.verbose);
+    }
+
+    run_cli(cli)
 }

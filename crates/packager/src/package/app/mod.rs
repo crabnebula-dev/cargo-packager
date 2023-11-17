@@ -26,6 +26,10 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let app_product_name = format!("{}.app", config.product_name);
     let app_bundle_path = config.out_dir().join(&app_product_name);
 
+    if app_bundle_path.exists() {
+        std::fs::remove_dir_all(&app_bundle_path)?;
+    }
+
     tracing::info!(
         "Packaging {} ({})",
         app_product_name,
@@ -74,7 +78,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     tracing::debug!("Copying binaries");
     for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
-        let dest_path = bin_dir.join(&bin.filename);
+        let dest_path = bin_dir.join(bin.path.file_name().unwrap());
         std::fs::copy(&bin_path, &dest_path)?;
         sign_paths.push(SignTarget {
             path: dest_path,
@@ -307,7 +311,7 @@ fn copy_frameworks_to_bundle(
         std::fs::create_dir_all(contents_directory)?;
 
         for framework in frameworks {
-            if framework.ends_with(".framework") {
+            if framework.ends_with(".framework") || framework.ends_with(".app") {
                 let src_path = PathBuf::from(framework);
                 let src_name = src_path
                     .file_name()
@@ -332,7 +336,7 @@ fn copy_frameworks_to_bundle(
             } else if framework.contains('/') {
                 return Err(crate::Error::InvalidFramework {
                     framework: framework.to_string(),
-                    reason: "path should have the .framework extension",
+                    reason: "framework extension should be either .framework, .dylib or .app",
                 });
             }
             if let Some(home_dir) = dirs::home_dir() {
