@@ -670,7 +670,6 @@ impl Update {
             Box::new(|| Some(self.extract_path.parent().unwrap().to_path_buf())),
         ];
 
-        dbg!(&self.extract_path);
         for tmp_dir_location in tmp_dir_locations {
             if let Some(tmp_dir) = tmp_dir_location() {
                 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -681,20 +680,26 @@ impl Update {
                     perms.set_mode(0o700);
                     std::fs::set_permissions(&tmp_dir, perms)?;
 
+                    dbg!(&tmp_dir);
                     let (_, tmp_app_image) = tempfile::Builder::new()
                         .prefix("current_app")
                         .suffix(".AppImage")
                         .tempfile_in(tmp_dir)?
                         .keep()?;
+                    dbg!(1);
 
                     // create a backup of our current app image
                     std::fs::rename(&self.extract_path, &tmp_app_image)?;
+                    dbg!(3);
 
                     // if something went wrong during the extraction, we should restore previous app
                     if let Err(err) = std::fs::write(&self.extract_path, bytes) {
+                        dbg!(4);
                         std::fs::rename(tmp_app_image, &self.extract_path)?;
+                        dbg!(5);
                         return Err(err.into());
                     }
+                    dbg!(6);
 
                     // early finish we have everything we need here
                     return Ok(());
