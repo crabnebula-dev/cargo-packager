@@ -48,3 +48,25 @@ jobs:
           commit-message: "release: apply version updates from current changes"
           labels: "version updates"
           body: ${{ steps.covector.outputs.change }}
+
+      - name: Get `@crabnebula/packager` release id
+        uses: actions/github-script@v6
+        id: cliReleaseId
+        if: |
+          steps.covector.outputs.successfulPublish == 'true' &&
+          contains(steps.covector.outputs.packagesPublished, '@crabnebula/packager')
+        with:
+          result-encoding: string
+          script: |
+            const output = `${{ toJSON(steps.covector.outputs) }}`;
+            const [_, id] = /"-crabnebula-packager-releaseId": "([0-9]+)"/g.exec(output);
+            return id;
+
+      - name: Trigger `@crabnebula/packager` publishing workflow
+        if: |
+          steps.covector.outputs.successfulPublish == 'true' &&
+          contains(steps.covector.outputs.packagesPublished, '@crabnebula/packager')
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          event-type: publish-packager-nodejs
+          client-payload: '{"releaseId": "${{ steps.cliReleaseId.outputs.result }}" }'
