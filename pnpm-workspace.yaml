@@ -1,0 +1,3 @@
+packages:
+  - bindings/packager/nodejs
+  - examples/electron
