@@ -734,9 +734,7 @@ impl Update {
         for entry in archive.entries()? {
             let mut entry = entry?;
 
-            // skip the first folder (should be the app name)
-            let collected_path: PathBuf = entry.path()?.iter().skip(1).collect();
-            let extraction_path = &self.extract_path.join(collected_path);
+            let extraction_path = &self.extract_path.join(entry.path()?);
 
             // if something went wrong during the extraction, we should restore previous app
             if let Err(err) = entry.unpack(extraction_path) {

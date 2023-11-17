@@ -81,7 +81,7 @@
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![deny(missing_docs)]
 
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 mod codesign;
 mod error;
@@ -154,7 +154,10 @@ pub fn sign_outputs(
                 let zip = path.with_extension(extension);
                 let dest_file = util::create_file(&zip)?;
                 let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
-                util::create_tar_from_dir(path, gzip_encoder)?;
+                let writer = util::create_tar_from_dir(path, gzip_encoder)?;
+                let mut dest_file = writer.finish().into_result()?;
+                dest_file.flush()?;
+
                 package.paths.push(zip);
                 package.paths.last().unwrap()
             } else {
