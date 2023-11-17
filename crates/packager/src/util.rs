@@ -225,7 +225,7 @@ pub(crate) enum Bitness {
 #[cfg(windows)]
 pub(crate) fn os_bitness() -> crate::Result<Bitness> {
     use windows_sys::Win32::System::{
-        Diagnostics::Debug::{PROCESSOR_ARCHITECTURE_AMD64, PROCESSOR_ARCHITECTURE_INTEL},
+        SystemInformation::{PROCESSOR_ARCHITECTURE_AMD64, PROCESSOR_ARCHITECTURE_INTEL},
         SystemInformation::{GetNativeSystemInfo, SYSTEM_INFO},
     };
 
