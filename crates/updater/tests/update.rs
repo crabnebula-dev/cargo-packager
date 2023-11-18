@@ -228,11 +228,6 @@ fn update_app() {
                     .1
                     .join("Contents/MacOS/cargo-packager-updater-app-test"),
             )
-        } else if std::env::var("CI").map(|v| v == "true").unwrap_or_default() {
-            let mut c = Command::new("xvfb-run");
-            c.arg("--auto-servernum")
-                .arg(&package_paths(&root_dir, "0.1.0").first().unwrap().1);
-            c
         } else {
             Command::new(&package_paths(&root_dir, "0.1.0").first().unwrap().1)
         };
@@ -261,6 +256,7 @@ fn update_app() {
                     break;
                 }
             }
+            counter += 1;
             if counter == 10 {
                 panic!("updater test timedout and couldn't verify the update has happened")
             }
