@@ -244,7 +244,7 @@ fn update_app() {
         // wait until the update is finished and the new version has been installed
         // before starting another updater test, this is because we use the same starting binary
         // and we can't use it while the updater is installing it
-        let counter = 0;
+        let mut counter = 0;
         loop {
             std::thread::sleep(std::time::Duration::from_secs(2));
             if let Ok(o) = binary_cmd
