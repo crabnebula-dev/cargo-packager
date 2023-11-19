@@ -247,15 +247,21 @@ fn update_app() {
         let mut counter = 0;
         loop {
             std::thread::sleep(std::time::Duration::from_secs(2));
-            if let Ok(o) = binary_cmd
-                .output()
-                .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
-            {
-                let version = o.split_once('\n').unwrap().0;
-                if version == "1.0.0" {
-                    break;
+            match binary_cmd.output() {
+                Ok(o) => {
+                    let output = String::from_utf8_lossy(&o.stdout).to_string();
+                    let version = output.split_once('\n').unwrap().0;
+                    if version == "1.0.0" {
+                        break;
+                    }
+                    println!("unexpected output {output}");
+                    eprintln!("stderr: {}", String::from_utf8_lossy(&o.stderr));
+                }
+                Err(e) => {
+                    eprintln!("failed to check if app was updated: {e}");
                 }
             }
+
             counter += 1;
             if counter == 10 {
                 panic!("updater test timedout and couldn't verify the update has happened")
