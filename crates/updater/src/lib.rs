@@ -671,20 +671,20 @@ impl Update {
         ];
 
         for tmp_dir_location in tmp_dir_locations {
-            if let Some(tmp_dir) = tmp_dir_location() {
+            if let Some(tmp_dir_root) = tmp_dir_location() {
                 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
+                let (_, tmp_dir) = tempfile::Builder::new()
+                    .prefix("current_app")
+                    .tempdir_in(tmp_dir_root)?;
                 let tmp_dir_metadata = tmp_dir.metadata()?;
+
                 if extract_path_metadata.dev() == tmp_dir_metadata.dev() {
                     let mut perms = tmp_dir_metadata.permissions();
                     perms.set_mode(0o700);
                     std::fs::set_permissions(&tmp_dir, perms)?;
 
-                    let (_, tmp_app_image) = tempfile::Builder::new()
-                        .prefix("current_app")
-                        .suffix(".AppImage")
-                        .tempfile_in(tmp_dir)?
-                        .keep()?;
+                    let tmp_app_image = tmp_dir.path().join("current_app.AppImage");
 
                     // get metadata to restore later
                     let metadata = self.extract_path.metadata()?;
