@@ -674,7 +674,7 @@ impl Update {
             if let Some(tmp_dir_root) = tmp_dir_location() {
                 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
-                let (_, tmp_dir) = tempfile::Builder::new()
+                let tmp_dir = tempfile::Builder::new()
                     .prefix("current_app")
                     .tempdir_in(tmp_dir_root)?;
                 let tmp_dir_metadata = tmp_dir.metadata()?;
