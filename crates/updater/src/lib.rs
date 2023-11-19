@@ -677,7 +677,7 @@ impl Update {
                 let tmp_dir = tempfile::Builder::new()
                     .prefix("current_app")
                     .tempdir_in(tmp_dir_root)?;
-                let tmp_dir_metadata = tmp_dir.metadata()?;
+                let tmp_dir_metadata = tmp_dir.path().metadata()?;
 
                 if extract_path_metadata.dev() == tmp_dir_metadata.dev() {
                     let mut perms = tmp_dir_metadata.permissions();
