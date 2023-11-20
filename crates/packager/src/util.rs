@@ -225,8 +225,8 @@ pub(crate) enum Bitness {
 #[cfg(windows)]
 pub(crate) fn os_bitness() -> crate::Result<Bitness> {
     use windows_sys::Win32::System::{
-        SystemInformation::{PROCESSOR_ARCHITECTURE_AMD64, PROCESSOR_ARCHITECTURE_INTEL},
         SystemInformation::{GetNativeSystemInfo, SYSTEM_INFO},
+        SystemInformation::{PROCESSOR_ARCHITECTURE_AMD64, PROCESSOR_ARCHITECTURE_INTEL},
     };
 
     let mut system_info: SYSTEM_INFO = unsafe { std::mem::zeroed() };

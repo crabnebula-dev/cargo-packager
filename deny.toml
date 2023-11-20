@@ -3,12 +3,21 @@ targets = [
     { triple = "x86_64-unknown-linux-gnu" },
     { triple = "aarch64-unknown-linux-gnu" },
     { triple = "x86_64-pc-windows-msvc" },
+    { triple = "i686-pc-windows-msvc" },
     { triple = "x86_64-apple-darwin" },
     { triple = "aarch64-apple-darwin" },
 ]
 
 # exclude examples and their dependecies
-exclude = ["dioxus-example", "egui-example", "slint-example", "tauri-example", "wry-example"]
+exclude = [
+    "dioxus-example",
+    "egui-example",
+    "slint-example",
+    "tauri-example",
+    "tauri-example-with-updater",
+    "wry-example",
+    "cargo-packager-updater-app-test",
+]
 
 [licenses]
 # List of explicitly allowed licenses
@@ -24,7 +33,7 @@ allow = [
     "MPL-2.0",
     "BSD-3-Clause",
     "OpenSSL",
-    "Zlib"
+    "Zlib",
 ]
 
 # Sigh

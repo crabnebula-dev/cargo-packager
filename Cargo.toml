@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "examples/*", "bindings/*/nodejs"]
+members = ["crates/*", "examples/*", "bindings/*/nodejs", "crates/updater/tests/app"]
 exclude = ["examples/deno", "examples/wails", "examples/electron"]
 resolver = "2"
 
@@ -20,6 +20,8 @@ dirs = "5.0"
 semver = "1"
 base64 = "0.21"
 tracing = "0.1"
+time = "0.3"
+tar = "0.4"
 
 [profile.release-size-optimized]
 inherits = "release"

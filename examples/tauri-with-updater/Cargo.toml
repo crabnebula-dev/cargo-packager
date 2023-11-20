@@ -1,27 +1,62 @@
-name = "wails-example"
-before-packaging-command = "wails build -noPackage"
-out-dir = "./build/bin"
+[package]
+name = "tauri-example-with-updater"
 version = "0.0.0"
-product-name = "Wails example"
-identifier = "com.wails.example"
-resources = ["Cargo.toml", "src", "32x32.png"]
-icons = ["32x32.png"]
-binaries = [{ path = "wails_example", main = true }]
+edition = "2021"
+publish = false
 
-[deb]
-depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0"]
+[build-dependencies]
+tauri-build = { version = "=2.0.0-alpha.6", features = [] }
 
-[appimage]
+[dependencies]
+tauri = { version = "=2.0.0-alpha.10", features = ["devtools"] }
+tauri-utils = { version = "=2.0.0-alpha.6", features = [] }
+tauri-macros = "=2.0.0-alpha.6"
+serde.workspace = true
+serde_json.workspace = true
+cargo-packager-updater = { path = "../../crates/updater" }
+
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
+
+[package.metadata.packager]
+before-packaging-command = "cargo tauri build"
+product-name = "Tauri example (with updater)"
+identifier = "com.tauri-with-updater.example"
+resources = [
+  "Cargo.toml",
+  "../../README.md",
+  "icons/*",
+  "src",
+  { src = "src-ui/assets/tauri.svg", target = "path/to/tauri.svg" },
+  { src = "src-ui", target = "path/to/src-ui" },
+  { src = "src-ui/assets/*", target = "public" },
+]
+icons = [
+  "icons/32x32.png",
+  "icons/128x128.png",
+  "icons/128x128@2x.png",
+  "icons/icon.icns",
+  "icons/icon.ico",
+]
+
+[package.metadata.packager.deb]
+depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"]
+
+[package.metadata.packager.appimage]
+bins = ["/usr/bin/xdg-open"]
 libs = [
   "WebKitNetworkProcess",
   "WebKitWebProcess",
   "libwebkit2gtkinjectedbundle.so",
+  "libayatana-appindicator3.so.1",
 ]
 
-[appimage.linuxdeploy-plugins]
+[package.metadata.packager.appimage.linuxdeploy-plugins]
 "gtk" = "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
 
-[nsis]
+[package.metadata.packager.nsis]
 appdata-paths = ["$LOCALAPPDATA/$IDENTIFIER"]
 preinstall-section = """
 ; Setup messages

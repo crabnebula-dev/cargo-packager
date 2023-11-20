@@ -31,7 +31,7 @@ pub fn command(mut options: Options) -> crate::Result<()> {
         options.password.replace("".into());
     }
 
-    tracing::info!("Generating a new signgin key.");
+    tracing::info!("Generating a new signing key.");
     let keypair = crate::sign::generate_key(options.password)?;
 
     match options.path {
@@ -45,7 +45,7 @@ pub fn command(mut options: Options) -> crate::Result<()> {
         }
         None => {
             tracing::info!("Finished generating secret key:\n{}", keypair.sk);
-            tracing::info!("Finished generating publick key:\n{}", keypair.pk);
+            tracing::info!("Finished generating public key:\n{}", keypair.pk);
         }
     }
 
