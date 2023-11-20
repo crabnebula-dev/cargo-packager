@@ -274,6 +274,7 @@ impl UpdaterBuilder {
                     current_exe()?
                 }
             }
+            #[cfg(any(windows, target_os = "macos"))]
             _ => current_exe()?,
         };
 
