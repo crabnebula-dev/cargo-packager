@@ -33,4 +33,4 @@ tar = { workspace = true }
 flate2 = "1.0.27"
 
 [dev-dependencies]
-tiny_http = "0.11"
+tiny_http = "0.12"
