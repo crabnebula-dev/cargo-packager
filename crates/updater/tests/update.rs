@@ -140,9 +140,7 @@ fn update_app() {
         let out_package_ext = out_package_path.extension().unwrap().to_str().unwrap();
 
         let out_updater_path = if out_package_path.is_dir() {
-            let updater_zip_ext = if cfg!(windows) { "zip" } else { "tar.gz" };
-
-            out_package_path.with_extension(format!("{}.{}", out_package_ext, updater_zip_ext))
+            out_package_path.with_extension(format!("{}.{}", out_package_ext, "tar.gz"))
         } else {
             out_package_path
         };
@@ -155,12 +153,18 @@ fn update_app() {
             panic!("failed to read signature file {}", signature_path.display())
         });
 
-        // we need to move it otherwise it'll be overwritten when we build the next app
-        let updater_path = out_updater_path.with_file_name(format!(
-            "update-{}",
-            out_updater_path.file_name().unwrap().to_str().unwrap()
-        ));
-        std::fs::rename(&out_updater_path, &updater_path).expect("failed to rename bundle");
+        #[cfg(target_os = "macos")]
+        let updater_path = {
+            // we need to move it otherwise it'll be overwritten when we build the next app
+            let updater_path = out_updater_path.with_file_name(format!(
+                "update-{}",
+                out_updater_path.file_name().unwrap().to_str().unwrap()
+            ));
+            std::fs::rename(&out_updater_path, &updater_path).expect("failed to rename bundle");
+            updater_path
+        };
+        #[cfg(not(target_os = "macos"))]
+        let updater_path = out_updater_path;
 
         let target = target.clone();
         std::thread::spawn(move || {
