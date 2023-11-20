@@ -264,14 +264,24 @@ impl UpdaterBuilder {
             (target.to_string(), format!("{target}-{arch}"))
         };
 
-        let executable_path = self.executable_path.clone().unwrap_or(current_exe()?);
+        let executable_path = match self.executable_path {
+            Some(p) => p,
+            #[cfg(not(any(windows, target_os = "macos")))]
+            None => {
+                if let Some(appimage) = std::env::var_os("APPIMAGE").map(PathBuf::from) {
+                    appimage
+                } else {
+                    current_exe()?
+                }
+            }
+            _ => current_exe()?,
+        };
 
         // Get the extract_path from the provided executable_path
-        let extract_path = if cfg!(target_os = "linux") {
-            executable_path
-        } else {
-            extract_path_from_executable(&executable_path)?
-        };
+        #[cfg(any(windows, target_os = "macos"))]
+        let extract_path = extract_path_from_executable(&executable_path)?;
+        #[cfg(not(any(windows, target_os = "macos")))]
+        let extract_path = executable_path;
 
         Ok(Updater {
             config: self.config,
@@ -801,6 +811,7 @@ pub(crate) fn get_updater_arch() -> Option<&'static str> {
     }
 }
 
+#[cfg(any(windows, target_os = "macos"))]
 pub fn extract_path_from_executable(executable_path: &Path) -> Result<PathBuf> {
     // Return the path of the current executable by default
     // Example C:\Program Files\My App\
