@@ -35,7 +35,7 @@ pub use semver;
 pub use url;
 
 /// Install modes for the Windows update.
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub enum WindowsUpdateInstallMode {
     /// Specifies there's a basic UI during the installation process, including a final dialog box at the end.
     BasicUi,
@@ -68,7 +68,8 @@ impl WindowsUpdateInstallMode {
 }
 
 /// The updater configuration for Windows.
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdaterWindowsConfig {
     /// Additional arguments given to the NSIS or WiX installer.
     pub installer_args: Vec<String>,
@@ -77,8 +78,10 @@ pub struct UpdaterWindowsConfig {
 }
 
 /// Updater configuration.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
+    /// The updater endpoints.
     pub endpoints: Vec<Url>,
     /// Signature public key.
     pub pubkey: String,
@@ -415,7 +418,8 @@ impl Updater {
 
 #[derive(Debug, Clone)]
 pub struct Update {
-    config: Config,
+    /// Config used to check for this update.
+    pub config: Config,
     /// Update description
     pub body: Option<String>,
     /// Version used to check for update
@@ -427,8 +431,7 @@ pub struct Update {
     /// Target
     pub target: String,
     /// Extract path
-    #[allow(unused)]
-    extract_path: PathBuf,
+    pub extract_path: PathBuf,
     /// Download URL announced
     pub download_url: Url,
     /// Signature announced

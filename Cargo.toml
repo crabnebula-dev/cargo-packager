@@ -22,6 +22,9 @@ base64 = "0.21"
 tracing = "0.1"
 time = "0.3"
 tar = "0.4"
+napi = { version = "2.12.2", default-features = false }
+napi-derive = "2.12"
+napi-build = "2.1.0"
 
 [profile.release-size-optimized]
 inherits = "release"

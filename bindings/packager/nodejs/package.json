@@ -25,20 +25,6 @@
     }
   },
   "license": "MIT",
-  "devDependencies": {
-    "@napi-rs/cli": "^2.16.5",
-    "@types/fs-extra": "^11.0.3",
-    "@types/node": "^20.8.10",
-    "ava": "^5.1.1",
-    "json-schema-to-typescript": "^13.1.1",
-    "typescript": "^5.2.2"
-  },
-  "ava": {
-    "timeout": "3m"
-  },
-  "engines": {
-    "node": ">= 10"
-  },
   "scripts": {
     "artifacts": "napi artifacts",
     "build:config": "node generate-config-type.js",
@@ -57,5 +43,19 @@
     "extract-zip": "^2.0.1",
     "fs-extra": "^11.1.1",
     "galactus": "^1.0.0"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.16.5",
+    "@types/fs-extra": "^11.0.3",
+    "@types/node": "^20.8.10",
+    "ava": "^5.1.1",
+    "json-schema-to-typescript": "^13.1.1",
+    "typescript": "^5.2.2"
+  },
+  "ava": {
+    "timeout": "3m"
+  },
+  "engines": {
+    "node": ">= 10"
   }
 }

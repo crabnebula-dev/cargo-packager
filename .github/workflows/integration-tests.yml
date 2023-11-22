@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  run-integration-tests:
+  test:
     runs-on: ${{ matrix.platform }}
 
     strategy:

@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      prettier:
+        specifier: ^3.1.0
+        version: 3.1.0
 
   bindings/packager/nodejs:
     dependencies:
@@ -45,7 +49,20 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
+  bindings/updater/nodejs:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^2.16.5
+        version: 2.16.5
+      ava:
+        specifier: ^5.1.1
+        version: 5.3.1
+
   examples/electron:
+    dependencies:
+      '@crabnebula/updater':
+        specifier: 'workspace:'
+        version: link:../../bindings/updater/nodejs
     devDependencies:
       electron:
         specifier: ^27.0.3
@@ -1435,6 +1452,12 @@ packages:
   /prettier@2.8.8:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
     engines: {node: '>=10.13.0'}
+    hasBin: true
+    dev: true
+
+  /prettier@3.1.0:
+    resolution: {integrity: sha512-TQLvXjq5IAibjh8EpBIkNKxO749UEWABoiIZehEPiY4GNpVdhaFKqSTu+QrlU6D2dPAfubRmtJTi4K4YkQ5eXw==}
+    engines: {node: '>=14'}
     hasBin: true
     dev: true
 

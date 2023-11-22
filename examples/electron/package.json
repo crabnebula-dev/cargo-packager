@@ -4,9 +4,6 @@
   "version": "1.0.0",
   "description": "Hello World!",
   "main": "main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/crabnebula-dev/cargo-packager.git"
@@ -17,6 +14,9 @@
     "url": "https://github.com/crabnebula-dev/cargo-packager/issues"
   },
   "homepage": "https://github.com/crabnebula-dev/cargo-packager#readme",
+  "dependencies": {
+    "@crabnebula/updater": "workspace:"
+  },
   "devDependencies": {
     "electron": "^27.0.3"
   },

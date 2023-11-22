@@ -29,12 +29,12 @@ targets = [
 ]
 
 [features]
-default = [ "cli", "rustls" ]
+default = [ "cli", "rustls-tls" ]
 cli = [ "clap", "dep:tracing-subscriber" ]
 schema = [ "schemars" ]
 native-tls = [ "ureq/native-tls" ]
 native-tls-vendored = [ "native-tls", "native-tls/vendored" ]
-rustls = [ "ureq/tls" ]
+rustls-tls = [ "ureq/tls" ]
 
 [dependencies]
 thiserror = { workspace = true }
