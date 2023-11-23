@@ -293,18 +293,11 @@ fn update_app() {
         // This is read by the updater app test
         binary_cmd.env("UPDATER_FORMAT", updater_format.name());
 
-        let status = binary_cmd.status().expect("failed to run app");
-
-        if !status.success() {
-            panic!("failed to run app");
-        }
-
         // wait until the update is finished and the new version has been installed
         // before starting another updater test, this is because we use the same starting binary
         // and we can't use it while the updater is installing it
         let mut counter = 0;
         loop {
-            std::thread::sleep(std::time::Duration::from_secs(2));
             match binary_cmd.output() {
                 Ok(o) => {
                     let output = String::from_utf8_lossy(&o.stdout).to_string();
@@ -325,6 +318,7 @@ fn update_app() {
             if counter == 10 {
                 panic!("updater test timedout and couldn't verify the update has happened")
             }
+            std::thread::sleep(std::time::Duration::from_secs(2));
         }
 
         // force a new build of the updater app test

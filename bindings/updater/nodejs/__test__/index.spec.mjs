@@ -22,7 +22,7 @@ test("it works", async (t) => {
   const buildApp = async (version, updaterFormats) => {
     await writeFile(
       join(appDir, "dist", "ver.js"),
-      `module.exports.version = "${version}";`,
+      `module.exports.version = "${version}";`
     );
 
     try {
@@ -43,7 +43,7 @@ test("it works", async (t) => {
             CARGO_PACKAGER_SIGN_PRIVATE_KEY: UPDATER_PRIVATE_KEY,
             CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: "",
           },
-        },
+        }
       );
     } catch (e) {
       console.error("failed to package app");
@@ -54,7 +54,7 @@ test("it works", async (t) => {
   // bundle app update
   await buildApp(
     "1.0.0",
-    isWindows ? ["nsis", "wix"] : isMacos ? ["app"] : ["appimage"],
+    isWindows ? ["nsis", "wix"] : isMacos ? ["app"] : ["appimage"]
   );
 
   const packgePaths = (version) => {
@@ -143,25 +143,14 @@ test("it works", async (t) => {
         ? "updater-app-test.exe"
         : isMacos
           ? "PackagerAppUpdaterTestNodejs.app/Contents/MacOS/cargo-packager-updater-app-test"
-          : `updater-app-test_${version}_x86_64.AppImage`,
+          : `updater-app-test_${version}_x86_64.AppImage`
     );
-
-    try {
-      await execa(app, [], {
-        env: { UPDATER_FORMAT: updaterFormat },
-      });
-    } catch (e) {
-      console.error("failed to run app");
-      console.error(e);
-    }
 
     // wait until the update is finished and the new version has been installed
     // before starting another updater test, this is because we use the same starting binary
     // and we can't use it while the updater is installing it
     let counter = 0;
     while (true) {
-      await sleep(2000);
-
       try {
         const { stdout, stderr } = await execa(app, [], {
           env: { UPDATER_FORMAT: updaterFormat },
@@ -183,10 +172,12 @@ test("it works", async (t) => {
       counter += 1;
       if (counter == 10) {
         console.error(
-          "updater test timedout and couldn't verify the update has happened",
+          "updater test timedout and couldn't verify the update has happened"
         );
         break;
       }
+
+      await sleep(2000);
     }
 
     server.close();
