@@ -38,6 +38,7 @@ fn build_app(cwd: &Path, root_dir: &Path, version: &str, target: &[UpdaterFormat
             "--package",
             "cargo-packager",
             "--",
+            "--verbose",
             "-f",
            &target.iter().map(|t|t.name()).collect::<Vec<_>>().join(","),
             "-c",
@@ -141,7 +142,7 @@ fn update_app() {
         let out_updater_path = if out_package_path.is_dir() {
             out_package_path.with_extension(format!("{}.{}", out_package_ext, "tar.gz"))
         } else {
-            out_package_path
+            out_package_path.clone()
         };
 
         let signature_path = out_updater_path.with_extension(format!(
@@ -220,6 +221,60 @@ fn update_app() {
 
         // bundle initial app version
         build_app(&manifest_dir, &root_dir, "0.1.0", &[updater_format]);
+
+        // install the app through the installer
+        #[cfg(windows)]
+        {
+            let install_dir = root_dir
+                .join("target/debug")
+                .display()
+                .to_string()
+                .replace("\\\\?\\", "");
+
+            let mut installer_arg = std::ffi::OsString::new();
+            installer_arg.push("\"");
+            installer_arg.push(
+                out_package_path
+                    .display()
+                    .to_string()
+                    .replace("\\\\?\\", ""),
+            );
+            installer_arg.push("\"");
+
+            let status = Command::new("powershell.exe")
+                .args(["-NoProfile", "-WindowStyle", "Hidden"])
+                .args(["Start-Process"])
+                .arg(installer_arg)
+                .arg("-ArgumentList")
+                .arg(
+                    [
+                        match updater_format {
+                            UpdaterFormat::Wix => "/passive",
+                            UpdaterFormat::Nsis => "/P",
+                            _ => unreachable!(),
+                        },
+                        &format!(
+                            "{}={}",
+                            match updater_format {
+                                UpdaterFormat::Wix => "INSTALLDIR",
+                                UpdaterFormat::Nsis => "/D",
+                                _ => unreachable!(),
+                            },
+                            install_dir
+                        ),
+                    ]
+                    .join(", "),
+                )
+                .status()
+                .expect("failed to run installer");
+
+            if !status.success() {
+                panic!("failed to run installer");
+            }
+        }
+
+        // wait 2secs to make sure the installer have released its lock on the binary
+        std::thread::sleep(std::time::Duration::from_secs(2));
 
         let mut binary_cmd = if cfg!(windows) {
             Command::new(root_dir.join("target/debug/cargo-packager-updater-app-test.exe"))
