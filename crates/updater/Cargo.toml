@@ -23,7 +23,7 @@ semver = { workspace = true }
 base64 = { workspace = true }
 time = { workspace = true, features = ["parsing", "formatting"] }
 http = "0.2"
-url = { version = "2.4", features = ["serde"]}
+url = { version = "2.5", features = ["serde"]}
 minisign-verify = "0.2"
 ctor = "0.2"
 tempfile = "3.8"
