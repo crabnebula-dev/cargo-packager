@@ -2,7 +2,6 @@
   "private": true,
   "scripts": {
     "build": "pnpm run -r --parallel build",
-    "test": "pnpm run -r --parallel test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

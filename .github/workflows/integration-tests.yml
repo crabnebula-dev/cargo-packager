@@ -47,5 +47,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm test
+      - name: packager integration tests
+        run: |
+          cd bindings/packager/nodejs
+          pnpm test
+        timeout-minutes: 30
+      - name: updater integration tests
+        run: |
+          cd bindings/updater/nodejs
+          pnpm test
         timeout-minutes: 30

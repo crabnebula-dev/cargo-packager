@@ -33,6 +33,7 @@
     "build:debug": "pnpm build:config && pnpm build:ts && napi build --platform",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
     "test": "ava --no-worker-threads",
+    "pretest": "pnpm run build:ts",
     "universal": "napi universal",
     "version": "napi version"
   },

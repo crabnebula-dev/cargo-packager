@@ -14,10 +14,14 @@ const UPDATER_PRIVATE_KEY =
 test("it works", async (t) => {
   const isWindows = process.platform === "win32";
   const isMacos = process.platform === "darwin";
-  const appDir = join(__dirname, "..", "__test__", "app");
+  const appDir = join(__dirname, "app");
   const target = `${isWindows ? "windows" : isMacos ? "macos" : "linux"}-${
     process.arch === "x64" ? "x86_64" : "i686"
   }`;
+
+  await execa("pnpm", ["build"], {
+    cwd: join(__dirname, "..", "..", "..", "packager", "nodejs"),
+  });
 
   const buildApp = async (version, updaterFormats) => {
     await writeFile(
