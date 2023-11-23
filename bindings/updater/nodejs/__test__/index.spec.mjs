@@ -169,8 +169,8 @@ test("it works", async (t) => {
           env: { UPDATER_FORMAT: updaterFormat },
         });
         const version = stdout.split("\n")[0];
-        t.is(version, "1.0.0");
-        if (version == "1.0.0") {
+        if (version === "1.0.0") {
+          t.is(version, "1.0.0");
           console.log(`app is updated, new version: ${version}`);
           break;
         }
