@@ -96,6 +96,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v4
         if: ${{ !matrix.settings.docker }}
@@ -170,6 +171,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v4
         with:
@@ -200,6 +202,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v4
         with:
@@ -231,6 +234,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v4
         with:
@@ -273,6 +277,7 @@ jobs:
         shell: bash
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - name: Install dependencies
         run: |
@@ -311,6 +316,7 @@ jobs:
         shell: bash
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - name: Install dependencies
         run: |
@@ -354,6 +360,7 @@ jobs:
         shell: bash
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - name: Install dependencies
         run: |
@@ -388,6 +395,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
+          version: latest
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v4
       - run: pnpm install
