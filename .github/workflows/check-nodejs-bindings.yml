@@ -1,4 +1,4 @@
-name: Test Node.js bindings
+name: Check Node.js bindings
 
 on:
   push:
