@@ -1,6 +1,6 @@
 import test from "ava";
 import { writeFile, stat, readFile, rename } from "fs/promises";
-import { join, extname, format, parse } from "path";
+import { join, format, parse } from "path";
 import { execa } from "execa";
 import { fileURLToPath } from "url";
 import { App } from "@tinyhttp/app";
@@ -89,7 +89,7 @@ test("it works", async (t) => {
 
   for (const [updaterFormat, outPackagePath] of packgePaths("1.0.0")) {
     const outUpdaterPath = (await stat(outPackagePath)).isDirectory()
-      ? `${outPackagePath}${extname(outPackagePath)}.tar.gz`
+      ? `${outPackagePath}.tar.gz`
       : outPackagePath;
 
     const signaturePath = format({ name: outUpdaterPath, ext: ".sig" });
@@ -156,7 +156,7 @@ test("it works", async (t) => {
         ? "updater-app-test.exe"
         : isMacos
           ? "PackagerAppUpdaterTestNodejs.app/Contents/MacOS/cargo-packager-updater-app-test"
-          : `updater-app-test_${version}_x86_64.AppImage`,
+          : `updater-app-test_0.1.0_x86_64.AppImage`,
     );
 
     // wait until the update is finished and the new version has been installed
