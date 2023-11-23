@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  test:
+  test-rust:
     if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ${{ matrix.platform }}
 
@@ -28,3 +28,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --test '*' -- --ignored --nocapture
+
+  test-nodejs:
+    runs-on: ${{ matrix.platform }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+      - uses: Swatinem/rust-cache@v2
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm test
+        timeout-minutes: 30

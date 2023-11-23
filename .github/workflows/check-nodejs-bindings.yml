@@ -45,6 +45,3 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm test
-        if: ${{ !startsWith(github.head_ref, 'renovate/') }}
-        timeout-minutes: 30
