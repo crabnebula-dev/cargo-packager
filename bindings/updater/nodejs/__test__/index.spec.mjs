@@ -1,5 +1,5 @@
 import test from "ava";
-import { writeFile, stat, readFile, rename } from "fs/promises";
+import { writeFile, stat, readFile, rename, readdir } from "fs/promises";
 import { join, extname, format, parse } from "path";
 import { execa } from "execa";
 import { fileURLToPath } from "url";
@@ -79,8 +79,10 @@ test("it works", async (t) => {
   };
 
   for (const [updaterFormat, outPackagePath] of packgePaths("1.0.0")) {
+    const info = parse(outUpdaterPath);
+    console.log(await readdir(info.dir));
     const outUpdaterPath = (await stat(outPackagePath)).isDirectory()
-      ? `${outPackagePath}${extname(extoutPackagePath)}.tar.gz`
+      ? `${outPackagePath}${extname(outPackagePath)}.tar.gz`
       : outPackagePath;
 
     const signaturePath = format({ name: outUpdaterPath, ext: ".sig" });
