@@ -14,9 +14,6 @@
     "url": "https://github.com/crabnebula-dev/cargo-packager/issues"
   },
   "homepage": "https://github.com/crabnebula-dev/cargo-packager#readme",
-  "dependencies": {
-    "@crabnebula/updater": "workspace:"
-  },
   "devDependencies": {
     "electron": "^27.0.3"
   },

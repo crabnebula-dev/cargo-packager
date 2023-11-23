@@ -1,0 +1,14 @@
+{
+  "name": "updater-app-test",
+  "bin": "main.js",
+  "scripts": {
+    "build": "pkg . -t host -o ./dist/updater-app-test"
+  },
+  "dependencies": {
+    "@crabnebula/updater": "../.."
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1",
+    "@crabnebula/packager": "../../../../packager/nodejs"
+  }
+}

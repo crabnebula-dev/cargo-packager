@@ -252,9 +252,9 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { cli, package, initTracingSubscriber, logError } = nativeBinding
+const { cli, packageApp, initTracingSubscriber, logError } = nativeBinding
 
 module.exports.cli = cli
-module.exports.package = package
+module.exports.packageApp = packageApp
 module.exports.initTracingSubscriber = initTracingSubscriber
 module.exports.logError = logError

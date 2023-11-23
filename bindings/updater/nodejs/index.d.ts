@@ -16,9 +16,9 @@ export const enum WindowsUpdateInstallMode {
 }
 export interface UpdaterWindowsOptions {
   /** Additional arguments given to the NSIS or WiX installer. */
-  installerArgs: Array<string>
+  installerArgs?: Array<string>
   /** The installation mode for the update on Windows. Defaults to `passive`. */
-  installMode: WindowsUpdateInstallMode
+  installMode?: WindowsUpdateInstallMode
 }
 export interface Options {
   /** The updater endpoints. */

@@ -29,7 +29,10 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.16.5",
-    "ava": "^5.1.1"
+    "@tinyhttp/app": "^2.2.1",
+    "@types/node": "^20.8.10",
+    "ava": "^5.1.1",
+    "execa": "^8.0.1"
   },
   "ava": {
     "timeout": "3m"

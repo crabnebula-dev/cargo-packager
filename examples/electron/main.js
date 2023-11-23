@@ -1,6 +1,5 @@
 const { app, BrowserWindow } = require('electron')
 const path = require('node:path')
-const { checkUpdate }= require('@crabnebula/updater')
 
 const createWindow = () => {
   const win = new BrowserWindow({

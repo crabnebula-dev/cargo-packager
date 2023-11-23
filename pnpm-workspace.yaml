@@ -1,3 +1,4 @@
 packages:
   - bindings/*/nodejs
+  - bindings/*/nodejs/__test__/*
   - examples/electron

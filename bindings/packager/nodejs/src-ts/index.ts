@@ -22,7 +22,7 @@ async function bundleApp(config: Config = {}, options?: Options) {
     tracingEnabled = true;
   }
 
-  cargoPackager.package(JSON.stringify(packagerConfig));
+  cargoPackager.packageApp(JSON.stringify(packagerConfig));
 }
 
 async function cli(args: string[], binName: string) {

@@ -29,9 +29,9 @@ pub enum WindowsUpdateInstallMode {
 #[napi_derive::napi(object)]
 pub struct UpdaterWindowsOptions {
     /// Additional arguments given to the NSIS or WiX installer.
-    pub installer_args: Vec<String>,
+    pub installer_args: Option<Vec<String>>,
     /// The installation mode for the update on Windows. Defaults to `passive`.
-    pub install_mode: WindowsUpdateInstallMode,
+    pub install_mode: Option<WindowsUpdateInstallMode>,
 }
 
 #[napi_derive::napi(object)]

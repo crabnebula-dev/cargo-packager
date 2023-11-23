@@ -38,7 +38,6 @@ fn build_app(cwd: &Path, root_dir: &Path, version: &str, target: &[UpdaterFormat
             "--package",
             "cargo-packager",
             "--",
-            "--verbose",
             "-f",
            &target.iter().map(|t|t.name()).collect::<Vec<_>>().join(","),
             "-c",
@@ -256,9 +255,10 @@ fn update_app() {
                     let output = String::from_utf8_lossy(&o.stdout).to_string();
                     let version = output.split_once('\n').unwrap().0;
                     if version == "1.0.0" {
+                        println!("app is updated, new version: {version}");
                         break;
                     }
-                    println!("unexpected output {output}");
+                    println!("unexpected output: {output}");
                     eprintln!("stderr: {}", String::from_utf8_lossy(&o.stderr));
                 }
                 Err(e) => {
@@ -271,5 +271,11 @@ fn update_app() {
                 panic!("updater test timedout and couldn't verify the update has happened")
             }
         }
+
+        // force a new build of the updater app test
+        let _ = Command::new("cargo")
+            .args(["clean", "--package", "cargo-packager-updater-app-test"])
+            .current_dir(&manifest_dir)
+            .output();
     }
 }

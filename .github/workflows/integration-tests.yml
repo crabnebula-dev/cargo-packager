@@ -10,6 +10,7 @@ on:
 
 jobs:
   test:
+    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ${{ matrix.platform }}
 
     strategy:

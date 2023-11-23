@@ -7,7 +7,7 @@ pub fn cli(args: Vec<String>, bin_name: Option<String>) -> Result<()> {
 }
 
 #[napi_derive::napi]
-pub fn package(config: String) -> Result<()> {
+pub fn package_app(config: String) -> Result<()> {
     let config = serde_json::from_str(&config)
         .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
     cargo_packager::package(&config)

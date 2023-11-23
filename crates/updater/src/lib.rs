@@ -102,6 +102,21 @@ pub enum UpdateFormat {
     App,
 }
 
+impl std::fmt::Display for UpdateFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                UpdateFormat::Nsis => "nsis",
+                UpdateFormat::Wix => "wix",
+                UpdateFormat::AppImage => "appimage",
+                UpdateFormat::App => "app",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ReleaseManifestPlatform {
     /// Download URL for the platform
@@ -344,13 +359,17 @@ impl Updater {
             // the URL will be generated dynamically
             let url: Url = url
                 .to_string()
-                // url::Url automatically url-encodes the string
+                // url::Url automatically url-encodes the path components
                 .replace(
                     "%7B%7Bcurrent_version%7D%7D",
                     &self.current_version.to_string(),
                 )
                 .replace("%7B%7Btarget%7D%7D", &self.target)
                 .replace("%7B%7Barch%7D%7D", self.arch)
+                // but not query parameters
+                .replace("{{current_version}}", &self.current_version.to_string())
+                .replace("{{target}}", &self.target)
+                .replace("{{arch}}", self.arch)
                 .parse()?;
 
             let mut request = Client::new().get(url).headers(headers.clone());
