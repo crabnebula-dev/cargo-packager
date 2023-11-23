@@ -1,0 +1,16 @@
+dist
+build
+
+*.wxs
+*.nsi
+*.nsh
+*.sh
+*.desktop
+*.xml
+
+schema.json
+bindings/updater/nodejs/index.js
+bindings/updater/nodejs/index.d.ts
+bindings/packager/nodejs/index.js
+bindings/packager/nodejs/index.d.ts
+bindings/packager/nodejs/src-ts/config.d.ts

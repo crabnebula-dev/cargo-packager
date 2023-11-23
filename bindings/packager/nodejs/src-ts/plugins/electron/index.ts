@@ -9,7 +9,7 @@ import { Pruner, isModule, normalizePath } from "./prune";
 
 export default async function run(
   appPath: string,
-  packageJson: PackageJson
+  packageJson: PackageJson,
 ): Promise<Partial<Config> | null> {
   let electronPath;
   try {
@@ -25,9 +25,9 @@ export default async function run(
   const electronPackageJson = JSON.parse(
     (
       await fs.readFile(
-        path.resolve(path.dirname(electronPath), "package.json")
+        path.resolve(path.dirname(electronPath), "package.json"),
       )
-    ).toString()
+    ).toString(),
   );
 
   const zipPath = await downloadElectron(electronPackageJson.version);
@@ -45,7 +45,7 @@ export default async function run(
   let binaryPath;
 
   const appTempPath = await fs.mkdtemp(
-    path.join(os.tmpdir(), packageJson.name || "app-temp")
+    path.join(os.tmpdir(), packageJson.name || "app-temp"),
   );
 
   const pruner = new Pruner(appPath, true);
@@ -82,12 +82,12 @@ export default async function run(
 
       const resourcesPath = path.join(
         standaloneElectronPath,
-        "Contents/Resources"
+        "Contents/Resources",
       );
       resources = resources.concat(
         (await fs.readdir(resourcesPath))
           .filter((p) => p !== "default_app.asar")
-          .map((p) => path.join(resourcesPath, p))
+          .map((p) => path.join(resourcesPath, p)),
       );
 
       resources.push({
@@ -97,10 +97,10 @@ export default async function run(
 
       const frameworksPath = path.join(
         standaloneElectronPath,
-        "Contents/Frameworks"
+        "Contents/Frameworks",
       );
       frameworks = (await fs.readdir(frameworksPath)).map((p) =>
-        path.join(frameworksPath, p)
+        path.join(frameworksPath, p),
       );
 
       binaryPath = path.join(standaloneElectronPath, "Contents/MacOS/Electron");
@@ -117,7 +117,7 @@ export default async function run(
         (await fs.readdir(zipDir))
           // resources only contains the default_app.asar so we ignore it
           .filter((p) => p !== "resources" && p !== "electron.exe")
-          .map((p) => path.join(zipDir, p))
+          .map((p) => path.join(zipDir, p)),
       );
 
       // rename the electron binary
@@ -134,19 +134,19 @@ export default async function run(
         userConfig.name ||
           packageJson.productName ||
           packageJson.name ||
-          "Electron"
+          "Electron",
       );
 
       // rename the electron binary
       await fs.rename(
         path.join(zipDir, "electron"),
-        path.join(zipDir, binaryName)
+        path.join(zipDir, binaryName),
       );
 
       const electronFiles = await fs.readdir(zipDir);
 
       const binTmpDir = await fs.mkdtemp(
-        path.join(os.tmpdir(), `${packageJson.name || "app-temp"}-bin`)
+        path.join(os.tmpdir(), `${packageJson.name || "app-temp"}-bin`),
       );
       binaryPath = path.join(binTmpDir, binaryName);
       await fs.writeFile(binaryPath, binaryScript(binaryName));
@@ -165,7 +165,7 @@ export default async function run(
             ...acc,
             [path.join(zipDir, file)]: `usr/lib/${binaryName}/${file}`,
           }),
-          {}
+          {},
         );
       debianFiles[appTempPath] = `usr/lib/${binaryName}/resources/app`;
   }

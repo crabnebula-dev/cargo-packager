@@ -35,7 +35,7 @@ class Pruner {
 
   setModules(moduleMap: ModuleMap) {
     const modulePaths = Array.from(moduleMap.keys()).map(
-      (modulePath) => `/${normalizePath(modulePath)}`
+      (modulePath) => `/${normalizePath(modulePath)}`,
     );
     this.modules = new Set(modulePaths);
     this.walkedTree = true;
@@ -61,7 +61,7 @@ class Pruner {
     if (ELECTRON_MODULES.includes(module.name)) {
       if (!this.quiet)
         console.warn(
-          `Found '${module.name}' but not as a devDependency, pruning anyway`
+          `Found '${module.name}' but not as a devDependency, pruning anyway`,
         );
       return false;
     }

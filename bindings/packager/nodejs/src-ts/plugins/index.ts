@@ -34,7 +34,7 @@ export default async function run(): Promise<Partial<Config> | null> {
   }
 
   const packageJson = JSON.parse(
-    (await fs.readFile(packageJsonPath)).toString()
+    (await fs.readFile(packageJsonPath)).toString(),
   ) as PackageJson;
 
   let config = packageJson.packager || null;
@@ -42,7 +42,7 @@ export default async function run(): Promise<Partial<Config> | null> {
   try {
     const electronConfig = await electron(
       path.dirname(packageJsonPath),
-      packageJson
+      packageJson,
     );
 
     if (electronConfig) {

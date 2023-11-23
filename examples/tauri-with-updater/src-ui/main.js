@@ -20,7 +20,7 @@ createApp({
       () =>
         updateStatus.value === "has-update" ||
         updateStatus.value == "downloading" ||
-        updateStatus.value === "ready-for-install"
+        updateStatus.value === "ready-for-install",
     );
 
     async function checkUpdate() {
