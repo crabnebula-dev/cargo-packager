@@ -8,6 +8,8 @@ build
 *.desktop
 *.xml
 
+pnpm-lock.yaml
+
 schema.json
 bindings/updater/nodejs/index.js
 bindings/updater/nodejs/index.d.ts
