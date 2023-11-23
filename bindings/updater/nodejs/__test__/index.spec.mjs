@@ -1,5 +1,5 @@
 import test from "ava";
-import { writeFile, stat, readFile, rename, readdir } from "fs/promises";
+import { writeFile, stat, readFile, rename } from "fs/promises";
 import { join, extname, format, parse } from "path";
 import { execa } from "execa";
 import { fileURLToPath } from "url";
@@ -26,7 +26,7 @@ test("it works", async (t) => {
   const buildApp = async (version, updaterFormats) => {
     await writeFile(
       join(appDir, "dist", "ver.js"),
-      `module.exports.version = "${version}";`
+      `module.exports.version = "${version}";`,
     );
 
     try {
@@ -47,7 +47,7 @@ test("it works", async (t) => {
             CARGO_PACKAGER_SIGN_PRIVATE_KEY: UPDATER_PRIVATE_KEY,
             CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: "",
           },
-        }
+        },
       );
     } catch (e) {
       console.error("failed to package app");
@@ -58,7 +58,7 @@ test("it works", async (t) => {
   // bundle app update
   await buildApp(
     "1.0.0",
-    isWindows ? ["nsis", "wix"] : isMacos ? ["app"] : ["appimage"]
+    isWindows ? ["nsis", "wix"] : isMacos ? ["app"] : ["appimage"],
   );
 
   const packgePaths = (version) => {
@@ -75,11 +75,19 @@ test("it works", async (t) => {
         ]
       : isMacos
         ? [["app", join(appDir, "dist", "PackagerAppUpdaterTestNodejs.app")]]
-        : [["appimage", `updater-app-test_${version}_x86_64.AppImage`]];
+        : [
+            [
+              "appimage",
+              join(
+                appDir,
+                "dist",
+                `updater-app-test_${version}_x86_64.AppImage`,
+              ),
+            ],
+          ];
   };
 
   for (const [updaterFormat, outPackagePath] of packgePaths("1.0.0")) {
-    console.log(await readdir(join(appDir, "dist")));
     const outUpdaterPath = (await stat(outPackagePath)).isDirectory()
       ? `${outPackagePath}${extname(outPackagePath)}.tar.gz`
       : outPackagePath;
@@ -148,7 +156,7 @@ test("it works", async (t) => {
         ? "updater-app-test.exe"
         : isMacos
           ? "PackagerAppUpdaterTestNodejs.app/Contents/MacOS/cargo-packager-updater-app-test"
-          : `updater-app-test_${version}_x86_64.AppImage`
+          : `updater-app-test_${version}_x86_64.AppImage`,
     );
 
     // wait until the update is finished and the new version has been installed
@@ -177,7 +185,7 @@ test("it works", async (t) => {
       counter += 1;
       if (counter == 10) {
         console.error(
-          "updater test timedout and couldn't verify the update has happened"
+          "updater test timedout and couldn't verify the update has happened",
         );
         break;
       }
