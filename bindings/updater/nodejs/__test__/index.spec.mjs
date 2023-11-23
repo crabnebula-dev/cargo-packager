@@ -122,6 +122,27 @@ test("it works", async (t) => {
     // bundle initial app version
     await buildApp("0.1.0", [updaterFormat]);
 
+    if (isWindows) {
+      // install the app through the installer
+      const isNsis = updaterFormat === "nsis";
+      const installDir = join(appDir, "dist");
+      const installerArg = `"${outPackagePath}"`;
+      await execa("powershell.exe", [
+        "-NoProfile",
+        "-WindowStyle",
+        "Hidden",
+        "Start-Process",
+        installerArg,
+        "-ArgumentList",
+        `${isNsis ? "/P" : "/passive"}, ${
+          isNsis ? "/D" : "INSTALLDIR"
+        }=${installDir}`,
+      ]);
+    }
+
+    // wait 2secs to make sure the installer have released its lock on the binary
+    await sleep(2000);
+
     const app = join(
       appDir,
       "dist",
@@ -155,6 +176,7 @@ test("it works", async (t) => {
         const version = stdout.split("\n")[0];
         t.is(version, "1.0.0");
         if (version == "1.0.0") {
+          console.log(`app is updated, new version: ${version}`);
           break;
         }
 
