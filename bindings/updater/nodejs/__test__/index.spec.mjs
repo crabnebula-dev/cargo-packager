@@ -155,7 +155,7 @@ test("it works", async (t) => {
       isWindows
         ? "updater-app-test.exe"
         : isMacos
-          ? "PackagerAppUpdaterTestNodejs.app/Contents/MacOS/cargo-packager-updater-app-test"
+          ? "PackagerAppUpdaterTestNodejs.app/Contents/MacOS/updater-app-test"
           : `updater-app-test_0.1.0_x86_64.AppImage`,
     );
 

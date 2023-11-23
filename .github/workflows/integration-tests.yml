@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: install webkit2gtk
+      - name: install fuse
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
@@ -52,6 +52,11 @@ jobs:
           cd bindings/packager/nodejs
           pnpm test
         timeout-minutes: 30
+      - name: install fuse
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fuse libfuse2
       - name: updater integration tests
         run: |
           cd bindings/updater/nodejs
