@@ -1,3 +1,2 @@
 packages:
   - bindings/*/nodejs
-  - bindings/*/nodejs/__test__/*

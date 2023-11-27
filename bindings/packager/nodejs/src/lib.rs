@@ -16,6 +16,17 @@ pub fn package_app(config: String) -> Result<()> {
 }
 
 #[napi_derive::napi]
+pub fn package_and_sign_app(config: String, signing_config: String) -> Result<()> {
+    let config = serde_json::from_str(&config)
+        .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
+    let signing_config = serde_json::from_str(&signing_config)
+        .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
+    cargo_packager::package_and_sign(&config, &signing_config)
+        .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
+    Ok(())
+}
+
+#[napi_derive::napi]
 pub fn init_tracing_subscriber(verbosity: u8) {
     cargo_packager::init_tracing_subscriber(verbosity);
 }

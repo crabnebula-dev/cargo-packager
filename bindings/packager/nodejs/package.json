@@ -2,6 +2,7 @@
   "name": "@crabnebula/packager",
   "version": "0.0.0",
   "main": "build/index.js",
+  "module": "build/index.js",
   "types": "build/index.d.ts",
   "author": {
     "name": "CrabNebula Ltd."
@@ -27,9 +28,8 @@
   "license": "MIT",
   "scripts": {
     "artifacts": "napi artifacts",
-    "build:config": "node generate-config-type.js",
-    "build:ts": "rm -rf build/ && tsc",
-    "build": "pnpm build:config && pnpm build:ts && napi build --platform --profile release-size-optimized",
+    "postbuild": "rm -rf ./build && node generate-config-type.js && tsc",
+    "build": "napi build --platform --profile release-size-optimized",
     "build:debug": "pnpm build:config && pnpm build:ts && napi build --platform",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
     "test": "ava --no-worker-threads",
