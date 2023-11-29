@@ -15,7 +15,7 @@ const isMac = process.platform === "darwin";
 test("it updates correctly", async (t) => {
   const UPDATER_PRIVATE_KEY = await fs.readFile(
     path.join(__dirname, "../../../../crates/updater/tests/dummy.key"),
-    { encoding: "utf8" }
+    { encoding: "utf8" },
   );
 
   process.chdir(path.join(__dirname, "app"));
@@ -35,7 +35,7 @@ test("it updates correctly", async (t) => {
           privateKey: UPDATER_PRIVATE_KEY,
           password: "",
         },
-        { verbosity: 0 }
+        { verbosity: 0 },
       );
     } catch (e) {
       console.error("failed to package app");
@@ -115,7 +115,7 @@ test("it updates correctly", async (t) => {
         "dist",
         isNsis
           ? `ElectronApp_0.1.0_x64-setup.exe`
-          : `ElectronApp_0.1.0_x64_en-US.msi`
+          : `ElectronApp_0.1.0_x64_en-US.msi`,
       )}"`;
 
       await execa("powershell.exe", [
@@ -138,7 +138,7 @@ test("it updates correctly", async (t) => {
         ? "installdir/ElectronApp.exe"
         : isMac
           ? "ElectronApp.app/Contents/MacOS/ElectronApp"
-          : `ElectronApp_0.1.0_x86_64.AppImage`
+          : `ElectronApp_0.1.0_x86_64.AppImage`,
     );
 
     // save the current creation time
@@ -190,7 +190,7 @@ test("it updates correctly", async (t) => {
       counter += 1;
       if (counter == 10) {
         console.error(
-          "updater test timedout and couldn't verify the update has happened"
+          "updater test timedout and couldn't verify the update has happened",
         );
         break;
       }
