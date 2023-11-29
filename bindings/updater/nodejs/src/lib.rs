@@ -218,7 +218,7 @@ impl Update {
     }
 
     #[napi(
-        ts_args_type = "onChunk?: (chunkLength: number, contentLength: number | null) => void, onDownloadFinished?: () => void"
+        ts_args_type = "onChunk?: (chunkLength: number, contentLength?: number) => void, onDownloadFinished?: () => void"
     )]
     pub async fn download_and_install(
         &self,
