@@ -138,7 +138,7 @@ test("it updates correctly", async (t) => {
         ? "installdir/ElectronApp.exe"
         : isMac
           ? "ElectronApp.app/Contents/MacOS/ElectronApp"
-          : `ElectronApp_0.1.0_x86_64.AppImage`,
+          : `electron-app_0.1.0_x86_64.AppImage`,
     );
 
     // save the current creation time
