@@ -108,7 +108,7 @@ fn update_app() {
     #[cfg(target_os = "macos")]
     let generated_packages: Vec<_> = vec![(
         UpdaterFormat::App,
-        root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app"),
+        root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app.tar.gz"),
     )];
     #[cfg(windows)]
     let generated_packages: Vec<_> = vec![
