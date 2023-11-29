@@ -7019,18 +7019,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-example"
-version = "0.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-macros",
- "tauri-utils",
-]
-
-[[package]]
 name = "tauri-example-with-updater"
 version = "0.0.0"
 dependencies = [

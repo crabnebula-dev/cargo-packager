@@ -1,5 +1,5 @@
 [package]
-name = "tauri-example"
+name = "tauri-example-with-updater"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -8,11 +8,12 @@ publish = false
 tauri-build = { version = "=2.0.0-alpha.6", features = [] }
 
 [dependencies]
-tauri = { version = "=2.0.0-alpha.10", features = [] }
+tauri = { version = "=2.0.0-alpha.10", features = ["devtools"] }
 tauri-utils = { version = "=2.0.0-alpha.6", features = [] }
 tauri-macros = "=2.0.0-alpha.6"
 serde.workspace = true
 serde_json.workspace = true
+cargo-packager-updater = { path = "../../crates/updater" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
@@ -21,8 +22,8 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [package.metadata.packager]
 before-packaging-command = "cargo tauri build"
-product-name = "Tauri example"
-identifier = "com.tauri.example"
+product-name = "Tauri example (with updater)"
+identifier = "com.tauri-with-updater.example"
 resources = [
   "Cargo.toml",
   "../../README.md",
