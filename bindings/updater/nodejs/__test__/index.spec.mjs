@@ -1,118 +1,91 @@
 import test from "ava";
-import { writeFile, stat, readFile, rename } from "fs/promises";
-import { join, format, parse } from "path";
+import * as fs from "fs/promises";
+import { existsSync } from "fs";
+import * as path from "path";
 import { execa } from "execa";
 import { fileURLToPath } from "url";
 import { App } from "@tinyhttp/app";
+import { packageAndSignApp } from "@crabnebula/packager";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const isWin = process.platform === "win32";
+const isMac = process.platform === "darwin";
 
-const UPDATER_PRIVATE_KEY =
-  "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5VU1qSHBMT0E4R0JCVGZzbUMzb3ZXeGpGY1NSdm9OaUxaVTFuajd0T2ZKZ0FBQkFBQUFBQUFBQUFBQUlBQUFBQWlhRnNPUmxKWjBiWnJ6M29Cd0RwOUpqTW1yOFFQK3JTOGdKSi9CajlHZktHajI2ZnprbEM0VUl2MHhGdFdkZWpHc1BpTlJWK2hOTWo0UVZDemMvaFlYVUM4U2twRW9WV1JHenNzUkRKT2RXQ1FCeXlkYUwxelhacmtxOGZJOG1Nb1R6b0VEcWFLVUk9Cg==";
+test("it updates correctly", async (t) => {
+  const UPDATER_PRIVATE_KEY = await fs.readFile(
+    path.join(__dirname, "../../../../crates/updater/tests/dummy.key"),
+    { encoding: "utf8" }
+  );
 
-test("it works", async (t) => {
-  const isWindows = process.platform === "win32";
-  const isMacos = process.platform === "darwin";
-  const appDir = join(__dirname, "app");
-  const target = `${isWindows ? "windows" : isMacos ? "macos" : "linux"}-${
-    process.arch === "x64" ? "x86_64" : "i686"
-  }`;
-
-  await execa("pnpm", ["build"], {
-    cwd: join(__dirname, "..", "..", "..", "packager", "nodejs"),
-  });
+  process.chdir(path.join(__dirname, "app"));
+  await execa("yarn", ["install"]);
 
   const buildApp = async (version, updaterFormats) => {
-    await writeFile(
-      join(appDir, "dist", "ver.js"),
-      `module.exports.version = "${version}";`,
-    );
+    const content = await fs.readFile("main.js", { encoding: "utf8" });
+    await fs.writeFile("main.js", content.replace("{{version}}", version));
 
     try {
-      await execa(
-        "pnpm",
-        [
-          "packager",
-          "--verbose",
-          "-f",
-          updaterFormats.join(","),
-          "-c",
-          `{"outDir":"./dist","beforePackagingCommand": "pnpm build", "identifier": "com.updater-app-nodejs.test", "productName": "PackagerAppUpdaterTestNodejs", "version": "${version}", "icons": ["32x32.png"], "binaries": [{"path": "updater-app-test", "main": true}]}`,
-        ],
+      await packageAndSignApp(
         {
-          stdio: "inherit",
-          cwd: appDir,
-          env: {
-            CARGO_PACKAGER_SIGN_PRIVATE_KEY: UPDATER_PRIVATE_KEY,
-            CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: "",
-          },
+          formats: updaterFormats,
+          version,
         },
+        {
+          privateKey: UPDATER_PRIVATE_KEY,
+          password: "",
+        },
+        { verbosity: 0 }
       );
     } catch (e) {
       console.error("failed to package app");
       console.error(e);
+    } finally {
+      const content = await fs.readFile("main.js", { encoding: "utf8" });
+      await fs.writeFile("main.js", content.replace(version, "{{version}}"));
     }
   };
 
   // bundle app update
-  await buildApp(
-    "1.0.0",
-    isWindows ? ["nsis", "wix"] : isMacos ? ["app"] : ["appimage"],
-  );
+  const formats = isWin ? ["nsis", "wix"] : isMac ? ["app"] : ["appimage"];
+  await buildApp("1.0.0", formats);
 
-  const packgePaths = (version) => {
-    return isWindows
-      ? [
-          [
-            "nsis",
-            join(appDir, "dist", `updater-app-test_${version}_x64-setup.exe`),
-          ],
-          [
-            "wix",
-            join(appDir, "dist", `updater-app-test_${version}_x64_en-US.msi`),
-          ],
-        ]
-      : isMacos
-        ? [["app", join(appDir, "dist", "PackagerAppUpdaterTestNodejs.app")]]
-        : [
-            [
-              "appimage",
-              join(
-                appDir,
-                "dist",
-                `updater-app-test_${version}_x86_64.AppImage`,
-              ),
-            ],
-          ];
-  };
+  const gneratedPackages = isWin
+    ? [
+        ["nsis", path.join("dist", `ElectronApp_1.0.0_x64-setup.exe`)],
+        ["wix", path.join("dist", `ElectronApp_1.0.0_x64_en-US.msi`)],
+      ]
+    : isMac
+      ? [["app", path.join("dist", "ElectronApp.app.tar.gz")]]
+      : [["appimage", path.join("dist", `ElectronApp_1.0.0_x86_64.AppImage`)]];
 
-  for (const [updaterFormat, outPackagePath] of packgePaths("1.0.0")) {
-    const outUpdaterPath = (await stat(outPackagePath)).isDirectory()
-      ? `${outPackagePath}.tar.gz`
-      : outPackagePath;
+  for (let [format, updatePackagePath] of gneratedPackages) {
+    const signaturePath = path.format({ name: updatePackagePath, ext: ".sig" });
+    const signature = await fs.readFile(signaturePath, { encoding: "utf8" });
 
-    const signaturePath = format({ name: outUpdaterPath, ext: ".sig" });
-    const signature = await readFile(signaturePath, { encoding: "utf8" });
-
-    let updaterPath = outUpdaterPath;
-    if (isMacos) {
-      // we need to move it otherwise it'll be overwritten when we build the next app
-      const info = parse(outUpdaterPath);
-      updaterPath = format({
+    // on macOS, gnerated bundle doesn't have the version in its name
+    // so we need to move it otherwise it'll be overwritten when we build the next app
+    if (isMac) {
+      const info = path.parse(updatePackagePath);
+      const newPath = path.format({
         dir: info.dir,
-        base: `update-${info.base}`,
+        base: `update-1.0.0-${info.base}`,
       });
-      await rename(outUpdaterPath, updaterPath);
+      await fs.rename(updatePackagePath, newPath);
+      updatePackagePath = newPath;
     }
 
+    // start the updater server
     const server = new App()
       .get("/", (_, res) => {
         const platforms = {};
+        const target = `${isWin ? "windows" : isMac ? "macos" : "linux"}-${
+          process.arch === "x64" ? "x86_64" : "i686"
+        }`;
         platforms[target] = {
           signature,
           url: "http://localhost:3007/download",
-          format: updaterFormat,
+          format,
         };
         res.status(200).json({
           version: "1.0.0",
@@ -120,25 +93,38 @@ test("it works", async (t) => {
           platforms,
         });
       })
-      .get("/download", (req, res) => {
-        res.status(200).sendFile(updaterPath);
+      .get("/download", (_req, res) => {
+        res
+          .status(200)
+          .sendFile(path.join(__dirname, "app", updatePackagePath));
       })
       .listen(3007);
 
     // bundle initial app version
-    await buildApp("0.1.0", [updaterFormat]);
+    await buildApp("0.1.0", [format]);
 
-    if (isWindows) {
-      // install the app through the installer
-      const isNsis = updaterFormat === "nsis";
-      const installDir = join(appDir, "dist");
-      const installerArg = `"${outPackagePath}"`;
+    // install the inital app on Windows to `installdir`
+    if (isWin) {
+      const installDir = path.join(__dirname, "app", "dist", "installdir");
+      if (existsSync(installDir)) await fs.rm(installDir, { recursive: true });
+      await fs.mkdir(installDir);
+
+      const isNsis = format === "nsis";
+
+      const installerArg = `"${path.join(
+        "dist",
+        isNsis
+          ? `ElectronApp_0.1.0_x64-setup.exe`
+          : `ElectronApp_0.1.0_x64_en-US.msi`
+      )}"`;
+
       await execa("powershell.exe", [
         "-NoProfile",
         "-WindowStyle",
         "Hidden",
         "Start-Process",
         installerArg,
+        "-Wait",
         "-ArgumentList",
         `${isNsis ? "/P" : "/passive"}, ${
           isNsis ? "/D" : "INSTALLDIR"
@@ -146,53 +132,74 @@ test("it works", async (t) => {
       ]);
     }
 
-    // wait 2secs to make sure the installer have released its lock on the binary
-    await sleep(2000);
-
-    const app = join(
-      appDir,
+    const app = path.join(
       "dist",
-      isWindows
-        ? "updater-app-test.exe"
-        : isMacos
-          ? "PackagerAppUpdaterTestNodejs.app/Contents/MacOS/updater-app-test"
-          : `updater-app-test_0.1.0_x86_64.AppImage`,
+      isWin
+        ? "installdir/ElectronApp.exe"
+        : isMac
+          ? "ElectronApp.app/Contents/MacOS/ElectronApp"
+          : `ElectronApp_0.1.0_x86_64.AppImage`
     );
+
+    // save the current creation time
+    const stats = await fs.stat(app);
+    const ctime1 = stats.birthtime;
+
+    // run initial app
+    try {
+      await execa(app, {
+        stdio: "inherit",
+        // This is read by the updater app test
+        env: { UPDATER_FORMAT: format },
+      });
+    } catch (e) {
+      console.error(`failed to start initial app: ${e}`);
+    }
+
+    // the test app is electron which is huge in size
+    // and the installation takes a who;e
+    // so wait 30 secs to make sure the installer has finished
+    await sleep(30000);
 
     // wait until the update is finished and the new version has been installed
     // before starting another updater test, this is because we use the same starting binary
     // and we can't use it while the updater is installing it
     let counter = 0;
     while (true) {
-      try {
-        const { stdout, stderr } = await execa(app, [], {
-          env: { UPDATER_FORMAT: updaterFormat },
-        });
-        const version = stdout.split("\n")[0];
-        if (version === "1.0.0") {
-          t.is(version, "1.0.0");
-          console.log(`app is updated, new version: ${version}`);
-          break;
-        }
+      // check if the main binary creation time has changed since `ctime1`
+      const stats = await fs.stat(app);
+      if (ctime1 !== stats.birthtime) {
+        try {
+          const { stdout, stderr } = await execa(app);
 
-        console.log(`unexpected output: ${stdout}`);
-        console.log(`stderr: ${stderr}`);
-      } catch (e) {
-        console.error("failed to check if app was updated");
-        console.error(e);
+          const lines = stdout.split(isWin ? "\r\n" : "\n");
+          const version = lines.filter((l) => l)[0];
+
+          if (version === "1.0.0") {
+            console.log(`app is updated, new version: ${version}`);
+            break;
+          }
+
+          console.log(`unexpected output (stdout): ${stdout}`);
+          console.log(`stderr: ${stderr}`);
+        } catch (e) {
+          console.error(`failed to check if app was updated: ${e}`);
+        }
       }
 
       counter += 1;
       if (counter == 10) {
         console.error(
-          "updater test timedout and couldn't verify the update has happened",
+          "updater test timedout and couldn't verify the update has happened"
         );
         break;
       }
 
-      await sleep(2000);
+      await sleep(5000);
     }
 
     server.close();
   }
+
+  t.pass("Test successful");
 });

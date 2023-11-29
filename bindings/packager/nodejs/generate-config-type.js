@@ -4,7 +4,7 @@ const path = require("path");
 
 // compile from file
 compileFromFile(
-  path.join(__dirname, "../../../crates/packager/schema.json")
+  path.join(__dirname, "../../../crates/packager/schema.json"),
 ).then((ts) => {
   for (const dir of ["src-ts", "build"]) {
     try {

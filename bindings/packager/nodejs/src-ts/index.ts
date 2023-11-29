@@ -40,7 +40,7 @@ async function packageApp(config: Config = {}, options?: Options) {
 async function packageAndSignApp(
   config: Config = {},
   signingConfig: SigningConfig,
-  options?: Options
+  options?: Options,
 ) {
   const conf = await runPlugins();
 
@@ -56,7 +56,7 @@ async function packageAndSignApp(
 
   cargoPackager.packageAndSignApp(
     JSON.stringify(packagerConfig),
-    JSON.stringify(signingConfig)
+    JSON.stringify(signingConfig),
   );
 }
 

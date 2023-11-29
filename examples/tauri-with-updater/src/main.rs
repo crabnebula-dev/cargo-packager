@@ -10,7 +10,7 @@ fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
-const UPDATER_PUB_KEY: &str = include_str!("../dummy.key.pub");
+const UPDATER_PUB_KEY: &str = include_str!("../dummy.pub.key");
 const UPDATER_ENDPOINT: &str = "http://localhost:2342";
 
 #[tauri::command]

@@ -9,7 +9,7 @@ fn main() {
     let mut builder = cargo_packager_updater::UpdaterBuilder::new(
         version.parse().unwrap(),
         cargo_packager_updater::Config {
-            pubkey: "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2Njc0OTE5Mzk2Q0ExODkKUldTSm9XdzVHVWxuUmtJdjB4RnRXZGVqR3NQaU5SVitoTk1qNFFWQ3pjL2hZWFVDOFNrcEVvVlcK".into(),
+            pubkey: include_str!("../../dummy.pub.key").into(),
             endpoints: vec!["http://localhost:3007".parse().unwrap()],
             ..Default::default()
         },

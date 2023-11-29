@@ -1,14 +1,30 @@
 {
-  "name": "updater-app-test",
-  "bin": "main.js",
-  "scripts": {
-    "build": "pkg . -t host -o ./dist/updater-app-test"
+  "name": "electron-app",
+  "productName": "ElectronApp",
+  "version": "1.0.0",
+  "description": "Hello World!",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crabnebula-dev/cargo-packager.git"
   },
+  "author": "CrabNebula Ltd.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/crabnebula-dev/cargo-packager/issues"
+  },
+  "homepage": "https://github.com/crabnebula-dev/cargo-packager#readme",
   "dependencies": {
     "@crabnebula/updater": "../.."
   },
   "devDependencies": {
-    "pkg": "^5.8.1",
-    "@crabnebula/packager": "../../../../packager/nodejs"
+    "electron": "^27.0.3"
+  },
+  "packager": {
+    "outDir": "./dist",
+    "identifier": "com.electron.example",
+    "icons": [
+      "electron.png"
+    ]
   }
 }
