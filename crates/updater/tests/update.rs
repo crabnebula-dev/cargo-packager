@@ -103,28 +103,22 @@ fn update_app() {
     #[cfg(target_os = "linux")]
     let generated_packages = vec![(
         UpdaterFormat::AppImage,
-        root_dir.join(format!(
-            "target/debug/cargo-packager-updater-app-test_1.0.0_x86_64.AppImage"
-        )),
+        root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x86_64.AppImage"),
     )];
     #[cfg(target_os = "macos")]
-    let generated_packages: Vec<_> = vec![vec![(
+    let generated_packages: Vec<_> = vec![(
         UpdaterFormat::App,
         root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app"),
-    )]];
+    )];
     #[cfg(windows)]
     let generated_packages: Vec<_> = vec![
         (
             UpdaterFormat::Nsis,
-            root_dir.join(format!(
-                "target/debug/cargo-packager-updater-app-test_1.0.0_x64-setup.exe"
-            )),
+            root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x64-setup.exe"),
         ),
         (
             UpdaterFormat::Wix,
-            root_dir.join(format!(
-                "target/debug/cargo-packager-updater-app-test_1.0.0_x64_en-US.msi"
-            )),
+            root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x64_en-US.msi"),
         ),
     ];
 
