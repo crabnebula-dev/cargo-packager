@@ -30,10 +30,10 @@
     "artifacts": "napi artifacts",
     "postbuild": "rm -rf ./build && node generate-config-type.js && tsc",
     "build": "napi build --platform --profile release-size-optimized",
-    "build:debug": "pnpm build:config && pnpm build:ts && napi build --platform",
+    "build:debug": "napi build --platform && pnpm run postbuild",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
     "test": "ava --no-worker-threads",
-    "pretest": "pnpm run build:ts",
+    "pretest": "pnpm run build:debug",
     "universal": "napi universal",
     "version": "napi version"
   },
