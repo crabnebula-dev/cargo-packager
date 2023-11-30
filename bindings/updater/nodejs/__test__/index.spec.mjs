@@ -35,7 +35,7 @@ test("it updates correctly", async (t) => {
           privateKey: UPDATER_PRIVATE_KEY,
           password: "",
         },
-        { verbosity: 0 },
+        { verbosity: 2 },
       );
     } catch (e) {
       console.error("failed to package app");
