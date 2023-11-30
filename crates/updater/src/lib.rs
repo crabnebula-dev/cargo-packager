@@ -767,10 +767,10 @@ impl Update {
         let mut archive = tar::Archive::new(decoder);
 
         fn extract_archive<R: std::io::Read>(
-            archive: tar::Archive<R>,
+            archive: &mut tar::Archive<R>,
             extract_path: &Path,
         ) -> Result<()> {
-            std::fs::create_dir(extract_path)?;
+            std::fs::create_dir(&extract_path)?;
             for entry in archive.entries()? {
                 let mut entry = entry?;
                 let entry_path: PathBuf = entry.path()?.components().skip(1).collect();
@@ -785,7 +785,7 @@ impl Update {
         }
 
         // if something went wrong during the extraction, we should restore previous app
-        if let Err(e) = extract_archive(archive, &self.extract_path) {
+        if let Err(e) = extract_archive(&mut archive, &self.extract_path) {
             std::fs::remove_dir(self.extract_path)?;
             std::fs::rename(tmp_dir.path(), &self.extract_path)?;
             return Err(e);
