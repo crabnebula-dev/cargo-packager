@@ -39,6 +39,7 @@ ${StrLoc}
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}"
 !define MANUPRODUCTKEY "Software\${MANUFACTURER}\${PRODUCTNAME}"
 !define UNINSTALLERSIGNCOMMAND "{{uninstaller_sign_cmd}}"
+!define ESTIMATEDSIZE "{{estimated_size}}"
 
 Name "${PRODUCTNAME}"
 BrandingText "${COPYRIGHT}"
@@ -468,17 +469,13 @@ SectionEnd
   app_check_done:
 !macroend
 
-Var AppSize
 Section Install
   SetOutPath $INSTDIR
-  StrCpy $AppSize 0
 
   !insertmacro CheckIfAppIsRunning
 
   ; Copy main executable
   File "${MAINBINARYSRCPATH}"
-  ${GetSize} "$INSTDIR" "/M=${MAINBINARYNAME}.exe /S=0B" $0 $1 $2
-  IntOp $AppSize $AppSize + $0
 
   ; Create resources directory structure
   {{#each resources_dirs}}
@@ -488,15 +485,11 @@ Section Install
   ; Copy resources
   {{#each resources}}
     File /a "/oname={{this.[1]}}" "{{this.[0]}}"
-    ${GetSize} "$INSTDIR" "/M={{this.[1]}} /S=0B" $0 $1 $2
-    IntOp $AppSize $AppSize + $0
   {{/each}}
 
   ; Copy external binaries
   {{#each binaries}}
     File /a "/oname={{this}}" "{{@key}}"
-    ${GetSize} "$INSTDIR" "/M={{this}} /S=0B" $0 $1 $2
-    IntOp $AppSize $AppSize + $0
   {{/each}}
 
    ; Create file associations
@@ -527,9 +520,7 @@ Section Install
   WriteRegStr SHCTX "${UNINSTKEY}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
   WriteRegDWORD SHCTX "${UNINSTKEY}" "NoModify" "1"
   WriteRegDWORD SHCTX "${UNINSTKEY}" "NoRepair" "1"
-  IntOp $AppSize $AppSize / 1000
-  IntFmt $AppSize "0x%08X" $AppSize
-  WriteRegDWORD SHCTX "${UNINSTKEY}" "EstimatedSize" "$AppSize"
+  WriteRegDWORD SHCTX "${UNINSTKEY}" "EstimatedSize" "${ESTIMATEDSIZE}"
 
   ; Create start menu shortcut (GUI)
   !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
