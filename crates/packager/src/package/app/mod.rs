@@ -188,7 +188,7 @@ fn create_info_plist(
                             "CFBundleTypeExtensions".into(),
                             plist::Value::Array(
                                 association
-                                    .ext
+                                    .extensions
                                     .iter()
                                     .map(|ext| ext.to_string().into())
                                     .collect(),
@@ -199,7 +199,7 @@ fn create_info_plist(
                             association
                                 .name
                                 .as_ref()
-                                .unwrap_or(&association.ext[0])
+                                .unwrap_or(&association.extensions[0])
                                 .to_string()
                                 .into(),
                         );
