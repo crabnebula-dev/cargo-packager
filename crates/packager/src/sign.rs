@@ -98,8 +98,9 @@ pub fn save_keypair<P: AsRef<Path> + Debug>(
 }
 
 /// Signing configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct SigningConfig {
     /// The private key to use for signing.
     pub private_key: String,
@@ -108,6 +109,26 @@ pub struct SigningConfig {
     /// If `None`, user will be prompted to write a password.
     /// You can skip the prompt by specifying an empty string.
     pub password: Option<String>,
+}
+
+impl SigningConfig {
+    /// Creates a new [`SigningConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the private key to use for signing.
+    pub fn private_key<S: Into<String>>(mut self, private_key: S) -> Self {
+        self.private_key = private_key.into();
+        self
+    }
+
+    /// Set the private key password.
+    pub fn password<S: Into<String>>(mut self, password: S) -> Self {
+        self.password.replace(password.into());
+
+        self
+    }
 }
 
 /// Signs a specified file using the specified signing configuration.

@@ -80,7 +80,7 @@ pub fn target_triple() -> crate::Result<String> {
             .target_arch
             .expect("could not find `target_arch` when running `rustc --print cfg`."),
         Err(err) => {
-            tracing:: warn!(
+            tracing:: debug!(
                 "Failed to determine target arch using rustc, error: `{err}`. Falling back to the architecture of the machine that compiled this crate.",
             );
             if cfg!(target_arch = "x86") {

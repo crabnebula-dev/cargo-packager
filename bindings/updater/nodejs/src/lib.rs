@@ -124,7 +124,7 @@ pub struct Update {
     /// Update format
     pub format: UpdateFormat,
     /// The Windows options for the updater.
-    pub windows: UpdaterWindowsOptions,
+    pub windows: Option<UpdaterWindowsOptions>,
     /// Update description
     pub body: Option<String>,
     /// Update publish date
@@ -138,7 +138,7 @@ impl Update {
         Ok(cargo_packager_updater::Update {
             config: cargo_packager_updater::Config {
                 pubkey: self.pubkey.clone(),
-                windows: self.windows.clone().into(),
+                windows: self.windows.clone().map(Into::into),
                 ..Default::default()
             },
             body: self.body.clone(),
