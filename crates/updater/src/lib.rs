@@ -755,7 +755,6 @@ impl Update {
         use flate2::read::GzDecoder;
 
         let cursor = Cursor::new(bytes);
-        let mut extracted_files: Vec<PathBuf> = Vec::new();
 
         // the first file in the tar.gz will always be
         // <app_name>/Contents
@@ -767,33 +766,27 @@ impl Update {
         let decoder = GzDecoder::new(cursor);
         let mut archive = tar::Archive::new(decoder);
 
-        std::fs::create_dir(&self.extract_path)?;
-
-        for entry in archive.entries()? {
-            let mut entry = entry?;
-
-            let extraction_path = &self.extract_path.join(entry.path()?);
-
-            // if something went wrong during the extraction, we should restore previous app
-            if let Err(err) = entry.unpack(extraction_path) {
-                for file in extracted_files.iter().rev() {
-                    // delete all the files we extracted
-                    if file.is_dir() {
-                        std::fs::remove_dir(file)?;
-                    } else {
-                        std::fs::remove_file(file)?;
-                    }
-                }
-                std::fs::rename(tmp_dir.path(), &self.extract_path)?;
-                return Err(err.into());
+        fn extract_archive(archive: tar::Archive, extract_path: &Path) -> Result<()> {
+            std::fs::create_dir(extract_path)?;
+            for entry in archive.entries()? {
+                let mut entry = entry?;
+                let entry_path: PathBuf = entry.path()?.components().skip(1).collect();
+                entry.unpack(extract_path.join(entry_path))?;
             }
 
-            extracted_files.push(extraction_path.to_path_buf());
+            let _ = std::process::Command::new("touch")
+                .arg(extract_path)
+                .status();
+
+            Ok(())
         }
 
-        let _ = std::process::Command::new("touch")
-            .arg(&self.extract_path)
-            .status();
+        // if something went wrong during the extraction, we should restore previous app
+        if let Err(e) = extract_archive(archive, self.extract_path) {
+            std::fs::remove_dir(extract_path)?;
+            std::fs::rename(tmp_dir.path(), &self.extract_path)?;
+            return Err(e);
+        }
 
         Ok(())
     }

@@ -383,6 +383,22 @@ fn make_icns_image(img: image::DynamicImage) -> std::io::Result<icns::Image> {
 }
 
 /// Writes a tar file to the given writer containing the given directory.
+///
+/// The generated tar contains the `src_dir` as a whole and not just its files,
+/// so if we are creating a tar for:
+/// ```text
+/// dir/
+///   |_ file1
+///   |_ file2
+///   |_ file3
+/// ```
+/// the generated tar will contain the following entries:
+/// ```text
+/// - dir
+/// - dir/file1
+/// - dir/file2
+/// - dir/file3
+/// ```
 pub fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> crate::Result<W> {
     let src_dir = src_dir.as_ref();
     let filename = src_dir
