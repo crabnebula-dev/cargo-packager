@@ -770,7 +770,7 @@ impl Update {
             archive: &mut tar::Archive<R>,
             extract_path: &Path,
         ) -> Result<()> {
-            std::fs::create_dir(&extract_path)?;
+            std::fs::create_dir(extract_path)?;
             for entry in archive.entries()? {
                 let mut entry = entry?;
                 let entry_path: PathBuf = entry.path()?.components().skip(1).collect();
