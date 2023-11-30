@@ -766,7 +766,7 @@ impl Update {
         let decoder = GzDecoder::new(cursor);
         let mut archive = tar::Archive::new(decoder);
 
-        fn extract_archive(archive: tar::Archive, extract_path: &Path) -> Result<()> {
+        fn extract_archive<R>(archive: tar::Archive<R>, extract_path: &Path) -> Result<()> {
             std::fs::create_dir(extract_path)?;
             for entry in archive.entries()? {
                 let mut entry = entry?;
@@ -783,7 +783,7 @@ impl Update {
 
         // if something went wrong during the extraction, we should restore previous app
         if let Err(e) = extract_archive(archive, self.extract_path) {
-            std::fs::remove_dir(extract_path)?;
+            std::fs::remove_dir(self.extract_path)?;
             std::fs::rename(tmp_dir.path(), &self.extract_path)?;
             return Err(e);
         }
