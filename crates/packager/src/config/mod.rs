@@ -15,16 +15,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::util;
 
+mod builder;
 mod category;
+
+pub use builder::*;
 pub use category::AppCategory;
 
 /// The type of the package we're packaging.
-#[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[cfg_attr(feature = "clap", value(rename_all = "lowercase"))]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum PackageFormat {
     /// All available package formats for the current platform.
     ///
@@ -209,27 +212,82 @@ impl Display for BundleTypeRole {
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct FileAssociation {
     /// File extensions to associate with this app. e.g. 'png'
-    pub ext: Vec<String>,
-    /// The name. Maps to `CFBundleTypeName` on macOS. Default to the first item in `ext`
-    pub name: Option<String>,
-    /// The association description. **Windows-only**. It is displayed on the `Type` column on Windows Explorer.
-    pub description: Option<String>,
-    /// The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
-    #[serde(default)]
-    pub role: BundleTypeRole,
-    /// The mime-type e.g. 'image/png' or 'text/plain'. Linux-only.
+    pub extensions: Vec<String>,
+    /// The mime-type e.g. 'image/png' or 'text/plain'. **Linux-only**.
     #[serde(alias = "mime-type", alias = "mime_type")]
     pub mime_type: Option<String>,
+    /// The association description. **Windows-only**. It is displayed on the `Type` column on Windows Explorer.
+    pub description: Option<String>,
+    /// The name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
+    pub name: Option<String>,
+    /// The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    /// Defaults to [`BundleTypeRole::Editor`]
+    #[serde(default)]
+    pub role: BundleTypeRole,
+}
+
+impl FileAssociation {
+    /// Creates a new [`FileAssociation``] using provided extensions.
+    pub fn new<I, S>(extensions: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            extensions: extensions.into_iter().map(Into::into).collect(),
+            mime_type: None,
+            description: None,
+            name: None,
+            role: BundleTypeRole::default(),
+        }
+    }
+
+    /// Set the extenstions to associate with this app. e.g. 'png'.
+    pub fn extensions<I, S>(mut self, extensions: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.extensions = extensions.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// Set the mime-type e.g. 'image/png' or 'text/plain'. **Linux-only**.
+    pub fn mime_type<S: Into<String>>(mut self, mime_type: S) -> Self {
+        self.mime_type.replace(mime_type.into());
+        self
+    }
+
+    /// Se the association description. **Windows-only**. It is displayed on the `Type` column on Windows Explorer.
+    pub fn description<S: Into<String>>(mut self, description: S) -> Self {
+        self.description.replace(description.into());
+        self
+    }
+
+    /// Set he name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
+    pub fn name<S: Into<String>>(mut self, name: S) -> Self {
+        self.name.replace(name.into());
+        self
+    }
+
+    /// Set he app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    /// Defaults to [`BundleTypeRole::Editor`]
+    pub fn role(mut self, role: BundleTypeRole) -> Self {
+        self.role = role;
+        self
+    }
 }
 
 /// The Linux debian configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct DebianConfig {
-    /// the list of debian dependencies.
+    /// The list of debian dependencies.
     pub depends: Option<Vec<String>>,
     /// Path to a custom desktop file Handlebars template.
     ///
@@ -258,28 +316,158 @@ pub struct DebianConfig {
     pub files: Option<HashMap<String, String>>,
 }
 
+impl DebianConfig {
+    /// Creates a new [`DebianConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the list of debian dependencies.
+    pub fn depends<I, S>(mut self, depends: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.depends
+            .replace(depends.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the path to a custom desktop file Handlebars template.
+    ///
+    /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
+    ///
+    /// Default file contents:
+    /// ```text
+    /// [Desktop Entry]
+    /// Categories={{categories}}
+    /// {{#if comment}}
+    /// Comment={{comment}}
+    /// {{/if}}
+    /// Exec={{exec}}
+    /// Icon={{icon}}
+    /// Name={{name}}
+    /// Terminal=false
+    /// Type=Application
+    /// {{#if mime_type}}
+    /// MimeType={{mime_type}}
+    /// {{/if}}
+    /// ```
+    pub fn desktop_template<P: Into<PathBuf>>(mut self, desktop_template: P) -> Self {
+        self.desktop_template.replace(desktop_template.into());
+        self
+    }
+
+    /// Set the list of custom files to add to the deb package.
+    /// Maps a dir/file to a dir/file inside the debian package.
+    pub fn files<I, S, T>(mut self, files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, T)>,
+        S: Into<String>,
+        T: Into<String>,
+    {
+        self.files.replace(
+            files
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
+        );
+        self
+    }
+}
+
 /// The Linux AppImage configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct AppImageConfig {
     /// List of libs that exist in `/usr/lib*` to be include in the final AppImage.
-    /// The libs will be searched for using the command
+    /// The libs will be searched for, using the command
     /// `find -L /usr/lib* -name <libname>`
     pub libs: Option<Vec<String>>,
     /// List of binary paths to include in the final AppImage.
     /// For example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`
     pub bins: Option<Vec<String>>,
-    /// Hashmap of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy)
+    /// List of custom files to add to the appimage package.
+    /// Maps a dir/file to a dir/file inside the appimage package.
+    pub files: Option<HashMap<String, String>>,
+    /// A map of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy)
     /// plugin name and its URL to be downloaded and executed while packaing the appimage.
     /// For example, if you want to use the
     /// [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin,
     /// you'd specify `gtk` as the key and its url as the value.
     #[serde(alias = "linuxdeploy-plugins", alias = "linuxdeploy_plugins")]
     pub linuxdeploy_plugins: Option<HashMap<String, String>>,
-    /// List of custom files to add to the appimage package.
+}
+
+impl AppImageConfig {
+    /// Creates a new [`DebianConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the list of libs that exist in `/usr/lib*` to be include in the final AppImage.
+    /// The libs will be searched for using, the command
+    /// `find -L /usr/lib* -name <libname>`
+    pub fn libs<I, S>(mut self, libs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.libs
+            .replace(libs.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the list of binary paths to include in the final AppImage.
+    /// For example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`
+    pub fn bins<I, S>(mut self, bins: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.bins
+            .replace(bins.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the list of custom files to add to the appimage package.
     /// Maps a dir/file to a dir/file inside the appimage package.
-    pub files: Option<HashMap<String, String>>,
+    pub fn files<I, S, T>(mut self, files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, T)>,
+        S: Into<String>,
+        T: Into<String>,
+    {
+        self.files.replace(
+            files
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
+        );
+        self
+    }
+
+    /// Set the map of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy)
+    /// plugin name and its URL to be downloaded and executed while packaing the appimage.
+    /// For example, if you want to use the
+    /// [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin,
+    /// you'd specify `gtk` as the key and its url as the value.
+    pub fn linuxdeploy_plugins<I, S, T>(mut self, linuxdeploy_plugins: I) -> Self
+    where
+        I: IntoIterator<Item = (S, T)>,
+        S: Into<String>,
+        T: Into<String>,
+    {
+        self.linuxdeploy_plugins.replace(
+            linuxdeploy_plugins
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
+        );
+        self
+    }
 }
 
 /// The macOS configuration.
@@ -320,24 +508,93 @@ pub struct MacOsConfig {
     pub info_plist_path: Option<PathBuf>,
 }
 
-/// Configuration for a target language for the WiX build.
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WixLanguageConfig {
-    /// The path to a locale (`.wxl`) file. See <https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/build_a_localized_version.html>.
-    #[serde(alias = "locale-Path", alias = "locale_Path")]
-    pub locale_path: Option<PathBuf>,
+impl MacOsConfig {
+    /// Creates a new [`MacOsConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// MacOS frameworks that need to be packaged with the app.
+    ///
+    /// Each string can either be the name of a framework (without the `.framework` extension, e.g. `"SDL2"`),
+    /// in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`),
+    /// or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle
+    /// (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:
+    ///
+    /// - arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)
+    ///
+    /// - embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
+    pub fn frameworks<I, S>(mut self, frameworks: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.frameworks
+            .replace(frameworks.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`).
+    /// If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.
+    pub fn minimum_system_version<S: Into<String>>(mut self, minimum_system_version: S) -> Self {
+        self.minimum_system_version
+            .replace(minimum_system_version.into());
+        self
+    }
+
+    /// The exception domain to use on the macOS .app package.
+    ///
+    /// This allows communication to the outside world e.g. a web server you're shipping.
+    pub fn exception_domain<S: Into<String>>(mut self, exception_domain: S) -> Self {
+        self.exception_domain.replace(exception_domain.into());
+        self
+    }
+
+    /// Code signing identity.
+    pub fn signing_identity<S: Into<String>>(mut self, signing_identity: S) -> Self {
+        self.signing_identity.replace(signing_identity.into());
+        self
+    }
+
+    /// Provider short name for notarization.
+    pub fn provider_short_name<S: Into<String>>(mut self, provider_short_name: S) -> Self {
+        self.provider_short_name.replace(provider_short_name.into());
+        self
+    }
+
+    /// Path to the entitlements.plist file.
+    pub fn entitlements<S: Into<String>>(mut self, entitlements: S) -> Self {
+        self.entitlements.replace(entitlements.into());
+        self
+    }
+
+    /// Path to the Info.plist file for the package.
+    pub fn info_plist_path<S: Into<PathBuf>>(mut self, info_plist_path: S) -> Self {
+        self.info_plist_path.replace(info_plist_path.into());
+        self
+    }
 }
 
-/// The languages to build using WiX.
+/// A wix language.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub struct WixLanguages(pub Vec<(String, WixLanguageConfig)>);
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum WixLanguage {
+    /// Built-in wix language identifier.
+    Identifier(String),
+    /// Custom wix language.
+    Custom {
+        /// Idenitifier of this language, for example `en-US`
+        identifier: String,
+        /// The path to a locale (`.wxl`) file. See <https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/build_a_localized_version.html>.
+        path: Option<PathBuf>,
+    },
+}
 
-impl Default for WixLanguages {
+impl Default for WixLanguage {
     fn default() -> Self {
-        Self(vec![("en-US".into(), Default::default())])
+        Self::Identifier("en-US".into())
     }
 }
 
@@ -345,10 +602,10 @@ impl Default for WixLanguages {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct WixConfig {
     /// The app languages to build. See <https://docs.microsoft.com/en-us/windows/win32/msi/localizing-the-error-and-actiontext-tables>.
-    #[serde(default)]
-    pub languages: WixLanguages,
+    pub languages: Option<Vec<WixLanguage>>,
     /// By default, the packager uses an internal template.
     /// This option allows you to define your own wix file.
     pub template: Option<PathBuf>,
@@ -410,10 +667,169 @@ pub struct WixConfig {
     pub fips_compliant: bool,
 }
 
+impl WixConfig {
+    /// Creates a new [`WixConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the app languages to build. See <https://docs.microsoft.com/en-us/windows/win32/msi/localizing-the-error-and-actiontext-tables>.
+    pub fn languages<I: IntoIterator<Item = WixLanguage>>(mut self, languages: I) -> Self {
+        self.languages.replace(languages.into_iter().collect());
+        self
+    }
+
+    /// By default, the packager uses an internal template.
+    /// This option allows you to define your own wix file.
+    pub fn template<P: Into<PathBuf>>(mut self, template: P) -> Self {
+        self.template.replace(template.into());
+        self
+    }
+
+    /// Set a list of merge modules to include in your installer.
+    /// For example, if you want to include [C++ Redis merge modules]
+    ///
+    /// [C++ Redis merge modules]: https://wixtoolset.org/docs/v3/howtos/redistributables_and_install_checks/install_vcredist/
+    pub fn merge_modules<I, P>(mut self, merge_modules: I) -> Self
+    where
+        I: IntoIterator<Item = P>,
+        P: Into<PathBuf>,
+    {
+        self.merge_modules
+            .replace(merge_modules.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set a list of paths to .wxs files with WiX fragments to use.
+    pub fn fragment_paths<I, S>(mut self, fragment_paths: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<PathBuf>,
+    {
+        self.fragment_paths
+            .replace(fragment_paths.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set a list of WiX fragments as strings. This is similar to [`WixConfig::fragment_paths`] but
+    /// is a string so you can define it inline in your config.
+    ///
+    /// ```text
+    /// <?xml version="1.0" encoding="utf-8"?>
+    /// <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    /// <Fragment>
+    ///     <CustomAction Id="OpenNotepad" Directory="INSTALLDIR" Execute="immediate" ExeCommand="cmd.exe /c notepad.exe" Return="check" />
+    ///     <InstallExecuteSequence>
+    ///         <Custom Action="OpenNotepad" After="InstallInitialize" />
+    ///     </InstallExecuteSequence>
+    /// </Fragment>
+    /// </Wix>
+    /// ```
+    pub fn fragments<I, S>(mut self, fragments: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.fragments
+            .replace(fragments.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the ComponentGroup element ids you want to reference from the fragments.
+    pub fn component_group_refs<I, S>(mut self, component_group_refs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.component_group_refs
+            .replace(component_group_refs.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the Component element ids you want to reference from the fragments.
+    pub fn component_refs<I, S>(mut self, component_refs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.component_refs
+            .replace(component_refs.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the CustomAction element ids you want to reference from the fragments.
+    pub fn custom_action_refs<I, S>(mut self, custom_action_refs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.custom_action_refs
+            .replace(custom_action_refs.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set he FeatureGroup element ids you want to reference from the fragments.
+    pub fn feature_group_refs<I, S>(mut self, feature_group_refs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.feature_group_refs
+            .replace(feature_group_refs.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the Feature element ids you want to reference from the fragments.
+    pub fn feature_refs<I, S>(mut self, feature_refs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.feature_refs
+            .replace(feature_refs.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set he Merge element ids you want to reference from the fragments.
+    pub fn merge_refs<I, S>(mut self, merge_refs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.merge_refs
+            .replace(merge_refs.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set the path to a bitmap file to use as the installation user interface banner.
+    /// This bitmap will appear at the top of all but the first page of the installer.
+    ///
+    /// The required dimensions are 493px × 58px.
+    pub fn banner_path<P: Into<PathBuf>>(mut self, path: P) -> Self {
+        self.banner_path.replace(path.into());
+        self
+    }
+
+    /// Set the path to a bitmap file to use on the installation user interface dialogs.
+    /// It is used on the welcome and completion dialogs.
+    /// The required dimensions are 493px × 312px.
+    pub fn dialog_image_path<P: Into<PathBuf>>(mut self, path: P) -> Self {
+        self.dialog_image_path.replace(path.into());
+        self
+    }
+
+    /// Set whether to enable or disable FIPS compliant algorithms.
+    pub fn fips_compliant(mut self, fips_compliant: bool) -> Self {
+        self.fips_compliant = fips_compliant;
+        self
+    }
+}
+
 /// Install Modes for the NSIS installer.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub enum NSISInstallerMode {
     /// Default mode for the installer.
     ///
@@ -446,6 +862,7 @@ impl Default for NSISInstallerMode {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum NsisCompression {
     /// ZLIB uses the deflate algorithm, it is a quick and simple method. With the default compression level it uses about 300 KB of memory.
     Zlib,
@@ -453,12 +870,15 @@ pub enum NsisCompression {
     Bzip2,
     /// LZMA (default) is a new compression method that gives very good compression ratios. The decompression speed is high (10-20 MB/s on a 2 GHz CPU), the compression speed is lower. The memory size that will be used for decompression is the dictionary size plus a few KBs, the default is 8 MB.
     Lzma,
+    /// Disable compression.
+    Off,
 }
 
 /// The NSIS format configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct NsisConfig {
     /// Set the compression algorithm used to compress files in the installer.
     ///
@@ -547,10 +967,155 @@ pub struct NsisConfig {
     pub appdata_paths: Option<Vec<String>>,
 }
 
+impl NsisConfig {
+    /// Creates a new [`NsisConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the compression algorithm used to compress files in the installer.
+    ///
+    /// See <https://nsis.sourceforge.io/Reference/SetCompressor>
+    pub fn compression(mut self, compression: NsisCompression) -> Self {
+        self.compression.replace(compression);
+        self
+    }
+
+    /// Set a custom `.nsi` template to use.
+    ///
+    /// See the default template here
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    pub fn template<P: Into<PathBuf>>(mut self, template: P) -> Self {
+        self.template.replace(template.into());
+        self
+    }
+
+    /// Set the logic of an NSIS section that will be ran before the install section.
+    ///
+    /// See the available libraries, dlls and global variables here
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    ///
+    /// ### Example
+    /// ```toml
+    /// [package.metadata.packager.nsis]
+    /// preinstall-section = """
+    ///     ; Setup custom messages
+    ///     LangString webview2AbortError ${LANG_ENGLISH} "Failed to install WebView2! The app can't run without it. Try restarting the installer."
+    ///     LangString webview2DownloadError ${LANG_ARABIC} "خطأ: فشل تنزيل WebView2 - $0"
+    ///
+    ///     Section PreInstall
+    ///      ; <section logic here>
+    ///     SectionEnd
+    ///
+    ///     Section AnotherPreInstall
+    ///      ; <section logic here>
+    ///     SectionEnd
+    /// """
+    /// ```
+    pub fn preinstall_section<S: Into<String>>(mut self, preinstall_section: S) -> Self {
+        self.preinstall_section.replace(preinstall_section.into());
+        self
+    }
+
+    /// Set the path to a bitmap file to display on the header of installers pages.
+    ///
+    /// The recommended dimensions are 150px x 57px.
+    pub fn header_image<P: Into<PathBuf>>(mut self, header_image: P) -> Self {
+        self.header_image.replace(header_image.into());
+        self
+    }
+
+    /// Set the path to a bitmap file for the Welcome page and the Finish page.
+    ///
+    /// The recommended dimensions are 164px x 314px.
+    pub fn sidebar_image<P: Into<PathBuf>>(mut self, sidebar_image: P) -> Self {
+        self.sidebar_image.replace(sidebar_image.into());
+        self
+    }
+
+    /// Set the path to an icon file used as the installer icon.
+    pub fn installer_icon<P: Into<PathBuf>>(mut self, installer_icon: P) -> Self {
+        self.installer_icon.replace(installer_icon.into());
+        self
+    }
+
+    /// Set whether the installation will be for all users or just the current user.
+    pub fn install_mode(mut self, install_mode: NSISInstallerMode) -> Self {
+        self.install_mode = install_mode;
+        self
+    }
+
+    /// Set a list of installer languages.
+    /// By default the OS language is used. If the OS language is not in the list of languages, the first language will be used.
+    /// To allow the user to select the language, set `display_language_selector` to `true`.
+    ///
+    /// See <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.
+    pub fn languages<I, S>(mut self, languages: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.languages
+            .replace(languages.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Set a map of key-value pair where the key is the language and the
+    /// value is the path to a custom `.nsi` file that holds the translated text for cargo-packager's custom messages.
+    ///
+    /// See <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.
+    ///
+    /// **Note**: the key must be a valid NSIS language and it must be added to [`NsisConfig`]languages array,
+    pub fn custom_language_files<I, S, P>(mut self, custom_language_files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, P)>,
+        S: Into<String>,
+        P: Into<PathBuf>,
+    {
+        self.custom_language_files.replace(
+            custom_language_files
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
+        );
+        self
+    }
+
+    /// Set wether to display a language selector dialog before the installer and uninstaller windows are rendered or not.
+    /// By default the OS language is selected, with a fallback to the first language in the `languages` array.
+    pub fn display_language_selector(mut self, display: bool) -> Self {
+        self.display_language_selector = display;
+        self
+    }
+
+    /// Set a list of paths where your app stores data.
+    /// This options tells the uninstaller to provide the user with an option
+    /// (disabled by default) whether they want to rmeove your app data or keep it.
+    ///
+    /// The path should use a constant from <https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant>
+    /// in addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your
+    /// app data in `C:\\Users\\<user>\\AppData\\Local\\<your-company-name>\\<your-product-name>`
+    /// you'd need to specify
+    /// ```toml
+    /// [package.metadata.packager.nsis]
+    /// appdata-paths = ["$LOCALAPPDATA/$PUBLISHER/$PRODUCTNAME"]
+    /// ```
+    pub fn appdata_paths<I, S>(mut self, appdata_paths: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.appdata_paths
+            .replace(appdata_paths.into_iter().map(Into::into).collect());
+        self
+    }
+}
+
 /// The Windows configuration.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct WindowsConfig {
     /// The file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.
     #[serde(alias = "digest-algorithim", alias = "digest_algorithim")]
@@ -558,14 +1123,14 @@ pub struct WindowsConfig {
     /// The SHA1 hash of the signing certificate.
     #[serde(alias = "certificate-thumbprint", alias = "certificate_thumbprint")]
     pub certificate_thumbprint: Option<String>,
-    /// Server to use during timestamping.
-    #[serde(alias = "timestamp-url", alias = "timestamp_url")]
-    pub timestamp_url: Option<String>,
     /// Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may
     /// use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
     #[serde(default)]
     pub tsp: bool,
-    /// Validates a second app installation, blocking the user from installing an older version if set to `false`.
+    /// Server to use during timestamping.
+    #[serde(alias = "timestamp-url", alias = "timestamp_url")]
+    pub timestamp_url: Option<String>,
+    /// Whether to validate a second app installation, blocking the user from installing an older version if set to `false`.
     ///
     /// For instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.
     ///
@@ -578,10 +1143,6 @@ pub struct WindowsConfig {
     pub allow_downgrades: bool,
 }
 
-fn default_true() -> bool {
-    true
-}
-
 impl Default for WindowsConfig {
     fn default() -> Self {
         Self {
@@ -591,6 +1152,49 @@ impl Default for WindowsConfig {
             tsp: false,
             allow_downgrades: true,
         }
+    }
+}
+
+impl WindowsConfig {
+    /// Creates a new [`WindowsConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.
+    pub fn digest_algorithm<S: Into<String>>(mut self, digest_algorithm: S) -> Self {
+        self.digest_algorithm.replace(digest_algorithm.into());
+        self
+    }
+
+    /// Set the SHA1 hash of the signing certificate.
+    pub fn certificate_thumbprint<S: Into<String>>(mut self, certificate_thumbprint: S) -> Self {
+        self.certificate_thumbprint
+            .replace(certificate_thumbprint.into());
+        self
+    }
+
+    /// Set whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may
+    /// use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
+    pub fn tsp(mut self, tsp: bool) -> Self {
+        self.tsp = tsp;
+        self
+    }
+
+    /// Set server url to use during timestamping.
+    pub fn timestamp_url<S: Into<String>>(mut self, timestamp_url: S) -> Self {
+        self.timestamp_url.replace(timestamp_url.into());
+        self
+    }
+
+    /// Set whether to validate a second app installation, blocking the user from installing an older version if set to `false`.
+    ///
+    /// For instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.
+    ///
+    /// The default value of this flag is `true`.
+    pub fn allow_downgrades(mut self, allow: bool) -> Self {
+        self.allow_downgrades = allow;
+        self
     }
 }
 
@@ -633,12 +1237,37 @@ impl Default for LogLevel {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct Binary {
-    /// Path to the binary (without `.exe` on Windows). If it's relative, it will be resolved from [`Config::out_dir`].
+    /// Path to the binary (without `.exe` on Windows).
+    /// If it's relative, it will be resolved from [`Config::out_dir`].
     pub path: PathBuf,
     /// Whether this is the main binary or not
     #[serde(default)]
     pub main: bool,
+}
+
+impl Binary {
+    /// Creates a new [`Binary`] from a path to the binary (without `.exe` on Windows).
+    /// If it's relative, it will be resolved from [`Config::out_dir`].
+    pub fn new<P: Into<PathBuf>>(path: P) -> Self {
+        Self {
+            path: path.into(),
+            main: false,
+        }
+    }
+
+    /// Set the path of the binary.
+    pub fn path<P: Into<PathBuf>>(mut self, path: P) -> Self {
+        self.path = path.into();
+        self
+    }
+
+    /// Set the binary as main binary.
+    pub fn main(mut self, main: bool) -> Self {
+        self.main = main;
+        self
+    }
 }
 
 /// A path to a resource (with optional glob pattern)
@@ -646,6 +1275,7 @@ pub struct Binary {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum Resource {
     /// Supports glob patterns
     Single(String),
@@ -666,6 +1296,7 @@ pub enum Resource {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum HookCommand {
     /// Run the given script with the default options.
     Script(String),
@@ -683,93 +1314,88 @@ pub enum HookCommand {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Config {
-    /// Whether this config is enabled or not. Defaults to `true`.
-    #[serde(default = "default_true")]
-    pub enabled: bool,
     /// The JSON schema for the config.
     ///
     /// Setting this field has no effect, this just exists so
-    /// we can parse the JSON correct when it has `$schema` field set.
+    /// we can parse the JSON correctly when it has `$schema` field set.
     #[serde(rename = "$schema")]
-    pub schema: Option<String>,
+    schema: Option<String>,
     /// The app name, this is just an identifier that could be used
     /// to filter which app to package using `--packages` cli arg when there is multiple apps in the
     /// workspace or in the same config.
     ///
-    /// This field resembles, the `name` field in `Cargo.toml` and `package.json`
+    /// This field resembles, the `name` field in `Cargo.toml` or `package.json`
     ///
     /// If `unset`, the CLI will try to auto-detect it from `Cargo.toml` or
-    /// `package.json` otherwise, it will keep it as null.
-    pub name: Option<String>,
-    /// Specify a command to run before starting to package an application.
-    ///
-    /// This runs only once.
-    #[serde(
-        default,
-        alias = "before-packaging-command",
-        alias = "before_packaging_command"
-    )]
-    pub before_packaging_command: Option<HookCommand>,
-    /// Specify a command to run before packaging each format for an application.
-    ///
-    /// This will run multiple times depending on the formats specifed.
-    #[serde(
-        default,
-        alias = "before-each-package-command",
-        alias = "before_each_package_command"
-    )]
-    pub before_each_package_command: Option<HookCommand>,
-    /// The log level.
-    #[serde(alias = "log-level", alias = "log_level")]
-    pub log_level: Option<LogLevel>,
-    /// The package types we're creating.
-    ///
-    /// if not present, we'll use the PackageType list for the target OS.
-    pub formats: Option<Vec<PackageFormat>>,
-    /// The directory where the `binaries` exist and where the packages will be placed.
-    #[serde(default, alias = "out-dir", alias = "out_dir")]
-    pub out_dir: PathBuf,
-    /// The target triple. Defaults to the current OS target triple.
-    #[serde(alias = "target-triple", alias = "target_triple")]
-    pub target_triple: Option<String>,
-    /// the package's product name, for example "My Awesome App".
+    /// `package.json` otherwise, it will keep it unset.
+    pub(crate) name: Option<String>,
+    /// Whether this config is enabled or not. Defaults to `true`.
+    #[serde(default = "default_true")]
+    pub(crate) enabled: bool,
+    /// The package's product name, for example "My Awesome App".
     #[serde(default, alias = "product-name", alias = "product_name")]
     pub product_name: String,
-    /// the package's version.
+    /// The package's version.
     #[serde(default)]
     pub version: String,
-    /// the package's description.
-    pub description: Option<String>,
-    /// the app's long description.
-    #[serde(alias = "long-description", alias = "long_description")]
-    pub long_description: Option<String>,
-    /// the package's homepage.
-    pub homepage: Option<String>,
-    /// the package's authors.
+    /// The binaries to package.
     #[serde(default)]
-    pub authors: Vec<String>,
-    /// the application identifier in reverse domain name notation (e.g. `com.packager.example`).
+    pub binaries: Vec<Binary>,
+    /// The application identifier in reverse domain name notation (e.g. `com.packager.example`).
     /// This string must be unique across applications since it is used in some system configurations.
     /// This string must contain only alphanumeric characters (A–Z, a–z, and 0–9), hyphens (-),
     /// and periods (.).
     #[cfg_attr(feature = "schema", schemars(regex(pattern = r"^[a-zA-Z0-9-\.]*$")))]
     pub identifier: Option<String>,
-    /// The app's publisher. Defaults to the second element in the identifier string.
+    /// The command to run before starting to package an application.
+    ///
+    /// This runs only once.
+    #[serde(alias = "before-packaging-command", alias = "before_packaging_command")]
+    pub before_packaging_command: Option<HookCommand>,
+    /// The command to run before packaging each format for an application.
+    ///
+    /// This will run multiple times depending on the formats specifed.
+    #[serde(
+        alias = "before-each-package-command",
+        alias = "before_each_package_command"
+    )]
+    pub before_each_package_command: Option<HookCommand>,
+    /// The logging level.
+    #[serde(alias = "log-level", alias = "log_level")]
+    pub log_level: Option<LogLevel>,
+    /// The packaging formats to create, if not present, [`PackageFormat::platform_default`] is used.
+    pub formats: Option<Vec<PackageFormat>>,
+    /// The directory where the [`Config::binaries`] exist and where the generated packages will be placed.
+    #[serde(default, alias = "out-dir", alias = "out_dir")]
+    pub out_dir: PathBuf,
+    /// The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
+    ///
+    /// Defaults to the current OS target triple.
+    #[serde(alias = "target-triple", alias = "target_triple")]
+    pub target_triple: Option<String>,
+    /// The package's description.
+    pub description: Option<String>,
+    /// The app's long description.
+    #[serde(alias = "long-description", alias = "long_description")]
+    pub long_description: Option<String>,
+    /// The package's homepage.
+    pub homepage: Option<String>,
+    /// The package's authors.
+    #[serde(default)]
+    pub authors: Option<Vec<String>>,
+    /// The app's publisher. Defaults to the second element in [`Config::identifier`](Config::identifier) string.
     /// Currently maps to the Manufacturer property of the Windows Installer.
     pub publisher: Option<String>,
     /// A path to the license file.
     #[serde(alias = "license-file", alias = "license_file")]
     pub license_file: Option<PathBuf>,
-    /// the app's copyright.
+    /// The app's copyright.
     pub copyright: Option<String>,
-    /// the app's category.
+    /// The app's category.
     pub category: Option<AppCategory>,
-    /// the app's icon list.
-    pub icons: Option<Vec<String>>,
-    /// the binaries to package.
-    #[serde(default)]
-    pub binaries: Vec<Binary>,
-    /// the file associations
+    /// The app's icon list.
+    pub icons: Option<Vec<PathBuf>>,
+    /// The file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,
     /// The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory
@@ -782,11 +1408,14 @@ pub struct Config {
     /// - **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.
     /// - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.
     pub resources: Option<Vec<Resource>>,
-    /// External binaries to add to the package.
+    /// Paths to external binaries to add to the package.
     ///
-    /// Note that each binary name should have the target platform's target triple appended,
+    /// The path specified should not include `-<target-triple><.exe>` suffix,
+    /// it will be auto-added when by the packager when reading these paths,
+    /// so the actual binary name should have the target platform's target triple appended,
     /// as well as `.exe` for Windows.
-    /// For example, if you're packaging a sidecar called `sqlite3`, the packager expects
+    ///
+    /// For example, if you're packaging an external binary called `sqlite3`, the packager expects
     /// a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux,
     /// and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.
     ///
@@ -795,59 +1424,58 @@ pub struct Config {
     /// e.g. `sqlite3-universal-apple-darwin`. See
     /// <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>
     #[serde(alias = "external-binaries", alias = "external_binaries")]
-    pub external_binaries: Option<Vec<String>>,
-    /// Debian-specific settings.
+    pub external_binaries: Option<Vec<PathBuf>>,
+    /// Windows-specific configuration.
+    pub windows: Option<WindowsConfig>,
+    /// MacOS-specific configuration.
+    pub macos: Option<MacOsConfig>,
+    /// Debian-specific configuration.
     pub deb: Option<DebianConfig>,
-    /// Debian-specific settings.
+    /// AppImage configuration.
     pub appimage: Option<AppImageConfig>,
     /// WiX configuration.
     pub wix: Option<WixConfig>,
     /// Nsis configuration.
     pub nsis: Option<NsisConfig>,
-    /// MacOS-specific settings.
-    pub macos: Option<MacOsConfig>,
-    /// Windows-specific settings.
-    pub windows: Option<WindowsConfig>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct IResource {
-    pub src: PathBuf,
-    pub target: PathBuf,
 }
 
 impl Config {
-    /// Returns the windows specific configuration
+    /// Creates a new [`ConfigBuilder`].
+    pub fn builder() -> ConfigBuilder {
+        ConfigBuilder::default()
+    }
+
+    /// Returns the [windows](Config::windows) specific configuration.
     pub fn windows(&self) -> Option<&WindowsConfig> {
         self.windows.as_ref()
     }
 
-    /// Returns the macos specific configuration
+    /// Returns the [macos](Config::macos) specific configuration.
     pub fn macos(&self) -> Option<&MacOsConfig> {
         self.macos.as_ref()
     }
 
-    /// Returns the nsis specific configuration
+    /// Returns the [nsis](Config::nsis) specific configuration.
     pub fn nsis(&self) -> Option<&NsisConfig> {
         self.nsis.as_ref()
     }
 
-    /// Returns the wix specific configuration
+    /// Returns the [wix](Config::wix) specific configuration.
     pub fn wix(&self) -> Option<&WixConfig> {
         self.wix.as_ref()
     }
 
-    /// Returns the debian specific configuration
+    /// Returns the [debian](Config::deb) specific configuration.
     pub fn deb(&self) -> Option<&DebianConfig> {
         self.deb.as_ref()
     }
 
-    /// Returns the appimage specific configuration
+    /// Returns the [appimage](Config::appimage) specific configuration.
     pub fn appimage(&self) -> Option<&AppImageConfig> {
         self.appimage.as_ref()
     }
 
-    /// Returns the target triple for the package to be built (e.g. "aarch64-unknown-linux-gnu").
+    /// Returns the target triple of this config, if not set, fallsback to the current OS target triple.
     pub fn target_triple(&self) -> String {
         self.target_triple.clone().unwrap_or_else(|| {
             util::target_triple().expect("Failed to detect current target triple")
@@ -881,20 +1509,24 @@ impl Config {
         }
     }
 
-    /// Returns the package identifier
+    /// Returns the package identifier. Defaults an empty string.
     pub fn identifier(&self) -> &str {
         self.identifier.as_deref().unwrap_or("")
     }
 
-    /// Returns the package publisher
+    /// Returns the package publisher.
+    /// Defaults to the second element in [`Config::identifier`](Config::identifier()).
     pub fn publisher(&self) -> String {
-        let identifier = self.identifier();
-        self.publisher
-            .clone()
-            .unwrap_or_else(|| identifier.split('.').nth(1).unwrap_or(identifier).into())
+        self.publisher.clone().unwrap_or_else(|| {
+            self.identifier()
+                .split('.')
+                .nth(1)
+                .unwrap_or(self.identifier())
+                .into()
+        })
     }
 
-    /// Returns the out dir
+    /// Returns the out dir. Defaults to the current directory.
     pub fn out_dir(&self) -> PathBuf {
         if self.out_dir.as_os_str().is_empty() {
             std::env::current_dir().expect("failed to resolve cwd")
@@ -903,7 +1535,7 @@ impl Config {
         }
     }
 
-    /// Returns the main binary
+    /// Returns the main binary.
     pub fn main_binary(&self) -> crate::Result<&Binary> {
         self.binaries
             .iter()
@@ -911,7 +1543,7 @@ impl Config {
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
     }
 
-    /// Returns the main binary name
+    /// Returns the main binary name.
     pub fn main_binary_name(&self) -> crate::Result<String> {
         self.binaries
             .iter()
@@ -921,19 +1553,25 @@ impl Config {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct ResolvedResource {
+    pub src: PathBuf,
+    pub target: PathBuf,
+}
+
 impl Config {
     #[inline]
     pub(crate) fn resources_from_dir(
         src_dir: &Path,
         target_dir: &Path,
-    ) -> crate::Result<Vec<IResource>> {
+    ) -> crate::Result<Vec<ResolvedResource>> {
         let mut out = Vec::new();
         for entry in walkdir::WalkDir::new(src_dir) {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() {
                 let relative = path.relative_to(src_dir)?.to_path("");
-                let resource = IResource {
+                let resource = ResolvedResource {
                     src: dunce::canonicalize(path)?,
                     target: target_dir.join(relative),
                 };
@@ -944,17 +1582,17 @@ impl Config {
     }
 
     #[inline]
-    pub(crate) fn resources_from_glob(glob: &str) -> crate::Result<Vec<IResource>> {
+    pub(crate) fn resources_from_glob(glob: &str) -> crate::Result<Vec<ResolvedResource>> {
         let mut out = Vec::new();
         for src in glob::glob(glob)? {
             let src = dunce::canonicalize(src?)?;
             let target = PathBuf::from(src.file_name().unwrap_or_default());
-            out.push(IResource { src, target })
+            out.push(ResolvedResource { src, target })
         }
         Ok(out)
     }
 
-    pub(crate) fn resources(&self) -> crate::Result<Vec<IResource>> {
+    pub(crate) fn resources(&self) -> crate::Result<Vec<ResolvedResource>> {
         if let Some(resources) = &self.resources {
             let mut out = Vec::new();
             for r in resources {
@@ -974,7 +1612,7 @@ impl Config {
                         if src_path.is_dir() {
                             out.extend(Self::resources_from_dir(&src_path, &target_dir)?);
                         } else if src_path.is_file() {
-                            out.push(IResource {
+                            out.push(ResolvedResource {
                                 src: dunce::canonicalize(src_path)?,
                                 target: sanitize_path(target),
                             });
@@ -1031,7 +1669,7 @@ impl Config {
         let mut paths = Vec::new();
         if let Some(external_binaries) = &self.external_binaries {
             for src in external_binaries {
-                let src = dunce::canonicalize(PathBuf::from(src))?;
+                let src = dunce::canonicalize(src)?;
                 let file_name_no_triple = src
                     .file_name()
                     .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
@@ -1055,4 +1693,8 @@ fn sanitize_path<P: AsRef<Path>>(path: P) -> PathBuf {
         }
     }
     dest
+}
+
+fn default_true() -> bool {
+    true
 }

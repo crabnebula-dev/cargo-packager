@@ -80,7 +80,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
-            let src = PathBuf::from(src).with_extension("exe");
+            let src = src.with_extension("exe");
             let bin_path = dunce::canonicalize(cwd.join(src))?;
             let dest_filename = bin_path
                 .file_name()
@@ -383,6 +383,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
                     NsisCompression::Zlib => "zlib",
                     NsisCompression::Bzip2 => "bzip2",
                     NsisCompression::Lzma => "lzma",
+                    NsisCompression::Off => "off",
                 }),
             );
         }

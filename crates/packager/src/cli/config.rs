@@ -146,8 +146,8 @@ pub fn load_configs_from_cargo_workspace(
             if config.description.is_none() {
                 config.description = package.description.clone();
             }
-            if config.authors.is_empty() {
-                config.authors = package.authors.clone();
+            if config.authors.is_none() {
+                config.authors = Some(package.authors.clone());
             }
             if config.license_file.is_none() {
                 config.license_file = package

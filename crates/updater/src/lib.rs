@@ -72,9 +72,9 @@ impl WindowsUpdateInstallMode {
 #[serde(rename_all = "camelCase")]
 pub struct UpdaterWindowsConfig {
     /// Additional arguments given to the NSIS or WiX installer.
-    pub installer_args: Vec<String>,
+    pub installer_args: Option<Vec<String>>,
     /// The installation mode for the update on Windows. Defaults to `passive`.
-    pub install_mode: WindowsUpdateInstallMode,
+    pub install_mode: Option<WindowsUpdateInstallMode>,
 }
 
 /// Updater configuration.
@@ -86,7 +86,7 @@ pub struct Config {
     /// Signature public key.
     pub pubkey: String,
     /// The Windows configuration for the updater.
-    pub windows: UpdaterWindowsConfig,
+    pub windows: Option<UpdaterWindowsConfig>,
 }
 
 /// Supported update format
@@ -265,7 +265,15 @@ impl UpdaterBuilder {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.config.windows.installer_args = args.into_iter().map(Into::into).collect();
+        if self.config.windows.is_none() {
+            self.config.windows.replace(Default::default());
+        }
+        self.config
+            .windows
+            .as_mut()
+            .unwrap()
+            .installer_args
+            .replace(args.into_iter().map(Into::into).collect());
         self
     }
 
@@ -596,10 +604,17 @@ impl Update {
                     .arg("-ArgumentList")
                     .arg(
                         [
-                            self.config.windows.install_mode.nsis_args(),
                             self.config
                                 .windows
-                                .installer_args
+                                .as_ref()
+                                .and_then(|w| w.install_mode.clone())
+                                .unwrap_or_default()
+                                .nsis_args(),
+                            self.config
+                                .windows
+                                .as_ref()
+                                .and_then(|w| w.installer_args.clone())
+                                .unwrap_or_default()
                                 .iter()
                                 .map(AsRef::as_ref)
                                 .collect::<Vec<_>>()
@@ -629,7 +644,9 @@ impl Update {
                     let msiexec_args = self
                         .config
                         .windows
-                        .install_mode
+                        .as_ref()
+                        .and_then(|w| w.install_mode.clone())
+                        .unwrap_or_default()
                         .msiexec_args()
                         .iter()
                         .map(|p| p.to_string())
@@ -795,7 +812,14 @@ impl Update {
     }
 }
 
-/// Gets the target string used on the updater.
+/// Check for an update using the provided
+pub fn check_update(current_version: Version, config: crate::Config) -> Result<Option<Update>> {
+    UpdaterBuilder::new(current_version, config)
+        .build()?
+        .check()
+}
+
+/// Get the updater target for the current platform.
 pub fn target() -> Option<String> {
     if let (Some(target), Some(arch)) = (get_updater_target(), get_updater_arch()) {
         Some(format!("{target}-{arch}"))

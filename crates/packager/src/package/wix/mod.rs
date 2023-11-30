@@ -19,7 +19,7 @@ use uuid::Uuid;
 use super::Context;
 use crate::{
     codesign,
-    config::{Config, LogLevel},
+    config::{Config, LogLevel, WixLanguage},
     shell::CommandExt,
     util::{self, download_and_verify, extract_zip, HashAlgorithm},
 };
@@ -139,7 +139,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
 
     if let Some(external_binaries) = &config.external_binaries {
         for src in external_binaries {
-            let src = PathBuf::from(src).with_extension("exe");
+            let src = src.with_extension("exe");
             let bin_path = dunce::canonicalize(cwd.join(src))?;
             let dest_filename = bin_path
                 .file_name()
@@ -655,9 +655,14 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         serde_json::from_str(include_str!("./languages.json"))?;
     let configured_languages = config
         .wix()
-        .map(|w| w.languages.clone())
-        .unwrap_or_default();
-    for (language, language_config) in configured_languages.0 {
+        .and_then(|w| w.languages.clone())
+        .unwrap_or_else(|| vec![WixLanguage::default()]);
+    for language in configured_languages {
+        let (language, locale_path) = match language {
+            WixLanguage::Identifier(identifier) => (identifier, None),
+            WixLanguage::Custom { identifier, path } => (identifier, path),
+        };
+
         let language_metadata = language_map.get(&language).ok_or_else(|| {
             crate::Error::UnsupportedWixLanguage(
                 language.clone(),
@@ -669,7 +674,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             )
         })?;
 
-        let locale_contents = match language_config.locale_path {
+        let locale_contents = match locale_path {
             Some(p) => std::fs::read_to_string(p)?,
             None => format!(
                 r#"<WixLocalization Culture="{}" xmlns="http://schemas.microsoft.com/wix/2006/localization"></WixLocalization>"#,

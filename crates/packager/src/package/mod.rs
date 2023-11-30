@@ -35,7 +35,8 @@ mod wix;
 mod context;
 
 /// Generated Package metadata.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct PackageOuput {
     /// The package type.
     pub format: PackageFormat,
