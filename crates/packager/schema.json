@@ -273,6 +273,17 @@
           "type": "null"
         }
       ]
+    },
+    "dmg": {
+      "description": "Dmg configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DmgConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "additionalProperties": false,
@@ -1082,6 +1093,110 @@
           ]
         }
       ]
+    },
+    "DmgConfig": {
+      "description": "The Apple Disk Image (.dmg) configuration.",
+      "type": "object",
+      "properties": {
+        "background": {
+          "description": "Image to use as the background in dmg file. Accepted formats: `png`/`jpg`/`gif`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "windowPosition": {
+          "description": "Position of volume window on screen.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Position"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "windowSize": {
+          "description": "Size of volume window.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Size"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "appPosition": {
+          "description": "Position of application file on window.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Position"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "appFolderPosition": {
+          "description": "Position of application folder on window.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Position"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Position": {
+      "description": "Position coordinates struct.",
+      "type": "object",
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "description": "X coordinate.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "y": {
+          "description": "Y coordinate.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "Size": {
+      "description": "Size struct.",
+      "type": "object",
+      "required": [
+        "height",
+        "width"
+      ],
+      "properties": {
+        "width": {
+          "description": "Width.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "height": {
+          "description": "Height.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
