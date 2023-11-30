@@ -785,7 +785,7 @@ impl Update {
         }
 
         // if something went wrong during the extraction, we should restore previous app
-        if let Err(e) = extract_archive(archive, self.extract_path) {
+        if let Err(e) = extract_archive(archive, &self.extract_path) {
             std::fs::remove_dir(self.extract_path)?;
             std::fs::rename(tmp_dir.path(), &self.extract_path)?;
             return Err(e);
