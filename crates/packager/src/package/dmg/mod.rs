@@ -91,27 +91,33 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let mut bundle_dmg_cmd = Command::new(&create_dmg_script_path);
 
     let app_x = dmg
-        .and_then(|d| d.app_position.x)
+        .and_then(|d| d.app_position)
+        .and_then(|p| p.x)
         .unwrap_or(180)
         .to_string();
     let app_y = dmg
-        .and_then(|d| d.app_position.y)
+        .and_then(|d| d.app_position)
+        .and_then(|p| p.y)
         .unwrap_or(170)
         .to_string();
     let app_folder_x = dmg
-        .and_then(|d| d.app_folder_position.x)
+        .and_then(|d| d.app_folder_position)
+        .and_then(|p| p.x)
         .unwrap_or(480)
         .to_string();
     let app_folder_y = dmg
-        .and_then(|d| d.app_folder_position.y)
+        .and_then(|d| d.app_folder_position)
+        .and_then(|p| p.y)
         .unwrap_or(170)
         .to_string();
     let window_width = dmg
-        .and_then(|d| d.window_size.width)
+        .and_then(|d| d.window_size)
+        .and_then(|s| s.width)
         .unwrap_or(600)
         .to_string();
     let window_height = dmg
-        .and_then(|d| d.window_size.height)
+        .and_then(|d| d.window_size)
+        .and_then(|s| s.height)
         .unwrap_or(400)
         .to_string();
 
@@ -141,10 +147,9 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         bundle_dmg_cmd.arg(&y);
     }
 
-    let background_path = if let Some(background_path) = &dmg.and_then(|d| d.background) {
-        Some(env::current_dir()?.join(background_path))
-    } else {
-        None
+    let background_path = match &dmg.and_then(|d| d.background) {
+        Some(p) => Some(std::env::current_dir()?.join(p)),
+        None => None,
     };
 
     if let Some(background_path) = &background_path {
@@ -159,10 +164,10 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         bundle_dmg_cmd.arg(icon);
     }
 
-    let license_file = config
-        .license_file
-        .as_ref()
-        .map(|l| std::env::current_dir()?.join(l));
+    let license_file = match config.license_file.as_ref() {
+        Some(l) => Some(std::env::current_dir()?.join(l)),
+        None => None,
+    };
     if let Some(license_path) = &license_file {
         bundle_dmg_cmd.arg("--eula");
         bundle_dmg_cmd.arg(license_path);
@@ -172,7 +177,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     // https://github.com/tauri-apps/tauri/issues/592
     if let Some(value) = std::env::var_os("CI") {
         if value == "true" {
-            bundle_dmg_cmd.push("--skip-jenkins");
+            bundle_dmg_cmd.arg("--skip-jenkins");
         }
     }
 
@@ -181,7 +186,6 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     // execute the bundle script
     bundle_dmg_cmd
         .current_dir(&out_dir)
-        .args(args)
         .args(vec![dmg_name.as_str(), app_bundle_file_name.as_str()])
         .output_ok()
         .map_err(crate::Error::CreateDmgFailed)?;
