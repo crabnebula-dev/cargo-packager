@@ -53,12 +53,12 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
 ];
 
 type DirectoriesSet = BTreeSet<PathBuf>;
-type ResourcesMap = Vec<(PathBuf, PathBuf)>;
+type ResourcesMap = BTreeMap<PathBuf, PathBuf>;
 
 #[tracing::instrument(level = "trace")]
 fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, ResourcesMap)> {
     let mut directories = BTreeSet::new();
-    let mut resources_map = Vec::new();
+    let mut resources_map = BTreeMap::new();
     for r in config.resources()? {
         directories.insert(
             r.target
@@ -66,7 +66,7 @@ fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, Res
                 .unwrap_or_else(|| Path::new(""))
                 .to_path_buf(),
         );
-        resources_map.push((r.src, r.target))
+        resources_map.insert(r.src, r.target);
     }
     Ok((directories, resources_map))
 }
@@ -232,6 +232,23 @@ fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
         "{}.{}.{}.0",
         version.major, version.minor, version.patch,
     ))
+}
+
+fn generate_estimated_size<I, P, P2>(main: P, other_files: I) -> crate::Result<String>
+where
+    I: IntoIterator<Item = P2>,
+    P: AsRef<Path>,
+    P2: AsRef<Path>,
+{
+    let mut size = std::fs::metadata(main)?.len();
+
+    for k in other_files {
+        size += std::fs::metadata(k)?.len();
+    }
+
+    size /= 1000;
+
+    Ok(format!("{size:#08x}"))
 }
 
 #[tracing::instrument(level = "trace")]
@@ -421,7 +438,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     );
 
     data.insert("main_binary_name", to_json(&main_binary_name));
-    data.insert("main_binary_path", to_json(main_binary_path));
+    data.insert("main_binary_path", to_json(&main_binary_path));
 
     if let Some(file_associations) = &config.file_associations {
         data.insert("file_associations", to_json(file_associations));
@@ -432,10 +449,14 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     let (resources_dirs, resources) = generate_resource_data(config)?;
     data.insert("resources_dirs", to_json(resources_dirs));
-    data.insert("resources", to_json(resources));
+    data.insert("resources", to_json(&resources));
 
     let binaries = generate_binaries_data(config)?;
-    data.insert("binaries", to_json(binaries));
+    data.insert("binaries", to_json(&binaries));
+
+    let estimated_size =
+        generate_estimated_size(main_binary_path, resources.keys().chain(binaries.keys()))?;
+    data.insert("estimated_size", to_json(estimated_size));
 
     let mut handlebars = Handlebars::new();
     handlebars.register_helper("or", Box::new(handlebars_or));
