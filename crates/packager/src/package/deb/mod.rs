@@ -430,6 +430,5 @@ fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> cr
             tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
         }
     }
-    let dest_file = tar_builder.into_inner()?;
-    Ok(dest_file)
+    tar_builder.into_inner().map_err(Into::into)
 }

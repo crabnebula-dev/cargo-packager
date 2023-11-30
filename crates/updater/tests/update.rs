@@ -213,7 +213,6 @@ fn update_app() {
                 _ => unreachable!(),
             });
             let installer_path = dunce::simplified(&installer_path);
-            dbg!(installer_path);
 
             let mut installer_arg = std::ffi::OsString::new();
             installer_arg.push("\"");
@@ -280,25 +279,26 @@ fn update_app() {
         let mut counter = 0;
         loop {
             // check if the main binary creation time has changed since `ctime1`
-            let ctime2 = std::fs::metadata(&app)
-                .expect("failed to read app metadata")
-                .created()
-                .unwrap();
-            dbg!(ctime1, ctime2);
-            if ctime1 != ctime2 {
-                match Command::new(&app).output() {
-                    Ok(o) => {
-                        let output = String::from_utf8_lossy(&o.stdout).to_string();
-                        let version = output.split_once('\n').unwrap().0;
-                        if version == "1.0.0" {
-                            println!("app is updated, new version: {version}");
-                            break;
+            if app.exists() {
+                let ctime2 = std::fs::metadata(&app)
+                    .expect("failed to read app metadata")
+                    .created()
+                    .unwrap();
+                if ctime1 != ctime2 {
+                    match Command::new(&app).output() {
+                        Ok(o) => {
+                            let output = String::from_utf8_lossy(&o.stdout).to_string();
+                            let version = output.split_once('\n').unwrap().0;
+                            if version == "1.0.0" {
+                                println!("app is updated, new version: {version}");
+                                break;
+                            }
+                            println!("unexpected output (stdout): {output}");
+                            eprintln!("stderr: {}", String::from_utf8_lossy(&o.stderr));
                         }
-                        println!("unexpected output (stdout): {output}");
-                        eprintln!("stderr: {}", String::from_utf8_lossy(&o.stderr));
-                    }
-                    Err(e) => {
-                        eprintln!("failed to check if app was updated: {e}");
+                        Err(e) => {
+                            eprintln!("failed to check if app was updated: {e}");
+                        }
                     }
                 }
             }

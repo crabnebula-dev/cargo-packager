@@ -6,7 +6,6 @@ let resultElement = document.getElementById("result");
 
 // Setup the greet function
 window.greet = () => {
-  console.log("1");
   // Get name
   let name = nameElement.value;
 
