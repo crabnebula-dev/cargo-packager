@@ -94,18 +94,12 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         if: ${{ !matrix.settings.docker }}
-        with:
-          node-version: 18
-          cache: pnpm
-          cache-dependency-path: bindings/packager/nodejs/pnpm-lock.yaml
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         if: ${{ !matrix.settings.docker }}
@@ -134,15 +128,11 @@ jobs:
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         run: pnpm config set supportedArchitectures.cpu "ia32"
         shell: bash
-      - name: Install dependencies
-        run: pnpm install
+      - run: pnpm install
       - name: Setup node x86
         uses: actions/setup-node@v4
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
-          node-version: 18
-          cache: pnpm
-          cache-dependency-path: bindings/packager/nodejs/pnpm-lock.yaml
           architecture: x86
       - name: Build in docker
         uses: addnab/docker-run-action@v3
@@ -179,19 +169,14 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-          cache-dependency-path: bindings/packager/nodejs/pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install
+      - run: pnpm install
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -215,19 +200,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-          cache-dependency-path: bindings/packager/nodejs/pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install
+      - run: pnpm install
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -252,17 +232,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-          cache-dependency-path: bindings/packager/nodejs/pnpm-lock.yaml
       - name: Install dependencies
         run: |
           pnpm config set supportedArchitectures.libc "musl"
@@ -299,10 +275,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
@@ -340,10 +315,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
@@ -386,10 +360,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
@@ -423,19 +396,12 @@ jobs:
       - test-linux-arm-gnueabihf-binding
     steps:
       - uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
           package_json_file: bindings/packager/nodejs
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: pnpm
-          cache-dependency-path: bindings/packager/nodejs/pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install
+      - uses: actions/setup-node@v4
+      - run: pnpm install
       - name: Download all artifacts
         uses: actions/download-artifact@v3
         with:

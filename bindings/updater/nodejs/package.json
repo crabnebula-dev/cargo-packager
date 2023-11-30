@@ -1,0 +1,44 @@
+{
+  "name": "@crabnebula/updater",
+  "version": "0.0.0",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "napi": {
+    "name": "updater",
+    "triples": {
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-unknown-linux-musl",
+        "aarch64-pc-windows-msvc",
+        "armv7-unknown-linux-gnueabihf",
+        "x86_64-unknown-linux-musl",
+        "i686-pc-windows-msvc"
+      ]
+    }
+  },
+  "license": "MIT",
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build --platform --profile release-size-optimized",
+    "build:debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
+    "test": "ava --no-worker-threads --timeout 30m",
+    "universal": "napi universal",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.16.5",
+    "@tinyhttp/app": "^2.2.1",
+    "@types/node": "^20.8.10",
+    "ava": "^5.1.1",
+    "execa": "^8.0.1",
+    "@crabnebula/packager": "workspace:"
+  },
+  "ava": {
+    "timeout": "3m"
+  },
+  "engines": {
+    "node": ">= 10"
+  }
+}

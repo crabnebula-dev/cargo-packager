@@ -9,7 +9,7 @@ fn main() {
     let mut builder = cargo_packager_updater::UpdaterBuilder::new(
         version.parse().unwrap(),
         cargo_packager_updater::Config {
-            pubkey: "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2Njc0OTE5Mzk2Q0ExODkKUldTSm9XdzVHVWxuUmtJdjB4RnRXZGVqR3NQaU5SVitoTk1qNFFWQ3pjL2hZWFVDOFNrcEVvVlcK".into(),
+            pubkey: include_str!("../../dummy.pub.key").into(),
             endpoints: vec!["http://localhost:3007".parse().unwrap()],
             ..Default::default()
         },
@@ -17,14 +17,11 @@ fn main() {
     let format = std::env::var("UPDATER_FORMAT").unwrap_or_default();
 
     match format.as_str() {
-        "nsis" => {
-            // /D sets the default installation directory ($INSTDIR),
-            // overriding InstallDir and InstallDirRegKey.
-            // It must be the last parameter used in the command line and must not contain any quotes, even if the path contains spaces.
-            // Only absolute paths are supported.
+        "nsis" | "wix" => {
             // NOTE: we only need this because this is an integration test and we don't want to install the app in the programs folder
             builder = builder.installer_args(vec![format!(
-                "/D={}",
+                "{}={}",
+                if format == "nsis" { "/D" } else { "INSTALLDIR" },
                 std::env::current_exe().unwrap().parent().unwrap().display()
             )]);
         }

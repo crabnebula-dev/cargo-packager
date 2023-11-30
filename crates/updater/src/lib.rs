@@ -35,7 +35,7 @@ pub use semver;
 pub use url;
 
 /// Install modes for the Windows update.
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub enum WindowsUpdateInstallMode {
     /// Specifies there's a basic UI during the installation process, including a final dialog box at the end.
     BasicUi,
@@ -68,7 +68,8 @@ impl WindowsUpdateInstallMode {
 }
 
 /// The updater configuration for Windows.
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdaterWindowsConfig {
     /// Additional arguments given to the NSIS or WiX installer.
     pub installer_args: Vec<String>,
@@ -77,8 +78,10 @@ pub struct UpdaterWindowsConfig {
 }
 
 /// Updater configuration.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
+    /// The updater endpoints.
     pub endpoints: Vec<Url>,
     /// Signature public key.
     pub pubkey: String,
@@ -97,6 +100,21 @@ pub enum UpdateFormat {
     AppImage,
     /// The macOS application bundle (.app).
     App,
+}
+
+impl std::fmt::Display for UpdateFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                UpdateFormat::Nsis => "nsis",
+                UpdateFormat::Wix => "wix",
+                UpdateFormat::AppImage => "appimage",
+                UpdateFormat::App => "app",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -341,13 +359,17 @@ impl Updater {
             // the URL will be generated dynamically
             let url: Url = url
                 .to_string()
-                // url::Url automatically url-encodes the string
+                // url::Url automatically url-encodes the path components
                 .replace(
                     "%7B%7Bcurrent_version%7D%7D",
                     &self.current_version.to_string(),
                 )
                 .replace("%7B%7Btarget%7D%7D", &self.target)
                 .replace("%7B%7Barch%7D%7D", self.arch)
+                // but not query parameters
+                .replace("{{current_version}}", &self.current_version.to_string())
+                .replace("{{target}}", &self.target)
+                .replace("{{arch}}", self.arch)
                 .parse()?;
 
             let mut request = Client::new().get(url).headers(headers.clone());
@@ -415,7 +437,8 @@ impl Updater {
 
 #[derive(Debug, Clone)]
 pub struct Update {
-    config: Config,
+    /// Config used to check for this update.
+    pub config: Config,
     /// Update description
     pub body: Option<String>,
     /// Version used to check for update
@@ -427,8 +450,7 @@ pub struct Update {
     /// Target
     pub target: String,
     /// Extract path
-    #[allow(unused)]
-    extract_path: PathBuf,
+    pub extract_path: PathBuf,
     /// Download URL announced
     pub download_url: Url,
     /// Signature announced
@@ -733,7 +755,6 @@ impl Update {
         use flate2::read::GzDecoder;
 
         let cursor = Cursor::new(bytes);
-        let mut extracted_files: Vec<PathBuf> = Vec::new();
 
         // the first file in the tar.gz will always be
         // <app_name>/Contents
@@ -745,33 +766,30 @@ impl Update {
         let decoder = GzDecoder::new(cursor);
         let mut archive = tar::Archive::new(decoder);
 
-        std::fs::create_dir(&self.extract_path)?;
-
-        for entry in archive.entries()? {
-            let mut entry = entry?;
-
-            let extraction_path = &self.extract_path.join(entry.path()?);
-
-            // if something went wrong during the extraction, we should restore previous app
-            if let Err(err) = entry.unpack(extraction_path) {
-                for file in extracted_files.iter().rev() {
-                    // delete all the files we extracted
-                    if file.is_dir() {
-                        std::fs::remove_dir(file)?;
-                    } else {
-                        std::fs::remove_file(file)?;
-                    }
-                }
-                std::fs::rename(tmp_dir.path(), &self.extract_path)?;
-                return Err(err.into());
+        fn extract_archive<R: std::io::Read>(
+            archive: &mut tar::Archive<R>,
+            extract_path: &Path,
+        ) -> Result<()> {
+            std::fs::create_dir(extract_path)?;
+            for entry in archive.entries()? {
+                let mut entry = entry?;
+                let entry_path: PathBuf = entry.path()?.components().skip(1).collect();
+                entry.unpack(extract_path.join(entry_path))?;
             }
 
-            extracted_files.push(extraction_path.to_path_buf());
+            let _ = std::process::Command::new("touch")
+                .arg(extract_path)
+                .status();
+
+            Ok(())
         }
 
-        let _ = std::process::Command::new("touch")
-            .arg(&self.extract_path)
-            .status();
+        // if something went wrong during the extraction, we should restore previous app
+        if let Err(e) = extract_archive(&mut archive, &self.extract_path) {
+            std::fs::remove_dir(&self.extract_path)?;
+            std::fs::rename(tmp_dir.path(), &self.extract_path)?;
+            return Err(e);
+        }
 
         Ok(())
     }

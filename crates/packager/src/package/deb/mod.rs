@@ -320,7 +320,7 @@ fn tar_and_gzip_dir<P: AsRef<Path>>(src_dir: P) -> crate::Result<PathBuf> {
     let dest_path = src_dir.with_extension("tar.gz");
     let dest_file = util::create_file(&dest_path)?;
     let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
-    let gzip_encoder = util::create_tar_from_dir(src_dir, gzip_encoder)?;
+    let gzip_encoder = create_tar_from_dir(src_dir, gzip_encoder)?;
     let mut dest_file = gzip_encoder.finish().into_result()?;
     dest_file.flush()?;
     Ok(dest_path)
@@ -401,4 +401,34 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         &deb_path,
     )?;
     Ok(vec![deb_path])
+}
+
+fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> crate::Result<W> {
+    let src_dir = src_dir.as_ref();
+    let mut tar_builder = tar::Builder::new(dest_file);
+    for entry in walkdir::WalkDir::new(src_dir) {
+        let entry = entry?;
+        let src_path = entry.path();
+        if src_path == src_dir {
+            continue;
+        }
+        let dest_path = src_path.strip_prefix(src_dir)?;
+        if entry.file_type().is_dir() {
+            let stat = std::fs::metadata(src_path)?;
+            let mut header = tar::Header::new_gnu();
+            header.set_metadata(&stat);
+            header.set_uid(0);
+            header.set_gid(0);
+            tar_builder.append_data(&mut header, dest_path, &mut std::io::empty())?;
+        } else {
+            let mut src_file = std::fs::File::open(src_path)?;
+            let stat = src_file.metadata()?;
+            let mut header = tar::Header::new_gnu();
+            header.set_metadata(&stat);
+            header.set_uid(0);
+            header.set_gid(0);
+            tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
+        }
+    }
+    tar_builder.into_inner().map_err(Into::into)
 }

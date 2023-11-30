@@ -1,0 +1,47 @@
+name: Check Node.js bindings
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/check-nodejs-bindings.yml"
+      - "crates/packager/**"
+      - "crates/updater/**"
+      - "bindings/*/nodejs/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/check-nodejs-bindings.yml"
+      - "crates/packager/**"
+      - "crates/updater/**"
+      - "bindings/*/nodejs/**"
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_PROFILE_DEV_DEBUG: 0 # This would add unnecessary bloat to the target folder, decreasing cache efficiency.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.platform }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+      - uses: Swatinem/rust-cache@v2
+      - run: pnpm install
+      - run: pnpm build

@@ -1,0 +1,27 @@
+[package]
+name = "crabnebula_updater"
+version = "0.0.0"
+publish = false
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi = { workspace = true, features = ["napi4", "async"] }
+napi-derive = { workspace = true }
+cargo-packager-updater = { path = "../../../crates/updater/", version = "0.0.0", default-features = false }
+serde_json = { workspace = true }
+time = { workspace = true, features = ["formatting"] }
+
+
+[build-dependencies]
+napi-build = { workspace = true }
+
+[features]
+default = ["cargo-packager-updater/rustls-tls"]
+native-tls = ["cargo-packager-updater/native-tls"]
+native-tls-vendored = ["cargo-packager-updater/native-tls-vendored"]

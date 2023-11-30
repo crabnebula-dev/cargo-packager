@@ -70,3 +70,25 @@ jobs:
         with:
           event-type: publish-packager-nodejs
           client-payload: '{"releaseId": "${{ steps.cliReleaseId.outputs.result }}" }'
+
+      - name: Get `@crabnebula/updater` release id
+        uses: actions/github-script@v7
+        id: updaterReleaseId
+        if: |
+          steps.covector.outputs.successfulPublish == 'true' &&
+          contains(steps.covector.outputs.packagesPublished, '@crabnebula/updater')
+        with:
+          result-encoding: string
+          script: |
+            const output = `${{ toJSON(steps.covector.outputs) }}`;
+            const [_, id] = /"-crabnebula-updater-releaseId": "([0-9]+)"/g.exec(output);
+            return id;
+
+      - name: Trigger `@crabnebula/updater` publishing workflow
+        if: |
+          steps.covector.outputs.successfulPublish == 'true' &&
+          contains(steps.covector.outputs.packagesPublished, '@crabnebula/updater')
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          event-type: publish-updater-nodejs
+          client-payload: '{"releaseId": "${{ steps.updaterReleaseId.outputs.result }}" }'

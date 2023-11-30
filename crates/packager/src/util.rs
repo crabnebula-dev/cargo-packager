@@ -383,33 +383,29 @@ fn make_icns_image(img: image::DynamicImage) -> std::io::Result<icns::Image> {
 }
 
 /// Writes a tar file to the given writer containing the given directory.
+///
+/// The generated tar contains the `src_dir` as a whole and not just its files,
+/// so if we are creating a tar for:
+/// ```text
+/// dir/
+///   |_ file1
+///   |_ file2
+///   |_ file3
+/// ```
+/// the generated tar will contain the following entries:
+/// ```text
+/// - dir
+/// - dir/file1
+/// - dir/file2
+/// - dir/file3
+/// ```
 pub fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> crate::Result<W> {
     let src_dir = src_dir.as_ref();
-    let mut tar_builder = tar::Builder::new(dest_file);
-    for entry in walkdir::WalkDir::new(src_dir) {
-        let entry = entry?;
-        let src_path = entry.path();
-        if src_path == src_dir {
-            continue;
-        }
-        let dest_path = src_path.strip_prefix(src_dir)?;
-        if entry.file_type().is_dir() {
-            let stat = std::fs::metadata(src_path)?;
-            let mut header = tar::Header::new_gnu();
-            header.set_metadata(&stat);
-            header.set_uid(0);
-            header.set_gid(0);
-            tar_builder.append_data(&mut header, dest_path, &mut std::io::empty())?;
-        } else {
-            let mut src_file = std::fs::File::open(src_path)?;
-            let stat = src_file.metadata()?;
-            let mut header = tar::Header::new_gnu();
-            header.set_metadata(&stat);
-            header.set_uid(0);
-            header.set_gid(0);
-            tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
-        }
-    }
-    let dest_file = tar_builder.into_inner()?;
-    Ok(dest_file)
+    let filename = src_dir
+        .file_name()
+        .ok_or_else(|| crate::Error::FailedToExtractFilename(src_dir.to_path_buf()))?;
+    let mut builder = tar::Builder::new(dest_file);
+    builder.follow_symlinks(false);
+    builder.append_dir_all(filename, src_dir)?;
+    builder.into_inner().map_err(Into::into)
 }

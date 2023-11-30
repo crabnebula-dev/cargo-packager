@@ -16,6 +16,7 @@ use std::{
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use minisign::{sign, KeyPair as KP, SecretKey, SecretKeyBox};
+use serde::{Deserialize, Serialize};
 
 use crate::util;
 
@@ -97,7 +98,8 @@ pub fn save_keypair<P: AsRef<Path> + Debug>(
 }
 
 /// Signing configuration.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SigningConfig {
     /// The private key to use for signing.
     pub private_key: String,

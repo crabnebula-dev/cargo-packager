@@ -34,23 +34,27 @@ export default async function run(): Promise<Partial<Config> | null> {
   }
 
   const packageJson = JSON.parse(
-    (await fs.readFile(packageJsonPath)).toString()
+    (await fs.readFile(packageJsonPath)).toString(),
   ) as PackageJson;
 
   let config = packageJson.packager || null;
 
-  const electronConfig = await electron(
-    path.dirname(packageJsonPath),
-    packageJson
-  );
+  try {
+    const electronConfig = await electron(
+      path.dirname(packageJsonPath),
+      packageJson,
+    );
 
-  if (electronConfig) {
-    config = config ? merge(electronConfig, config) : electronConfig;
+    if (electronConfig) {
+      config = config ? merge(electronConfig, config) : electronConfig;
+    }
+
+    if (config?.outDir) {
+      await fs.ensureDir(config.outDir);
+    }
+
+    return config;
+  } catch {
+    return null;
   }
-
-  if (config?.outDir) {
-    await fs.ensureDir(config.outDir);
-  }
-
-  return config;
 }

@@ -110,6 +110,24 @@
       "prepublish": [],
       "publish": [],
       "postpublish": []
+    },
+    "cargo-packager-updater": {
+      "path": "./crates/updater",
+      "manager": "rust",
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/cargo-packager-updater-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "@crabnebula/updater": {
+      "path": "./bindings/updater/nodejs",
+      "manager": "javascript",
+      "dependencies": ["cargo-packager-updater"],
+      "prepublish": [],
+      "publish": [],
+      "postpublish": []
     }
   }
 }
