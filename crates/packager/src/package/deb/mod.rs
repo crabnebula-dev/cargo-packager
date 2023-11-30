@@ -247,8 +247,9 @@ fn generate_control_file(
     writeln!(file, "Architecture: {}", arch)?;
     // Installed-Size must be divided by 1024, see https://www.debian.org/doc/debian-policy/ch-controlfields.html#installed-size
     writeln!(file, "Installed-Size: {}", get_size(data_dir)? / 1024)?;
-    let authors = config.authors.join(", ");
-    writeln!(file, "Maintainer: {}", authors)?;
+    if let Some(authors) = &config.authors {
+        writeln!(file, "Maintainer: {}", authors.join(", "))?;
+    }
     if let Some(homepage) = &config.homepage {
         writeln!(file, "Homepage: {}", homepage)?;
     }
@@ -284,7 +285,7 @@ fn generate_control_file(
     Ok(())
 }
 
-/// Create an `md5sums` file in the `control_dir` containing the MD5 checksums
+/// Creates an `md5sums` file in the `control_dir` containing the MD5 checksums
 /// for each file within the `data_dir`.
 #[tracing::instrument(level = "trace")]
 fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
