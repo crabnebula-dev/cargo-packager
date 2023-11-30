@@ -766,7 +766,10 @@ impl Update {
         let decoder = GzDecoder::new(cursor);
         let mut archive = tar::Archive::new(decoder);
 
-        fn extract_archive<R>(archive: tar::Archive<R>, extract_path: &Path) -> Result<()> {
+        fn extract_archive<R: std::io::Read>(
+            archive: tar::Archive<R>,
+            extract_path: &Path,
+        ) -> Result<()> {
             std::fs::create_dir(extract_path)?;
             for entry in archive.entries()? {
                 let mut entry = entry?;
