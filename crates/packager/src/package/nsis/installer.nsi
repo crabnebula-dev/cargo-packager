@@ -484,7 +484,7 @@ Section Install
 
   ; Copy resources
   {{#each resources}}
-    File /a "/oname={{this.[1]}}" "{{this.[0]}}"
+    File /a "/oname={{this}}" "{{@key}}"
   {{/each}}
 
   ; Copy external binaries
