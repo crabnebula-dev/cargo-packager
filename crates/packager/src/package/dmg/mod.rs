@@ -147,7 +147,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         bundle_dmg_cmd.arg(&y);
     }
 
-    let background_path = match &dmg.and_then(|d| d.background) {
+    let background_path = match &dmg.and_then(|d| d.background.as_ref()) {
         Some(p) => Some(std::env::current_dir()?.join(p)),
         None => None,
     };
