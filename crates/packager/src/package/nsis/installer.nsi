@@ -484,7 +484,7 @@ Section Install
 
   ; Copy resources
   {{#each resources}}
-    File /a "/oname={{this.[1]}}" "{{this.[0]}}"
+    File /a "/oname={{this}}" "{{@key}}"
   {{/each}}
 
   ; Copy external binaries
@@ -588,7 +588,14 @@ Section Uninstall
   ; Delete uninstaller
   Delete "$INSTDIR\uninstall.exe"
 
-  RMDir "$INSTDIR"
+  ${If} $DeleteAppDataCheckboxState == 1
+    RMDir /R /REBOOTOK "$INSTDIR"
+  ${Else}
+    {{#each resources_ancestors}}
+    RMDir /REBOOTOK "$INSTDIR\\{{this}}"
+    {{/each}}
+    RMDir "$INSTDIR"
+  ${EndIf}
 
   ; Remove start menu shortcut
   !insertmacro MUI_STARTMENU_GETFOLDER Application $AppStartMenuFolder

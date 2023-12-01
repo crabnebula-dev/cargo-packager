@@ -449,8 +449,18 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     data.insert("out_file", to_json(out_file));
 
     let (resources_dirs, resources) = generate_resource_data(config)?;
-    data.insert("resources_dirs", to_json(resources_dirs));
+    data.insert("resources_dirs", to_json(&resources_dirs));
     data.insert("resources", to_json(&resources));
+
+    let mut resources_ancestors = resources_dirs
+        .iter()
+        .flat_map(|p| p.ancestors())
+        .collect::<Vec<_>>();
+    resources_ancestors.sort_unstable();
+    resources_ancestors.dedup();
+    resources_ancestors.sort_by_key(|p| std::cmp::Reverse(p.components().count()));
+    resources_ancestors.pop(); // Last one is always ""
+    data.insert("resources_ancestors", to_json(resources_ancestors));
 
     let binaries = generate_binaries_data(config)?;
     data.insert("binaries", to_json(&binaries));
