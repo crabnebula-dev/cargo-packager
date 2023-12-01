@@ -86,57 +86,106 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         include_str!("eula-resources-template.xml"),
     )?;
 
-    let mut args = vec![
+    let dmg = config.dmg();
+
+    let mut bundle_dmg_cmd = Command::new(&create_dmg_script_path);
+
+    let app_x = dmg
+        .and_then(|d| d.app_position)
+        .map(|p| p.x)
+        .unwrap_or(180)
+        .to_string();
+    let app_y = dmg
+        .and_then(|d| d.app_position)
+        .map(|p| p.y)
+        .unwrap_or(170)
+        .to_string();
+    let app_folder_x = dmg
+        .and_then(|d| d.app_folder_position)
+        .map(|p| p.x)
+        .unwrap_or(480)
+        .to_string();
+    let app_folder_y = dmg
+        .and_then(|d| d.app_folder_position)
+        .map(|p| p.y)
+        .unwrap_or(170)
+        .to_string();
+    let window_width = dmg
+        .and_then(|d| d.window_size)
+        .map(|s| s.width)
+        .unwrap_or(600)
+        .to_string();
+    let window_height = dmg
+        .and_then(|d| d.window_size)
+        .map(|s| s.height)
+        .unwrap_or(400)
+        .to_string();
+
+    bundle_dmg_cmd.args([
         "--volname",
         &config.product_name,
         "--icon",
         &app_bundle_file_name,
-        "180",
-        "170",
+        &app_x,
+        &app_y,
         "--app-drop-link",
-        "480",
-        "170",
+        &app_folder_x,
+        &app_folder_y,
         "--window-size",
-        "660",
-        "400",
+        &window_width,
+        &window_height,
         "--hide-extension",
         &app_bundle_file_name,
-    ];
+    ]);
 
-    tracing::debug!("Creating icns file");
-    let icns_icon_path = util::create_icns_file(&intermediates_path, config)?
-        .map(|path| path.to_string_lossy().to_string());
-    if let Some(icon) = &icns_icon_path {
-        args.push("--volicon");
-        args.push(icon);
+    let window_position = dmg
+        .and_then(|d| d.window_position)
+        .map(|p| (p.x.to_string(), p.y.to_string()));
+    if let Some((x, y)) = window_position {
+        bundle_dmg_cmd.arg("--window-pos");
+        bundle_dmg_cmd.arg(&x);
+        bundle_dmg_cmd.arg(&y);
     }
 
-    let license_file = config.license_file.as_ref().map(|l| {
-        std::env::current_dir()
-            .unwrap()
-            .join(l)
-            .to_string_lossy()
-            .to_string()
-    });
+    let background_path = match &dmg.and_then(|d| d.background.as_ref()) {
+        Some(p) => Some(std::env::current_dir()?.join(p)),
+        None => None,
+    };
+
+    if let Some(background_path) = &background_path {
+        bundle_dmg_cmd.arg("--background");
+        bundle_dmg_cmd.arg(background_path);
+    }
+
+    tracing::debug!("Creating icns file");
+    let icns_icon_path = util::create_icns_file(&intermediates_path, config)?;
+    if let Some(icon) = &icns_icon_path {
+        bundle_dmg_cmd.arg("--volicon");
+        bundle_dmg_cmd.arg(icon);
+    }
+
+    let license_file = match config.license_file.as_ref() {
+        Some(l) => Some(std::env::current_dir()?.join(l)),
+        None => None,
+    };
     if let Some(license_path) = &license_file {
-        args.push("--eula");
-        args.push(license_path.as_str());
+        bundle_dmg_cmd.arg("--eula");
+        bundle_dmg_cmd.arg(license_path);
     }
 
     // Issue #592 - Building MacOS dmg files on CI
     // https://github.com/tauri-apps/tauri/issues/592
     if let Some(value) = std::env::var_os("CI") {
         if value == "true" {
-            args.push("--skip-jenkins");
+            bundle_dmg_cmd.arg("--skip-jenkins");
         }
     }
 
     tracing::info!("Running create-dmg");
 
     // execute the bundle script
-    Command::new(&create_dmg_script_path)
+    bundle_dmg_cmd
         .current_dir(&out_dir)
-        .args(args)
         .args(vec![dmg_name.as_str(), app_bundle_file_name.as_str()])
         .output_ok()
         .map_err(crate::Error::CreateDmgFailed)?;

@@ -470,10 +470,94 @@ impl AppImageConfig {
     }
 }
 
+/// Position coordinates struct.
+#[derive(Default, Copy, Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Position {
+    /// X coordinate.
+    pub x: u32,
+    /// Y coordinate.
+    pub y: u32,
+}
+
+/// Size struct.
+#[derive(Default, Copy, Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Size {
+    /// Width.
+    pub width: u32,
+    /// Height.
+    pub height: u32,
+}
+
+/// The Apple Disk Image (.dmg) configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct DmgConfig {
+    /// Image to use as the background in dmg file. Accepted formats: `png`/`jpg`/`gif`.
+    pub background: Option<PathBuf>,
+    /// Position of volume window on screen.
+    pub window_position: Option<Position>,
+    /// Size of volume window.
+    #[serde(alias = "window-size", alias = "window_size")]
+    pub window_size: Option<Size>,
+    /// Position of application file on window.
+    #[serde(alias = "app-position", alias = "app_position")]
+    pub app_position: Option<Position>,
+    /// Position of application folder on window.
+    #[serde(
+        alias = "application-folder-position",
+        alias = "application_folder_position"
+    )]
+    pub app_folder_position: Option<Position>,
+}
+
+impl DmgConfig {
+    /// Creates a new [`DmgConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set an image to use as the background in dmg file. Accepted formats: `png`/`jpg`/`gif`.
+    pub fn background<P: Into<PathBuf>>(mut self, path: P) -> Self {
+        self.background.replace(path.into());
+        self
+    }
+
+    /// Set the poosition of volume window on screen.
+    pub fn window_position(mut self, position: Position) -> Self {
+        self.window_position.replace(position);
+        self
+    }
+
+    /// Set the size of volume window.
+    pub fn window_size(mut self, size: Size) -> Self {
+        self.window_size.replace(size);
+        self
+    }
+
+    /// Set the poosition of app file on window.
+    pub fn app_position(mut self, position: Position) -> Self {
+        self.app_position.replace(position);
+        self
+    }
+
+    /// Set the position of application folder on window.
+    pub fn app_folder_position(mut self, position: Position) -> Self {
+        self.app_folder_position.replace(position);
+        self
+    }
+}
+
 /// The macOS configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
 pub struct MacOsConfig {
     /// MacOS frameworks that need to be packaged with the app.
     ///
@@ -1437,6 +1521,8 @@ pub struct Config {
     pub wix: Option<WixConfig>,
     /// Nsis configuration.
     pub nsis: Option<NsisConfig>,
+    /// Dmg configuration.
+    pub dmg: Option<DmgConfig>,
 }
 
 impl Config {
@@ -1473,6 +1559,11 @@ impl Config {
     /// Returns the [appimage](Config::appimage) specific configuration.
     pub fn appimage(&self) -> Option<&AppImageConfig> {
         self.appimage.as_ref()
+    }
+
+    /// Returns the [dmg](Config::dmg) specific configuration.
+    pub fn dmg(&self) -> Option<&DmgConfig> {
+        self.dmg.as_ref()
     }
 
     /// Returns the target triple of this config, if not set, fallsback to the current OS target triple.
