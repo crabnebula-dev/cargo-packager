@@ -92,32 +92,32 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     let app_x = dmg
         .and_then(|d| d.app_position)
-        .and_then(|p| p.x)
+        .map(|p| p.x)
         .unwrap_or(180)
         .to_string();
     let app_y = dmg
         .and_then(|d| d.app_position)
-        .and_then(|p| p.y)
+        .map(|p| p.y)
         .unwrap_or(170)
         .to_string();
     let app_folder_x = dmg
         .and_then(|d| d.app_folder_position)
-        .and_then(|p| p.x)
+        .map(|p| p.x)
         .unwrap_or(480)
         .to_string();
     let app_folder_y = dmg
         .and_then(|d| d.app_folder_position)
-        .and_then(|p| p.y)
+        .map(|p| p.y)
         .unwrap_or(170)
         .to_string();
     let window_width = dmg
         .and_then(|d| d.window_size)
-        .and_then(|s| s.width)
+        .map(|s| s.width)
         .unwrap_or(600)
         .to_string();
     let window_height = dmg
         .and_then(|d| d.window_size)
-        .and_then(|s| s.height)
+        .map(|s| s.height)
         .unwrap_or(400)
         .to_string();
 
