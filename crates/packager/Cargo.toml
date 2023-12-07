@@ -68,7 +68,7 @@ native-tls = { version = "0.2", optional = true }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 winreg = "0.52"
-once_cell = "1.18"
+once_cell = "1.19"
 uuid = { version = "1", features = [ "v4", "v5" ] }
 regex = "1.10"
 
