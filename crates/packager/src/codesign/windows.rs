@@ -3,25 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use std::{
-    fmt::Debug,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{fmt::Debug, path::Path, process::Command};
 
 #[cfg(windows)]
 use once_cell::sync::Lazy;
+#[cfg(windows)]
+use std::path::PathBuf;
 #[cfg(windows)]
 use winreg::{
     enums::{HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_32KEY},
     RegKey,
 };
 
-use crate::{
-    config::Config,
-    shell::CommandExt,
-    util::{self, display_path},
-};
+use crate::{config::Config, shell::CommandExt, util};
 
 #[cfg(windows)]
 use crate::util::Bitness;
@@ -233,7 +227,7 @@ pub fn sign_default<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> cra
 
     tracing::info!(
         "Codesigning {} with identity \"{}\"",
-        display_path(path),
+        util::display_path(path),
         params.certificate_thumbprint
     );
 
