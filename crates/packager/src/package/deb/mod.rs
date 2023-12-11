@@ -22,7 +22,7 @@ use walkdir::WalkDir;
 use super::Context;
 use crate::{
     config::Config,
-    util::{self, PathExt},
+    util::{self, PathExt as UtilPathExt},
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
