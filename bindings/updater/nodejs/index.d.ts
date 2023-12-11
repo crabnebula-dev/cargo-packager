@@ -68,7 +68,7 @@ export class Update {
   /** Update format */
   format: UpdateFormat
   /** The Windows options for the updater. */
-  windows: UpdaterWindowsOptions
+  windows?: UpdaterWindowsOptions
   /** Update description */
   body?: string
   /** Update publish date */

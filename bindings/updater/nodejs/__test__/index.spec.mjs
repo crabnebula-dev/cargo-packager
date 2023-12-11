@@ -15,14 +15,18 @@ const isMac = process.platform === "darwin";
 test("it updates correctly", async (t) => {
   const UPDATER_PRIVATE_KEY = await fs.readFile(
     path.join(__dirname, "../../../../crates/updater/tests/dummy.key"),
-    { encoding: "utf8" },
+    {
+      encoding: "utf8",
+    },
   );
 
   process.chdir(path.join(__dirname, "app"));
   await execa("yarn", ["install"]);
 
   const buildApp = async (version, updaterFormats) => {
-    const content = await fs.readFile("main.js", { encoding: "utf8" });
+    const content = await fs.readFile("main.js", {
+      encoding: "utf8",
+    });
     await fs.writeFile("main.js", content.replace("{{version}}", version));
 
     try {
@@ -35,13 +39,17 @@ test("it updates correctly", async (t) => {
           privateKey: UPDATER_PRIVATE_KEY,
           password: "",
         },
-        { verbosity: 2 },
+        {
+          verbosity: 2,
+        },
       );
     } catch (e) {
       console.error("failed to package app");
       console.error(e);
     } finally {
-      const content = await fs.readFile("main.js", { encoding: "utf8" });
+      const content = await fs.readFile("main.js", {
+        encoding: "utf8",
+      });
       await fs.writeFile("main.js", content.replace(version, "{{version}}"));
     }
   };
@@ -50,7 +58,7 @@ test("it updates correctly", async (t) => {
   const formats = isWin ? ["nsis", "wix"] : isMac ? ["app"] : ["appimage"];
   await buildApp("1.0.0", formats);
 
-  const gneratedPackages = isWin
+  const generatedPackages = isWin
     ? [
         ["nsis", path.join("dist", `ElectronApp_1.0.0_x64-setup.exe`)],
         ["wix", path.join("dist", `ElectronApp_1.0.0_x64_en-US.msi`)],
@@ -59,11 +67,16 @@ test("it updates correctly", async (t) => {
       ? [["app", path.join("dist", "ElectronApp.app.tar.gz")]]
       : [["appimage", path.join("dist", `electron-app_1.0.0_x86_64.AppImage`)]];
 
-  for (let [format, updatePackagePath] of gneratedPackages) {
-    const signaturePath = path.format({ name: updatePackagePath, ext: ".sig" });
-    const signature = await fs.readFile(signaturePath, { encoding: "utf8" });
+  for (let [format, updatePackagePath] of generatedPackages) {
+    const signaturePath = path.format({
+      name: updatePackagePath,
+      ext: ".sig",
+    });
+    const signature = await fs.readFile(signaturePath, {
+      encoding: "utf8",
+    });
 
-    // on macOS, gnerated bundle doesn't have the version in its name
+    // on macOS, generated bundle doesn't have the version in its name
     // so we need to move it otherwise it'll be overwritten when we build the next app
     if (isMac) {
       const info = path.parse(updatePackagePath);
@@ -80,7 +93,11 @@ test("it updates correctly", async (t) => {
       .get("/", (_, res) => {
         const platforms = {};
         const target = `${isWin ? "windows" : isMac ? "macos" : "linux"}-${
-          process.arch === "x64" ? "x86_64" : "i686"
+          process.arch === "x64"
+            ? "x86_64"
+            : process.arch === "arm64"
+              ? "aarch64"
+              : "i686"
         }`;
         platforms[target] = {
           signature,
@@ -106,7 +123,10 @@ test("it updates correctly", async (t) => {
     // install the inital app on Windows to `installdir`
     if (isWin) {
       const installDir = path.join(__dirname, "app", "dist", "installdir");
-      if (existsSync(installDir)) await fs.rm(installDir, { recursive: true });
+      if (existsSync(installDir))
+        await fs.rm(installDir, {
+          recursive: true,
+        });
       await fs.mkdir(installDir);
 
       const isNsis = format === "nsis";
@@ -150,7 +170,9 @@ test("it updates correctly", async (t) => {
       await execa(app, {
         stdio: "inherit",
         // This is read by the updater app test
-        env: { UPDATER_FORMAT: format },
+        env: {
+          UPDATER_FORMAT: format,
+        },
       });
     } catch (e) {
       console.error(`failed to start initial app: ${e}`);

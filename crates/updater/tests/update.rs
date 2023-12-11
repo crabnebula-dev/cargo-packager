@@ -130,7 +130,7 @@ fn update_app() {
             panic!("failed to read signature file {}", signature_path.display())
         });
 
-        // on macOS, gnerated bundle doesn't have the version in its name
+        // on macOS, generated bundle doesn't have the version in its name
         // so we need to move it otherwise it'll be overwritten when we build the next app
         #[cfg(target_os = "macos")]
         let update_package_path = {

@@ -62,7 +62,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fuse libfuse2
       - name: updater integration tests
-        if: matrix.platform != 'macos-latest'
         run: |
           cd bindings/updater/nodejs
           pnpm test
