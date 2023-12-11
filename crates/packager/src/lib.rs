@@ -100,6 +100,7 @@ pub use error::{Error, Result};
 pub use sign::SigningConfig;
 
 pub use package::{package, PackageOuput};
+use util::PathExt;
 
 fn parse_log_level(verbose: u8) -> tracing::Level {
     match verbose {
@@ -145,13 +146,7 @@ pub fn sign_outputs(
     for package in packages {
         for path in &package.paths.clone() {
             let path = if path.is_dir() {
-                let extension = path.extension().unwrap_or_default().to_string_lossy();
-                let extension = format!(
-                    "{}{}tar.gz",
-                    extension,
-                    if extension.is_empty() { "" } else { "." }
-                );
-                let zip = path.with_extension(extension);
+                let zip = path.with_additional_extension("tar.gz");
                 let dest_file = util::create_file(&zip)?;
                 let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
                 let writer = util::create_tar_from_dir(path, gzip_encoder)?;

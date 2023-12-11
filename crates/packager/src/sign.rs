@@ -18,7 +18,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use minisign::{sign, KeyPair as KP, SecretKey, SecretKeyBox};
 use serde::{Deserialize, Serialize};
 
-use crate::util;
+use crate::util::{self, PathExt};
 
 /// A public and secret key pair.
 #[derive(Clone, Debug)]
@@ -148,8 +148,7 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     path: P,
 ) -> crate::Result<PathBuf> {
     let path = path.as_ref();
-    let extension = path.extension().unwrap_or_default().to_string_lossy();
-    let signature_path = path.with_extension(format!("{}.sig", extension));
+    let signature_path = path.with_additional_extension("sig");
     let signature_path = dunce::simplified(&signature_path);
 
     let mut signature_box_writer = util::create_file(signature_path)?;
