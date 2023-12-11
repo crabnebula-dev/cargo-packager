@@ -86,9 +86,12 @@ pub enum Error {
     /// create-dmg script error
     #[error("Error running create-dmg script: {0}")]
     CreateDmgFailed(std::io::Error),
-    /// create-dmg script error
+    /// signtool.exe error
     #[error("Error running signtool.exe: {0}")]
     SignToolFailed(std::io::Error),
+    /// Custom signing command error
+    #[error("Error running custom signing command: {0}")]
+    CustomSignCommandFailed(std::io::Error),
     /// bundle_appimage script error
     #[error("Error running bundle_appimage.sh script: {0}")]
     AppImageScriptFailed(std::io::Error),

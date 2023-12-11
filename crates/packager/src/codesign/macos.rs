@@ -192,7 +192,7 @@ fn sign(
     pcakger_keychain: bool,
 ) -> crate::Result<()> {
     tracing::info!(
-        "Signing {} with identity \"{}\"",
+        "Codesigning {} with identity \"{}\"",
         path_to_sign.display(),
         identity
     );
