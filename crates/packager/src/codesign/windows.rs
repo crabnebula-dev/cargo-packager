@@ -9,6 +9,7 @@ use std::{
     process::Command,
 };
 
+#[cfg(windows)]
 use once_cell::sync::Lazy;
 #[cfg(windows)]
 use winreg::{
