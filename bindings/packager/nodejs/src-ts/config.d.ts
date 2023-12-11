@@ -96,15 +96,27 @@ export type Resource =
       [k: string]: unknown;
     };
 /**
- * The languages to build using WiX.
+ * A wix language.
  */
-export type WixLanguages = [string, WixLanguageConfig][];
+export type WixLanguage =
+  | string
+  | {
+      /**
+       * Idenitifier of this language, for example `en-US`
+       */
+      identifier: string;
+      /**
+       * The path to a locale (`.wxl`) file. See <https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/build_a_localized_version.html>.
+       */
+      path?: string | null;
+      [k: string]: unknown;
+    };
 /**
  * Compression algorithms used in the NSIS installer.
  *
  * See <https://nsis.sourceforge.io/Reference/SetCompressor>
  */
-export type NsisCompression = "zlib" | "bzip2" | "lzma";
+export type NsisCompression = "zlib" | "bzip2" | "lzma" | "off";
 /**
  * Install Modes for the NSIS installer.
  */
@@ -115,83 +127,87 @@ export type NSISInstallerMode = "currentUser" | "perMachine" | "both";
  */
 export interface Config {
   /**
-   * Whether this config is enabled or not. Defaults to `true`.
-   */
-  enabled?: boolean;
-  /**
    * The JSON schema for the config.
    *
-   * Setting this field has no effect, this just exists so we can parse the JSON correct when it has `$schema` field set.
+   * Setting this field has no effect, this just exists so we can parse the JSON correctly when it has `$schema` field set.
    */
   $schema?: string | null;
   /**
    * The app name, this is just an identifier that could be used to filter which app to package using `--packages` cli arg when there is multiple apps in the workspace or in the same config.
    *
-   * This field resembles, the `name` field in `Cargo.toml` and `package.json`
+   * This field resembles, the `name` field in `Cargo.toml` or `package.json`
    *
-   * If `unset`, the CLI will try to auto-detect it from `Cargo.toml` or `package.json` otherwise, it will keep it as null.
+   * If `unset`, the CLI will try to auto-detect it from `Cargo.toml` or `package.json` otherwise, it will keep it unset.
    */
   name?: string | null;
   /**
-   * Specify a command to run before starting to package an application.
+   * Whether this config is enabled or not. Defaults to `true`.
+   */
+  enabled?: boolean;
+  /**
+   * The package's product name, for example "My Awesome App".
+   */
+  productName?: string;
+  /**
+   * The package's version.
+   */
+  version?: string;
+  /**
+   * The binaries to package.
+   */
+  binaries?: Binary[];
+  /**
+   * The application identifier in reverse domain name notation (e.g. `com.packager.example`). This string must be unique across applications since it is used in some system configurations. This string must contain only alphanumeric characters (A–Z, a–z, and 0–9), hyphens (-), and periods (.).
+   */
+  identifier?: string | null;
+  /**
+   * The command to run before starting to package an application.
    *
    * This runs only once.
    */
   beforePackagingCommand?: HookCommand | null;
   /**
-   * Specify a command to run before packaging each format for an application.
+   * The command to run before packaging each format for an application.
    *
    * This will run multiple times depending on the formats specifed.
    */
   beforeEachPackageCommand?: HookCommand | null;
   /**
-   * The log level.
+   * The logging level.
    */
   logLevel?: LogLevel | null;
   /**
-   * The package types we're creating.
-   *
-   * if not present, we'll use the PackageType list for the target OS.
+   * The packaging formats to create, if not present, [`PackageFormat::platform_default`] is used.
    */
   formats?: PackageFormat[] | null;
   /**
-   * The directory where the `binaries` exist and where the packages will be placed.
+   * The directory where the [`Config::binaries`] exist and where the generated packages will be placed.
    */
   outDir?: string;
   /**
-   * The target triple. Defaults to the current OS target triple.
+   * The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
+   *
+   * Defaults to the current OS target triple.
    */
   targetTriple?: string | null;
   /**
-   * the package's product name, for example "My Awesome App".
-   */
-  productName?: string;
-  /**
-   * the package's version.
-   */
-  version?: string;
-  /**
-   * the package's description.
+   * The package's description.
    */
   description?: string | null;
   /**
-   * the app's long description.
+   * The app's long description.
    */
   longDescription?: string | null;
   /**
-   * the package's homepage.
+   * The package's homepage.
    */
   homepage?: string | null;
   /**
-   * the package's authors.
+   * The package's authors.
    */
-  authors?: string[];
+  authors?: string[] | null;
   /**
-   * the application identifier in reverse domain name notation (e.g. `com.packager.example`). This string must be unique across applications since it is used in some system configurations. This string must contain only alphanumeric characters (A–Z, a–z, and 0–9), hyphens (-), and periods (.).
-   */
-  identifier?: string | null;
-  /**
-   * The app's publisher. Defaults to the second element in the identifier string. Currently maps to the Manufacturer property of the Windows Installer.
+   * The app's publisher. Defaults to the second element in [`Config::identifier`](Config::identifier) string. Currently maps to the Manufacturer property of the Windows Installer.
    */
   publisher?: string | null;
   /**
@@ -199,23 +215,19 @@ export interface Config {
    */
   licenseFile?: string | null;
   /**
-   * the app's copyright.
+   * The app's copyright.
    */
   copyright?: string | null;
   /**
-   * the app's category.
+   * The app's category.
    */
   category?: AppCategory | null;
   /**
-   * the app's icon list.
+   * The app's icon list.
    */
   icons?: string[] | null;
   /**
-   * the binaries to package.
-   */
-  binaries?: Binary[];
-  /**
-   * the file associations
+   * The file associations
    */
   fileAssociations?: FileAssociation[] | null;
   /**
@@ -227,19 +239,29 @@ export interface Config {
    */
   resources?: Resource[] | null;
   /**
-   * External binaries to add to the package.
+   * Paths to external binaries to add to the package.
    *
-   * Note that each binary name should have the target platform's target triple appended, as well as `.exe` for Windows. For example, if you're packaging a sidecar called `sqlite3`, the packager expects a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux, and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.
+   * The path specified should not include `-<target-triple><.exe>` suffix, it will be auto-added when by the packager when reading these paths, so the actual binary name should have the target platform's target triple appended, as well as `.exe` for Windows.
+   *
+   * For example, if you're packaging an external binary called `sqlite3`, the packager expects a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux, and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.
    *
    * If you are building a universal binary for MacOS, the packager expects your external binary to also be universal, and named after the target triple, e.g. `sqlite3-universal-apple-darwin`. See <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>
    */
   externalBinaries?: string[] | null;
   /**
-   * Debian-specific settings.
+   * Windows-specific configuration.
+   */
+  windows?: WindowsConfig | null;
+  /**
+   * MacOS-specific configuration.
+   */
+  macos?: MacOsConfig | null;
+  /**
+   * Debian-specific configuration.
    */
   deb?: DebianConfig | null;
   /**
-   * Debian-specific settings.
+   * AppImage configuration.
    */
   appimage?: AppImageConfig | null;
   /**
@@ -251,13 +273,9 @@ export interface Config {
    */
   nsis?: NsisConfig | null;
   /**
-   * MacOS-specific settings.
+   * Dmg configuration.
    */
-  macos?: MacOsConfig | null;
-  /**
-   * Windows-specific settings.
-   */
-  windows?: WindowsConfig | null;
+  dmg?: DmgConfig | null;
 }
 /**
  * A binary to package within the final package.
@@ -279,30 +297,100 @@ export interface FileAssociation {
   /**
    * File extensions to associate with this app. e.g. 'png'
    */
-  ext: string[];
+  extensions: string[];
   /**
-   * The name. Maps to `CFBundleTypeName` on macOS. Default to the first item in `ext`
+   * The mime-type e.g. 'image/png' or 'text/plain'. **Linux-only**.
    */
-  name?: string | null;
+  mimeType?: string | null;
   /**
    * The association description. **Windows-only**. It is displayed on the `Type` column on Windows Explorer.
    */
   description?: string | null;
   /**
-   * The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+   * The name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
+   */
+  name?: string | null;
+  /**
+   * The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS. Defaults to [`BundleTypeRole::Editor`]
    */
   role?: BundleTypeRole & string;
+}
+/**
+ * The Windows configuration.
+ */
+export interface WindowsConfig {
   /**
-   * The mime-type e.g. 'image/png' or 'text/plain'. Linux-only.
+   * The file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.
    */
-  mimeType?: string | null;
+  digestAlgorithm?: string | null;
+  /**
+   * The SHA1 hash of the signing certificate.
+   */
+  certificateThumbprint?: string | null;
+  /**
+   * Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
+   */
+  tsp?: boolean;
+  /**
+   * Server to use during timestamping.
+   */
+  timestampUrl?: string | null;
+  /**
+   * Whether to validate a second app installation, blocking the user from installing an older version if set to `false`.
+   *
+   * For instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.
+   *
+   * The default value of this flag is `true`.
+   */
+  allowDowngrades?: boolean;
+}
+/**
+ * The macOS configuration.
+ */
+export interface MacOsConfig {
+  /**
+   * MacOS frameworks that need to be packaged with the app.
+   *
+   * Each string can either be the name of a framework (without the `.framework` extension, e.g. `"SDL2"`), in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`), or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:
+   *
+   * - arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)
+   *
+   * - embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
+   */
+  frameworks?: string[] | null;
+  /**
+   * A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`). If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.
+   */
+  minimumSystemVersion?: string | null;
+  /**
+   * The exception domain to use on the macOS .app package.
+   *
+   * This allows communication to the outside world e.g. a web server you're shipping.
+   */
+  exceptionDomain?: string | null;
+  /**
+   * Code signing identity.
+   */
+  signingIdentity?: string | null;
+  /**
+   * Provider short name for notarization.
+   */
+  providerShortName?: string | null;
+  /**
+   * Path to the entitlements.plist file.
+   */
+  entitlements?: string | null;
+  /**
+   * Path to the Info.plist file for the package.
+   */
+  infoPlistPath?: string | null;
 }
 /**
  * The Linux debian configuration.
  */
 export interface DebianConfig {
   /**
-   * the list of debian dependencies.
+   * The list of debian dependencies.
    */
   depends?: string[] | null;
   /**
@@ -325,7 +413,7 @@ export interface DebianConfig {
  */
 export interface AppImageConfig {
   /**
-   * List of libs that exist in `/usr/lib*` to be include in the final AppImage. The libs will be searched for using the command `find -L /usr/lib* -name <libname>`
+   * List of libs that exist in `/usr/lib*` to be include in the final AppImage. The libs will be searched for, using the command `find -L /usr/lib* -name <libname>`
    */
   libs?: string[] | null;
   /**
@@ -333,15 +421,15 @@ export interface AppImageConfig {
    */
   bins?: string[] | null;
   /**
-   * Hashmap of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy) plugin name and its URL to be downloaded and executed while packaing the appimage. For example, if you want to use the [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin, you'd specify `gtk` as the key and its url as the value.
-   */
-  linuxdeployPlugins?: {
-    [k: string]: string;
-  } | null;
-  /**
    * List of custom files to add to the appimage package. Maps a dir/file to a dir/file inside the appimage package.
    */
   files?: {
+    [k: string]: string;
+  } | null;
+  /**
+   * A map of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy) plugin name and its URL to be downloaded and executed while packaing the appimage. For example, if you want to use the [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin, you'd specify `gtk` as the key and its url as the value.
+   */
+  linuxdeployPlugins?: {
     [k: string]: string;
   } | null;
 }
@@ -352,7 +440,7 @@ export interface WixConfig {
   /**
    * The app languages to build. See <https://docs.microsoft.com/en-us/windows/win32/msi/localizing-the-error-and-actiontext-tables>.
    */
-  languages?: WixLanguages;
+  languages?: WixLanguage[] | null;
   /**
    * By default, the packager uses an internal template. This option allows you to define your own wix file.
    */
@@ -411,15 +499,6 @@ export interface WixConfig {
    * Enables FIPS compliant algorithms.
    */
   fipsCompliant?: boolean;
-}
-/**
- * Configuration for a target language for the WiX build.
- */
-export interface WixLanguageConfig {
-  /**
-   * The path to a locale (`.wxl`) file. See <https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/build_a_localized_version.html>.
-   */
-  localePath?: string | null;
 }
 /**
  * The NSIS format configuration.
@@ -497,72 +576,53 @@ export interface NsisConfig {
   appdataPaths?: string[] | null;
 }
 /**
- * The macOS configuration.
+ * The Apple Disk Image (.dmg) configuration.
  */
-export interface MacOsConfig {
+export interface DmgConfig {
   /**
-   * MacOS frameworks that need to be packaged with the app.
-   *
-   * Each string can either be the name of a framework (without the `.framework` extension, e.g. `"SDL2"`), in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`), or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:
-   *
-   * - arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)
-   *
-   * - embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
+   * Image to use as the background in dmg file. Accepted formats: `png`/`jpg`/`gif`.
    */
-  frameworks?: string[] | null;
+  background?: string | null;
   /**
-   * A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`). If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.
+   * Position of volume window on screen.
    */
-  minimumSystemVersion?: string | null;
+  windowPosition?: Position | null;
   /**
-   * The exception domain to use on the macOS .app package.
-   *
-   * This allows communication to the outside world e.g. a web server you're shipping.
+   * Size of volume window.
    */
-  exceptionDomain?: string | null;
+  windowSize?: Size | null;
   /**
-   * Code signing identity.
+   * Position of application file on window.
    */
-  signingIdentity?: string | null;
+  appPosition?: Position | null;
   /**
-   * Provider short name for notarization.
+   * Position of application folder on window.
    */
-  providerShortName?: string | null;
-  /**
-   * Path to the entitlements.plist file.
-   */
-  entitlements?: string | null;
-  /**
-   * Path to the Info.plist file for the package.
-   */
-  infoPlistPath?: string | null;
+  appFolderPosition?: Position | null;
 }
 /**
- * The Windows configuration.
+ * Position coordinates struct.
  */
-export interface WindowsConfig {
+export interface Position {
   /**
-   * The file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.
+   * X coordinate.
    */
-  digestAlgorithm?: string | null;
+  x: number;
   /**
-   * The SHA1 hash of the signing certificate.
+   * Y coordinate.
    */
-  certificateThumbprint?: string | null;
+  y: number;
+}
+/**
+ * Size struct.
+ */
+export interface Size {
   /**
-   * Server to use during timestamping.
+   * Width.
    */
-  timestampUrl?: string | null;
+  width: number;
   /**
-   * Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
+   * Height.
    */
-  tsp?: boolean;
-  /**
-   * Validates a second app installation, blocking the user from installing an older version if set to `false`.
-   *
-   * For instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.
-   *
-   * The default value of this flag is `true`.
-   */
-  allowDowngrades?: boolean;
+  height: number;
 }
