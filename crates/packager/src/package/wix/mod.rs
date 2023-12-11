@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 use super::Context;
 use crate::{
-    codesign,
+    codesign::windows as codesign,
     config::{Config, LogLevel, WixLanguage},
     shell::CommandExt,
     util::{self, download_and_verify, extract_zip, HashAlgorithm},

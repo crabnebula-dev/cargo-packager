@@ -6,6 +6,7 @@
 
 use sha2::Digest;
 use std::{
+    ffi::OsStr,
     fs::File,
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
@@ -46,6 +47,16 @@ pub fn create_clean_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
         std::fs::remove_dir_all(path)?;
     }
     std::fs::create_dir_all(path)
+}
+
+/// Creates a new file at the given path, creating any parent directories as needed.
+#[inline]
+pub(crate) fn create_file(path: &Path) -> crate::Result<std::io::BufWriter<File>> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let file = File::create(path)?;
+    Ok(std::io::BufWriter::new(file))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -261,16 +272,6 @@ pub(crate) fn is_retina<P: AsRef<Path>>(path: P) -> bool {
         .unwrap_or(false)
 }
 
-/// Creates a new file at the given path, creating any parent directories as needed.
-#[inline]
-pub(crate) fn create_file(path: &Path) -> crate::Result<std::io::BufWriter<File>> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let file = File::create(path)?;
-    Ok(std::io::BufWriter::new(file))
-}
-
 // Given a list of icon files, try to produce an ICNS file in the out_dir
 // and return the path to it.  Returns `Ok(None)` if no usable icons
 // were provided.
@@ -408,4 +409,42 @@ pub fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -
     builder.follow_symlinks(false);
     builder.append_dir_all(filename, src_dir)?;
     builder.into_inner().map_err(Into::into)
+}
+
+pub trait PathExt {
+    fn with_additional_extension(&self, extension: impl AsRef<OsStr>) -> PathBuf;
+}
+
+impl PathExt for Path {
+    fn with_additional_extension(&self, extension: impl AsRef<OsStr>) -> PathBuf {
+        match self.extension() {
+            Some(ext) => {
+                let mut e = ext.to_os_string();
+                e.push(".");
+                e.push(extension);
+                self.with_extension(e)
+            }
+            None => self.with_extension(extension),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_appends_ext() {
+        // Something that has an extention getting another suffix.
+        assert_eq!(
+            PathBuf::from("./asset.zip").with_additional_extension("sig"),
+            PathBuf::from("./asset.zip.sig")
+        );
+
+        // Something that doesn't have an extention, setting its extension.
+        assert_eq!(
+            PathBuf::from("./executable").with_additional_extension("sig"),
+            PathBuf::from("./executable.sig")
+        )
+    }
 }

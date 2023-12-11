@@ -78,6 +78,12 @@ export default async function run(
 
   switch (platformName) {
     case "darwin":
+      var binaryName: string =
+        userConfig.name ||
+        packageJson.productName ||
+        packageJson.name ||
+        "Electron";
+
       var standaloneElectronPath = path.join(zipDir, "Electron.app");
 
       const resourcesPath = path.join(
@@ -103,7 +109,17 @@ export default async function run(
         path.join(frameworksPath, p),
       );
 
-      binaryPath = path.join(standaloneElectronPath, "Contents/MacOS/Electron");
+      binaryPath = path.join(
+        standaloneElectronPath,
+        `Contents/MacOS/${binaryName}`,
+      );
+
+      // rename the electron binary
+      await fs.rename(
+        path.join(standaloneElectronPath, "Contents/MacOS/Electron"),
+        binaryPath,
+      );
+
       break;
     case "win32":
       var binaryName: string =

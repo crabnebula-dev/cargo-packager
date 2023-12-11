@@ -18,7 +18,7 @@
     "@crabnebula/updater": "../.."
   },
   "devDependencies": {
-    "electron": "^27.0.3"
+    "electron": "^28.0.0"
   },
   "packager": {
     "outDir": "./dist",

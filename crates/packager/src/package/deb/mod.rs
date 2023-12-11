@@ -20,7 +20,10 @@ use serde::Serialize;
 use walkdir::WalkDir;
 
 use super::Context;
-use crate::{config::Config, util};
+use crate::{
+    config::Config,
+    util::{self, PathExt as UtilPathExt},
+};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct DebIcon {
@@ -318,7 +321,7 @@ fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
 /// directory and returns the path to the new file.
 fn tar_and_gzip_dir<P: AsRef<Path>>(src_dir: P) -> crate::Result<PathBuf> {
     let src_dir = src_dir.as_ref();
-    let dest_path = src_dir.with_extension("tar.gz");
+    let dest_path = src_dir.with_additional_extension("tar.gz");
     let dest_file = util::create_file(&dest_path)?;
     let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
     let gzip_encoder = create_tar_from_dir(src_dir, gzip_encoder)?;

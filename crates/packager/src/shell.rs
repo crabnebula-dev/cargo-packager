@@ -36,15 +36,15 @@ impl CommandExt for Command {
         let stdout_lines = Arc::new(Mutex::new(Vec::new()));
         let stdout_lines_ = stdout_lines.clone();
         std::thread::spawn(move || {
-            let mut buf = String::new();
+            let mut buf = Vec::new();
             let mut lines = stdout_lines_.lock().unwrap();
             loop {
                 buf.clear();
-                if let Ok(0) = stdout.read_line(&mut buf) {
+                if let Ok(0) = stdout.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::debug!("{}", &buf[0..buf.len() - 1]);
-                lines.extend(buf.as_bytes());
+                tracing::debug!("{}", String::from_utf8_lossy(&buf[..buf.len() - 1]));
+                lines.extend(&buf);
             }
         });
 
@@ -52,15 +52,15 @@ impl CommandExt for Command {
         let stderr_lines = Arc::new(Mutex::new(Vec::new()));
         let stderr_lines_ = stderr_lines.clone();
         std::thread::spawn(move || {
-            let mut buf = String::new();
+            let mut buf = Vec::new();
             let mut lines = stderr_lines_.lock().unwrap();
             loop {
                 buf.clear();
-                if let Ok(0) = stderr.read_line(&mut buf) {
+                if let Ok(0) = stderr.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::debug!("{}", &buf[0..buf.len() - 1]);
-                lines.extend(buf.as_bytes());
+                tracing::debug!("{}", String::from_utf8_lossy(&buf[..buf.len() - 1]));
+                lines.extend(&buf);
             }
         });
 
