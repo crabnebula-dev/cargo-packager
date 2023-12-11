@@ -48,7 +48,7 @@
     "@napi-rs/cli": "^2.16.5",
     "@types/fs-extra": "^11.0.3",
     "@types/node": "^20.8.10",
-    "ava": "^5.1.1",
+    "ava": "^6.0.0",
     "json-schema-to-typescript": "^13.1.1",
     "typescript": "^5.2.2"
   },

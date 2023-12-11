@@ -31,7 +31,7 @@
     "@napi-rs/cli": "^2.16.5",
     "@tinyhttp/app": "^2.2.1",
     "@types/node": "^20.8.10",
-    "ava": "^5.1.1",
+    "ava": "^6.0.0",
     "execa": "^8.0.1",
     "@crabnebula/packager": "workspace:"
   },
