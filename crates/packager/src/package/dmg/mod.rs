@@ -7,7 +7,7 @@ use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 
 use super::Context;
 use crate::{
-    codesign,
+    codesign::macos as codesign,
     shell::CommandExt,
     util::{self, download},
 };

@@ -13,8 +13,7 @@ use std::{
 use handlebars::{to_json, Handlebars};
 
 use super::Context;
-#[cfg(windows)]
-use crate::codesign;
+use crate::codesign::windows::{self as codesign, ConfigSignExt};
 use crate::{
     config::{Config, LogLevel, NSISInstallerMode, NsisCompression},
     shell::CommandExt,
@@ -307,14 +306,13 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     let main_binary_name = config.main_binary_name()?;
     let main_binary_path = config.binary_path(main_binary).with_extension("exe");
 
-    #[cfg(target_os = "windows")]
-    {
+    if config.can_sign() {
         tracing::debug!("Codesigning {}", main_binary_path.display());
         codesign::try_sign(&main_binary_path, config)?;
+    } else {
+        #[cfg(not(target_os = "windows"))]
+        tracing::warn!("Codesigning is by default is only supported on Windows hosts, but you can specify a custom signing command in `config.windows.sign_command`, for now, skipping signing the main binary...");
     }
-
-    #[cfg(not(target_os = "windows"))]
-    tracing::warn!("Codesigning is currently only supported on Windows hosts, skipping signing the main binary...");
 
     let intermediates_path = intermediates_path.join("nsis").join(arch);
     util::create_clean_dir(&intermediates_path)?;
@@ -346,13 +344,9 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         to_json(config.windows().map(|w| w.allow_downgrades)),
     );
 
-    #[cfg(target_os = "windows")]
-    {
-        use codesign::ConfigSignExt;
-        if config.can_sign() {
-            let sign_cmd = format!("{:?}", codesign::sign_command("%1", &config.sign_params())?);
-            data.insert("uninstaller_sign_cmd", to_json(sign_cmd));
-        }
+    if config.can_sign() {
+        let sign_cmd = format!("{:?}", codesign::sign_command("%1", &config.sign_params())?);
+        data.insert("uninstaller_sign_cmd", to_json(sign_cmd));
     }
 
     if let Some(license) = &config.license_file {
@@ -554,13 +548,13 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     std::fs::rename(nsis_output_path, &installer_path)?;
 
-    #[cfg(target_os = "windows")]
-    {
+    if config.can_sign() {
         tracing::debug!("Codesigning {}", installer_path.display());
         codesign::try_sign(&installer_path, config)?;
+    } else {
+        #[cfg(not(target_os = "windows"))]
+        tracing::warn!("Codesigning is by default is only supported on Windows hosts, but you can specify a custom signing command in `config.windows.sign_command`, for now, skipping signing the installer...");
     }
-    #[cfg(not(target_os = "windows"))]
-    tracing::warn!("Codesigning is currently only supported on Windows hosts, skipping signing the installer...");
 
     Ok(vec![installer_path])
 }

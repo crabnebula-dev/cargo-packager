@@ -3,25 +3,22 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-#![cfg(windows)]
+use std::{fmt::Debug, path::Path, process::Command};
 
-use std::{
-    fmt::Debug,
-    path::{Path, PathBuf},
-    process::Command,
-};
-
+#[cfg(windows)]
 use once_cell::sync::Lazy;
+#[cfg(windows)]
+use std::path::PathBuf;
+#[cfg(windows)]
 use winreg::{
     enums::{HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_32KEY},
     RegKey,
 };
 
-use crate::{
-    config::Config,
-    shell::CommandExt,
-    util::{self, display_path, Bitness},
-};
+use crate::{config::Config, shell::CommandExt, util};
+
+#[cfg(windows)]
+use crate::util::Bitness;
 
 #[derive(Debug)]
 pub struct SignParams {
@@ -30,8 +27,49 @@ pub struct SignParams {
     pub certificate_thumbprint: String,
     pub timestamp_url: Option<String>,
     pub tsp: bool,
+    pub sign_command: Option<String>,
 }
 
+pub(crate) trait ConfigSignExt {
+    fn can_sign(&self) -> bool;
+    fn custom_sign_command(&self) -> bool;
+    fn sign_params(&self) -> SignParams;
+}
+
+impl ConfigSignExt for Config {
+    fn can_sign(&self) -> bool {
+        self.windows()
+            .and_then(|w| w.certificate_thumbprint.as_ref())
+            .is_some()
+            || self.custom_sign_command()
+    }
+
+    fn custom_sign_command(&self) -> bool {
+        self.windows()
+            .and_then(|w| w.sign_command.as_ref())
+            .is_some()
+    }
+
+    fn sign_params(&self) -> SignParams {
+        let windows = self.windows();
+        SignParams {
+            product_name: self.product_name.clone(),
+            digest_algorithm: windows
+                .and_then(|w| w.digest_algorithm.as_ref())
+                .cloned()
+                .unwrap_or_else(|| "sha256".to_string()),
+            certificate_thumbprint: windows
+                .and_then(|w| w.certificate_thumbprint.as_ref())
+                .cloned()
+                .unwrap_or_default(),
+            timestamp_url: windows.and_then(|w| w.timestamp_url.as_ref()).cloned(),
+            tsp: windows.map(|w| w.tsp).unwrap_or_default(),
+            sign_command: windows.and_then(|w| w.sign_command.as_ref()).cloned(),
+        }
+    }
+}
+
+#[cfg(windows)]
 static SIGN_TOOL: Lazy<crate::Result<PathBuf>> = Lazy::new(|| {
     let _s = tracing::span!(tracing::Level::TRACE, "locate_signtool");
     const INSTALLED_ROOTS_REGKEY_PATH: &str = r"SOFTWARE\Microsoft\Windows Kits\Installed Roots";
@@ -94,12 +132,31 @@ static SIGN_TOOL: Lazy<crate::Result<PathBuf>> = Lazy::new(|| {
     Err(crate::Error::SignToolNotFound)
 });
 
+#[cfg(windows)]
 fn signtool() -> Option<PathBuf> {
     (*SIGN_TOOL).as_ref().ok().cloned()
 }
 
 #[tracing::instrument(level = "trace")]
-pub fn sign_command<P: AsRef<Path> + Debug>(
+pub fn sign_command_custom<P: AsRef<Path> + Debug>(
+    path: P,
+    command: &str,
+) -> crate::Result<Command> {
+    let custom_command = command.replace("%1", &dunce::simplified(path.as_ref()).to_string_lossy());
+
+    let mut args = custom_command.split(' ');
+    let bin = args
+        .next()
+        .expect("custom signing command doesn't contain a bin?");
+
+    let mut cmd = Command::new(bin);
+    cmd.args(args);
+    Ok(cmd)
+}
+
+#[cfg(windows)]
+#[tracing::instrument(level = "trace")]
+pub fn sign_command_default<P: AsRef<Path> + Debug>(
     path: P,
     params: &SignParams,
 ) -> crate::Result<Command> {
@@ -125,58 +182,77 @@ pub fn sign_command<P: AsRef<Path> + Debug>(
     Ok(cmd)
 }
 
-pub(crate) trait ConfigSignExt {
-    fn can_sign(&self) -> bool;
-    fn sign_params(&self) -> SignParams;
-}
+#[tracing::instrument(level = "trace")]
+pub fn sign_command<P: AsRef<Path> + Debug>(
+    path: P,
+    params: &SignParams,
+) -> crate::Result<Command> {
+    match &params.sign_command {
+        Some(custom_command) => sign_command_custom(path, custom_command),
+        #[cfg(windows)]
+        None => sign_command_default(path, params),
 
-impl ConfigSignExt for Config {
-    fn can_sign(&self) -> bool {
-        self.windows()
-            .and_then(|w| w.certificate_thumbprint.as_ref())
-            .is_some()
-    }
-
-    fn sign_params(&self) -> SignParams {
-        let windows = self.windows();
-        SignParams {
-            product_name: self.product_name.clone(),
-            digest_algorithm: windows
-                .and_then(|w| w.digest_algorithm.as_ref())
-                .as_ref()
-                .map(|algorithm| algorithm.to_string())
-                .unwrap_or_else(|| "sha256".to_string()),
-            certificate_thumbprint: windows
-                .and_then(|w| w.certificate_thumbprint.as_ref())
-                .cloned()
-                .unwrap_or_default(),
-            timestamp_url: windows
-                .and_then(|w| w.timestamp_url.as_ref())
-                .as_ref()
-                .map(|url| url.to_string()),
-            tsp: windows.map(|w| w.tsp).unwrap_or_default(),
-        }
+        // should not be reachable
+        #[cfg(not(windows))]
+        None => Ok(Command::new("")),
     }
 }
 
 #[tracing::instrument(level = "trace")]
-pub fn sign<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Result<()> {
+pub fn sign_custom<P: AsRef<Path> + Debug>(path: P, custom_command: &str) -> crate::Result<()> {
+    let path = path.as_ref();
+
+    tracing::info!(
+        "Codesigning {} with a custom signing command",
+        util::display_path(path),
+    );
+
+    let mut cmd = sign_command_custom(path, custom_command)?;
+
+    let output = cmd
+        .output_ok()
+        .map_err(crate::Error::CustomSignCommandFailed)?;
+
+    let stdout = String::from_utf8_lossy(output.stdout.as_slice());
+    tracing::info!("{:?}", stdout);
+
+    Ok(())
+}
+
+#[tracing::instrument(level = "trace")]
+#[cfg(windows)]
+pub fn sign_default<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Result<()> {
     let signtool = signtool().ok_or(crate::Error::SignToolNotFound)?;
     let path = path.as_ref();
 
     tracing::info!(
-        "Signing {} with identity \"{}\"",
-        display_path(path),
+        "Codesigning {} with identity \"{}\"",
+        util::display_path(path),
         params.certificate_thumbprint
     );
 
+    let mut cmd = sign_command_default(path, params)?;
+
     tracing::debug!("Running signtool {:?}", signtool);
-    let mut cmd = sign_command(path, params)?;
     let output = cmd.output_ok().map_err(crate::Error::SignToolFailed)?;
-    let stdout = String::from_utf8_lossy(output.stdout.as_slice()).into_owned();
+
+    let stdout = String::from_utf8_lossy(output.stdout.as_slice());
     tracing::info!("{:?}", stdout);
 
     Ok(())
+}
+
+#[tracing::instrument(level = "trace")]
+pub fn sign<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Result<()> {
+    match &params.sign_command {
+        Some(custom_command) => sign_custom(path, custom_command),
+        #[cfg(windows)]
+        None => sign_default(path, params),
+
+        // should not be reachable
+        #[cfg(not(windows))]
+        None => Ok(()),
+    }
 }
 
 #[tracing::instrument(level = "trace")]
@@ -184,29 +260,8 @@ pub fn try_sign(
     file_path: &std::path::PathBuf,
     config: &crate::config::Config,
 ) -> crate::Result<()> {
-    let windows_config = config.windows();
-    if let Some(certificate_thumbprint) =
-        windows_config.and_then(|c| c.certificate_thumbprint.as_ref())
-    {
-        tracing::info!("Signing {}", util::display_path(file_path));
-        sign(
-            file_path,
-            &SignParams {
-                product_name: config.product_name.clone(),
-                digest_algorithm: windows_config
-                    .and_then(|c| {
-                        c.digest_algorithm
-                            .as_ref()
-                            .map(|algorithm| algorithm.to_string())
-                    })
-                    .unwrap_or_else(|| "sha256".to_string()),
-                certificate_thumbprint: certificate_thumbprint.to_string(),
-                timestamp_url: windows_config
-                    .and_then(|c| c.timestamp_url.as_ref())
-                    .map(|url| url.to_string()),
-                tsp: windows_config.map(|c| c.tsp).unwrap_or_default(),
-            },
-        )?;
+    if config.can_sign() {
+        sign(file_path, &config.sign_params())?;
     }
     Ok(())
 }

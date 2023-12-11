@@ -12,7 +12,7 @@ use std::{
 
 use super::Context;
 use crate::{
-    codesign::{self, SignTarget},
+    codesign::macos::{self as codesign, SignTarget},
     config::Config,
     shell::CommandExt,
     util,
