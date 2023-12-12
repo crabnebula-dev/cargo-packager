@@ -134,7 +134,7 @@ impl ConfigBuilder {
     pub fn icons<I, P>(mut self, icons: I) -> Self
     where
         I: IntoIterator<Item = P>,
-        P: Into<PathBuf>,
+        P: Into<String>,
     {
         self.0
             .icons

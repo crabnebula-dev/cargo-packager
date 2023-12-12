@@ -1488,8 +1488,8 @@ pub struct Config {
     pub copyright: Option<String>,
     /// The app's category.
     pub category: Option<AppCategory>,
-    /// The app's icon list.
-    pub icons: Option<Vec<PathBuf>>,
+    /// The app's icon list. Support glob.
+    pub icons: Option<Vec<String>>,
     /// The file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,
@@ -1652,6 +1652,37 @@ impl Config {
             .find(|bin| bin.main)
             .map(|b| b.path.file_stem().unwrap().to_string_lossy().into_owned())
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
+    }
+
+    /// Returns all icons path.
+    pub fn icons(&self) -> crate::Result<Option<Vec<PathBuf>>> {
+        
+        let Some(patterns) = &self.icons else {
+            return Ok(None);
+        };
+
+        let mut paths = Vec::new();
+
+        for pattern in patterns {
+            match glob::glob(&pattern) {
+                Ok(icon_paths) => {
+                    for icon_path in icon_paths {
+                        match icon_path {
+                            Ok(path) => paths.push(path),
+                            Err(_e) => {
+                                //return e.into()
+                                panic!()
+                            },
+                        }
+                    }
+                },
+                Err(_e) =>  {
+                    //return e.into()
+                    panic!()
+                },
+            }
+        }
+        Ok(Some(paths))
     }
 }
 

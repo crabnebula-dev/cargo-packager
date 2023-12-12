@@ -48,9 +48,8 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
         ))
     };
     let mut icons_set = BTreeSet::new();
-    if let Some(icons) = &config.icons {
+    if let Some(icons) = config.icons()? {
         for icon_path in icons {
-            let icon_path = PathBuf::from(icon_path);
             if icon_path.extension() != Some(OsStr::new("png")) {
                 continue;
             }
@@ -78,7 +77,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
                 std::fs::copy(&icon_path, &deb_icon.path)?;
                 icons_set.insert(deb_icon);
             }
-        }
+        }  
     }
     Ok(icons_set)
 }
