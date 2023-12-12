@@ -21,7 +21,7 @@ It also has a compatible updater through [cargo-packager-updater](./crates/updat
 
 ### CLI
 
-The packager is distrubuted on crates.io as a cargo subcommand, you can install it using cargo:
+The packager is distributed on crates.io as a cargo subcommand, you can install it using cargo:
 
 ```sh
 cargo install cargo-packager --locked

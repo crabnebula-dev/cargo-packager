@@ -17,7 +17,7 @@ It also has a compatible updater through [@crabnebula/updater](https://www.npmjs
 
 ### CLI
 
-The packager is distrubuted on NPM as a CLI, you can install it:
+The packager is distributed on NPM as a CLI, you can install it:
 
 ```sh
 # pnpm
