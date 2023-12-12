@@ -20,15 +20,15 @@ impl From<cargo_packager_updater::WindowsUpdateInstallMode> for WindowsUpdateIns
     }
 }
 
-impl From<cargo_packager_updater::UpdaterWindowsConfig> for UpdaterWindowsOptions {
-    fn from(value: cargo_packager_updater::UpdaterWindowsConfig) -> Self {
+impl From<cargo_packager_updater::WindowsConfig> for UpdaterWindowsOptions {
+    fn from(value: cargo_packager_updater::WindowsConfig) -> Self {
         Self {
             installer_args: value.installer_args,
             install_mode: value.install_mode.map(Into::into),
         }
     }
 }
-impl From<UpdaterWindowsOptions> for cargo_packager_updater::UpdaterWindowsConfig {
+impl From<UpdaterWindowsOptions> for cargo_packager_updater::WindowsConfig {
     fn from(value: UpdaterWindowsOptions) -> Self {
         Self {
             installer_args: value.installer_args,

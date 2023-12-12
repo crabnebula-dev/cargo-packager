@@ -68,4 +68,5 @@ pub enum Error {
     PersistError(#[from] tempfile::PersistError),
 }
 
+/// Convenience alias for `cargo-packager-updater` crate Result type.
 pub type Result<T> = std::result::Result<T, Error>;

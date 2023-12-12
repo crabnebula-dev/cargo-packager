@@ -5,14 +5,14 @@
 
 export const enum WindowsUpdateInstallMode {
   /** Specifies there's a basic UI during the installation process, including a final dialog box at the end. */
-  BasicUi = 0,
+  BasicUi = 'BasicUi',
   /**
    * The quiet mode means there's no user interaction required.
    * Requires admin privileges if the installer does.
    */
-  Quiet = 1,
+  Quiet = 'Quiet',
   /** Specifies unattended mode, which means the installation only shows a progress bar. */
-  Passive = 2
+  Passive = 'Passive'
 }
 export interface UpdaterWindowsOptions {
   /** Additional arguments given to the NSIS or WiX installer. */

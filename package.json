@@ -7,9 +7,5 @@
   },
   "devDependencies": {
     "prettier": "^3.1.0"
-  },
-  "engines": {
-    "node": "^18.16.0",
-    "pnpm": "^8.4.0"
   }
 }
