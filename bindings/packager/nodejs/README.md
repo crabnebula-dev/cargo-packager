@@ -15,8 +15,6 @@ It also has a compatible updater through [@crabnebula/updater](https://www.npmjs
   - NSIS (.exe)
   - MSI using WiX Toolset (.msi)
 
-## Rust
-
 ### CLI
 
 The packager is distrubuted on NPM as a CLI, you can install it:

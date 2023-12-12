@@ -2,6 +2,15 @@
 
 Updater for apps that was packaged by [`@crabnebula/packager`](https://www.npmjs.com/package/@crabnebula/packager).
 
+```sh
+# pnpm
+pnpm add @crabnebula/updater
+# pnpm
+yarn add @crabnebula/updater
+# npm
+npm i @crabnebula/updater
+```
+
 ## Checking for an update
 
 you can check for an update using `checkUpdate` function which require the current version of the app and
