@@ -46,7 +46,7 @@ fn main() {
 
     match updater.check() {
         Ok(Some(update)) => {
-            if let Err(e) = update.download_and_install(|_, _| {}, || {}) {
+            if let Err(e) = update.download_and_install() {
                 println!("{e}");
                 std::process::exit(1);
             }

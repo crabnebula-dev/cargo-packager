@@ -67,7 +67,7 @@ fn download_update<R: Runtime>(app: AppHandle<R>) -> Result<(), ()> {
     std::thread::spawn(move || {
         let update = app.state::<Update>();
         let update_bytes = update
-            .download(
+            .download_extended(
                 move |chunk_len, content_len| {
                     app_1
                         .emit_all(

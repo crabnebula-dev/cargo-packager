@@ -12,7 +12,7 @@ use napi::{
 
 mod from_impls;
 
-#[napi_derive::napi]
+#[napi_derive::napi(string_enum)]
 #[derive(Default)]
 pub enum WindowsUpdateInstallMode {
     /// Specifies there's a basic UI during the installation process, including a final dialog box at the end.
@@ -191,7 +191,7 @@ impl Update {
         let update = self.create_update()?;
 
         update
-            .download(
+            .download_extended(
                 |c, l| {
                     if let Some(on_chunk) = &on_chunk {
                         on_chunk.call(
@@ -227,7 +227,7 @@ impl Update {
     ) -> Result<()> {
         let update = self.create_update()?;
         let bytes = update
-            .download(
+            .download_extended(
                 |c, l| {
                     if let Some(on_chunk) = &on_chunk {
                         on_chunk.call(

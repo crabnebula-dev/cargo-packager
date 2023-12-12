@@ -1,27 +1,34 @@
-# cargo-packager-updater
+# @crabnebula/updater
 
-Updater for apps that was packaged by [`cargo-packager`](https://docs.rs/cargo-packager).
+Updater for apps that was packaged by [`@crabnebula/packager`](https://www.npmjs.com/package/@crabnebula/packager).
+
+```sh
+# pnpm
+pnpm add @crabnebula/updater
+# pnpm
+yarn add @crabnebula/updater
+# npm
+npm i @crabnebula/updater
+```
 
 ## Checking for an update
 
-you can check for an update using [`check_update`](https://docs.rs/cargo-packager-updater/latest/cargo_packager_updater/fn.check_update.html) function or construct a new [`Updater`](https://docs.rs/cargo-packager-updater/latest/cargo_packager_updater/struct.Updater.html)
-using [`UpdaterBuilder`](https://docs.rs/cargo-packager-updater/latest/cargo_packager_updater/struct.UpdaterBuilder.html), both methods require the current version of the app and
-a [`Config`](https://docs.rs/cargo-packager-updater/latest/cargo_packager_updater/struct.Config.html) that specifies the endpoints to request updates from and the public key of the update signature.
+you can check for an update using `checkUpdate` function which require the current version of the app and
+an options object that specifies the endpoints to request updates from and the public key of the update signature.
 
-```rs
-use cargo_packager_updater::{check_update, Config};
+```js
+import { checkUpdate } from "@crabnebula/updater";
 
-let config = Config {
-  endpoints: vec!["http://myserver.com/updates"],
+let update = await checkUpdate("0.1.0", {
+  endpoints: ["http://myserver.com/updates"],
   pubkey: "<pubkey here>",
-  ..Default::default()
-};
-if let Some(update) = check_update("0.1.0", config).expect("failed while checking for update") {
-  update.download_and_install().expect("failed to download and install update");
+});
+
+if (update !== null) {
+  update.downloadAndInstall();
 } else {
   // there is no updates
 }
-
 ```
 
 ## Endpoints
@@ -36,16 +43,16 @@ which will be detected and replaced with the appropriate value before making a r
 for example:
 
 ```
- "https://releases.myapp.com/{{target}}/{{arch}}/{{current_version}}"
+https://releases.myapp.com/{{target}}/{{arch}}/{{current_version}}
 ```
 
 will turn into
 
 ```
- "https://releases.myapp.com/windows/x86_64/0.1.0"
+https://releases.myapp.com/windows/x86_64/0.1.0
 ```
 
-if you need more data, you can set additional request headers [`UpdaterBuilder::header`](https://docs.rs/cargo-packager-updater/latest/cargo_packager_updater/struct.UpdaterBuilder.html#method.header) to your liking.
+if you need more data, you can set additional request headers in the options object pass to `checkUpdate` to your liking.
 
 ## Endpoint Response
 
@@ -120,7 +127,7 @@ Here is an example of the two expected JSON formats:
 
 ## Update install mode on Windows
 
-You can specify which install mode to use on Windows using [`WindowsConfig::install_mode`](https://docs.rs/cargo-packager-updater/latest/cargo_packager_updater/struct.WindowsConfig.html#structfield.install_mode) which can be on of:
+You can specify which install mode to use on Windows using `windows.installMode` in the options object which can be one of:
 
 - `"Passive"`: There will be a small window with a progress bar. The update will be installed without requiring any user interaction. Generally recommended and the default mode.
 - `"BasicUi"`: There will be a basic user interface shown which requires user interaction to finish the installation.

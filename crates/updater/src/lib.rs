@@ -3,6 +3,139 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+//! # cargo-packager-updater
+//!
+//! Updater for apps that was packaged by [`cargo-packager`](https://docs.rs/cargo-packager).
+//!
+//! ## Checking for an update
+//!
+//! you can check for an update using [`check_update`] function or construct a new [`Updater`]
+//! using [`UpdaterBuilder`], both methods require the current version of the app and
+//! a [`Config`] that specifies the endpoints to request updates from and the public key of the update signature.
+//!
+//! ```no_run
+//! use cargo_packager_updater::{check_update, Config};
+//!
+//! let config = Config {
+//!   endpoints: vec!["http://myserver.com/updates"],
+//!   pubkey: "<pubkey here>",
+//!   ..Default::default()
+//! };
+//! if let Some(update) = check_update("0.1.0", config).expect("failed while checking for update") {
+//!     update.download_and_install().expect("failed to download and install update");
+//! } else {
+//!     // there is no updates
+//! }
+//!
+//! ```
+//!
+//! ## Endpoints
+//!
+//! Each endpoint optionally could have `{{arch}}`, `{{target}}` or `{{current_version}}`
+//! which will be detected and replaced with the appropriate value before making a request to the endpoint.
+//!
+//! - `{{current_version}}`: The version of the app that is requesting the update.
+//! - `{{target}}`: The operating system name (one of `linux`, `windows` or `macos`).
+//! - `{{arch}}`: The architecture of the machine (one of `x86_64`, `i686`, `aarch64` or `armv7`).
+//!
+//! for example:
+//! ```text
+//! "https://releases.myapp.com/{{target}}/{{arch}}/{{current_version}}"
+//! ```
+//! will turn into
+//! ```text
+//! "https://releases.myapp.com/windows/x86_64/0.1.0"
+//! ```
+//!
+//! if you need more data, you can set additional request headers [`UpdaterBuilder::header`] to your liking.
+//!
+//! ## Endpoint Response
+//!
+//! The updater expects the endpoint to respond with 2 possible reponses:
+//!
+//! 1. [`204 No Content`](https://datatracker.ietf.org/doc/html/rfc2616#section-10.2.5) in case there is no updates available.
+//! 2. [`200 OK`](https://datatracker.ietf.org/doc/html/rfc2616#section-10.2.1) and a JSON response that could be either a JSON representing all available platform updates
+//! or if using endpoints variables (see above) or a header to attach the current updater target,
+//! then it can just return information for the requested target.
+//!
+//! The JSON response is expected to have these fields set:
+//!
+//! - `version`: must be a valid semver, with or without a leading `v``, meaning that both `1.0.0` and `v1.0.0` are valid.
+//! - `url` or `platforms.[target].url`: must be a valid url to the update bundle
+//! - `signature` or `platforms.[target].signature`: must be the content of the generated `.sig` file. The signature may change each time you run build your app so make sure to always update it.
+//! - `format` or `platforms.[target].format`: must be one of `app`, `appimage`, `nsis` or `wix`.
+//!
+//! <div style="border-left: 2px solid rgba(47,129,247);padding-left:0.75em;">
+//!   <p style="display:flex;align-items:center;gap:3px;color:rgb(47,129,247)">
+//!     <svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill="rgb(47,129,247)" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>
+//!     Note
+//!   </p>
+//!   if using <code>platforms</code> object, each key is in the <code>OS-ARCH</code> format, where <code>OS</code> is one of <code>linux</code>, <code>macos</code> or <code>windows</code>, and <code>ARCH</code> is one of <code>x86_64</code>, <code>aarch64</code>, <code>i686</code> or <code>armv7</code>, see the example below.
+//! </div>
+//! <br>
+//!
+//! It can also contain these optional fields:
+//! - `notes`: Here you can add notes about the update, like release notes.
+//! - `pub_date`: must be formatted according to [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339#section-5.8) if present.
+//!
+//! Here is an example of the two expected JSON formats:
+//!
+//!  - **JSON for all platforms**
+//!
+//!    ```json
+//!    {
+//!      "version": "v1.0.0",
+//!      "notes": "Test version",
+//!      "pub_date": "2020-06-22T19:25:57Z",
+//!      "platforms": {
+//!        "darwin-x86_64": {
+//!          "signature": "Content of app.tar.gz.sig",
+//!          "url": "https://github.com/username/reponame/releases/download/v1.0.0/app-x86_64.app.tar.gz",
+//!          "format": "app"
+//!        },
+//!        "darwin-aarch64": {
+//!          "signature": "Content of app.tar.gz.sig",
+//!          "url": "https://github.com/username/reponame/releases/download/v1.0.0/app-aarch64.app.tar.gz",
+//!          "format": "app"
+//!        },
+//!        "linux-x86_64": {
+//!          "signature": "Content of app.AppImage.sig",
+//!          "url": "https://github.com/username/reponame/releases/download/v1.0.0/app-amd64.AppImage.tar.gz",
+//!          "format": "appimage"
+//!        },
+//!        "windows-x86_64": {
+//!          "signature": "Content of app-setup.exe.sig or app.msi.sig, depending on the chosen format",
+//!          "url": "https://github.com/username/reponame/releases/download/v1.0.0/app-x64-setup.nsis.zip",
+//!          "format": "nsis or wix depending on the chosen format"
+//!        }
+//!      }
+//!    }
+//!    ```
+//!
+//!  - **JSON for one platform**
+//!
+//!    ```json
+//!    {
+//!      "version": "0.2.0",
+//!      "pub_date": "2020-09-18T12:29:53+01:00",
+//!      "url": "https://mycompany.example.com/myapp/releases/myrelease.tar.gz",
+//!      "signature": "Content of the relevant .sig file",
+//!      "format": "app or nsis or wix or appimage depending on the release target and the chosen format",
+//!      "notes": "These are some release notes"
+//!    }
+//!    ```
+//!
+//!
+//! ## Update install mode on Windows
+//!
+//! You can specify which install mode to use on Windows using [`WindowsConfig::install_mode`] which can be one of:
+//!
+//! - [`"Passive"`](WindowsUpdateInstallMode::Passive): There will be a small window with a progress bar. The update will be installed without requiring any user interaction. Generally recommended and the default mode.
+//! - [`"BasicUi"`](WindowsUpdateInstallMode::BasicUi): There will be a basic user interface shown which requires user interaction to finish the installation.
+//! - [`"Quiet"`](WindowsUpdateInstallMode::Quiet): There will be no progress feedback to the user. With this mode the installer cannot request admin privileges by itself so it only works in user-wide installations or when your app itself already runs with admin privileges. Generally not recommended.
+
+#![deny(missing_docs)]
+
 use base64::Engine;
 use http::HeaderName;
 use minisign_verify::{PublicKey, Signature};
@@ -70,7 +203,7 @@ impl WindowsUpdateInstallMode {
 /// The updater configuration for Windows.
 #[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdaterWindowsConfig {
+pub struct WindowsConfig {
     /// Additional arguments given to the NSIS or WiX installer.
     pub installer_args: Option<Vec<String>>,
     /// The installation mode for the update on Windows. Defaults to `passive`.
@@ -82,11 +215,18 @@ pub struct UpdaterWindowsConfig {
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     /// The updater endpoints.
+    ///
+    /// Each endpoint optionally could have `{{arch}}`, `{{target}}` or `{{current_version}}`
+    /// which will be detected and replaced with the appropriate value before making a request to the endpoint.
+    ///
+    /// - `{{current_version}}`: The version of the app that is requesting the update.
+    /// - `{{target}}`: The operating system name (one of `linux`, `windows` or `macos`).
+    /// - `{{arch}}`: The architecture of the machine (one of `x86_64`, `i686`, `aarch64` or `armv7`).
     pub endpoints: Vec<Url>,
     /// Signature public key.
     pub pubkey: String,
     /// The Windows configuration for the updater.
-    pub windows: Option<UpdaterWindowsConfig>,
+    pub windows: Option<WindowsConfig>,
 }
 
 /// Supported update format
@@ -117,6 +257,7 @@ impl std::fmt::Display for UpdateFormat {
     }
 }
 
+/// Information about a release
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ReleaseManifestPlatform {
     /// Download URL for the platform
@@ -127,11 +268,15 @@ pub struct ReleaseManifestPlatform {
     pub format: UpdateFormat,
 }
 
+/// Information about a release data.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-pub enum RemoteReleaseInner {
+pub enum RemoteReleaseData {
+    /// Dynamic release data based on the platform the update has been requested from.
     Dynamic(ReleaseManifestPlatform),
+    /// A map of release data for each platform, where the key is `<platform>-<arch>`.
     Static {
+        /// A map of release data for each platform, where the key is `<platform>-<arch>`.
         platforms: HashMap<String, ReleaseManifestPlatform>,
     },
 }
@@ -148,15 +293,15 @@ pub struct RemoteRelease {
     /// Release date.
     pub pub_date: Option<OffsetDateTime>,
     /// Release data.
-    pub data: RemoteReleaseInner,
+    pub data: RemoteReleaseData,
 }
 
 impl RemoteRelease {
     /// The release's download URL for the given target.
     pub fn download_url(&self, target: &str) -> Result<&Url> {
         match self.data {
-            RemoteReleaseInner::Dynamic(ref platform) => Ok(&platform.url),
-            RemoteReleaseInner::Static { ref platforms } => platforms
+            RemoteReleaseData::Dynamic(ref platform) => Ok(&platform.url),
+            RemoteReleaseData::Static { ref platforms } => platforms
                 .get(target)
                 .map_or(Err(Error::TargetNotFound(target.to_string())), |p| {
                     Ok(&p.url)
@@ -167,8 +312,8 @@ impl RemoteRelease {
     /// The release's signature for the given target.
     pub fn signature(&self, target: &str) -> Result<&String> {
         match self.data {
-            RemoteReleaseInner::Dynamic(ref platform) => Ok(&platform.signature),
-            RemoteReleaseInner::Static { ref platforms } => platforms
+            RemoteReleaseData::Dynamic(ref platform) => Ok(&platform.signature),
+            RemoteReleaseData::Static { ref platforms } => platforms
                 .get(target)
                 .map_or(Err(Error::TargetNotFound(target.to_string())), |platform| {
                     Ok(&platform.signature)
@@ -179,8 +324,8 @@ impl RemoteRelease {
     /// The release's update format for the given target.
     pub fn format(&self, target: &str) -> Result<UpdateFormat> {
         match self.data {
-            RemoteReleaseInner::Dynamic(ref platform) => Ok(platform.format),
-            RemoteReleaseInner::Static { ref platforms } => platforms
+            RemoteReleaseData::Dynamic(ref platform) => Ok(platform.format),
+            RemoteReleaseData::Static { ref platforms } => platforms
                 .get(target)
                 .map_or(Err(Error::TargetNotFound(target.to_string())), |platform| {
                     Ok(platform.format)
@@ -189,6 +334,7 @@ impl RemoteRelease {
     }
 }
 
+/// An [`Updater`] builder.
 pub struct UpdaterBuilder {
     current_version: Version,
     config: Config,
@@ -200,6 +346,7 @@ pub struct UpdaterBuilder {
 }
 
 impl UpdaterBuilder {
+    /// Create a new updater builder request.
     pub fn new(current_version: Version, config: crate::Config) -> Self {
         Self {
             current_version,
@@ -212,6 +359,7 @@ impl UpdaterBuilder {
         }
     }
 
+    /// A custom function to compare whether a new version exists or not.
     pub fn version_comparator<F: Fn(Version, RemoteRelease) -> bool + Send + Sync + 'static>(
         mut self,
         f: F,
@@ -220,26 +368,31 @@ impl UpdaterBuilder {
         self
     }
 
+    /// Specify a public key to use when checking if the update is valid.
     pub fn pub_key(mut self, pub_key: impl Into<String>) -> Self {
         self.config.pubkey = pub_key.into();
         self
     }
 
+    /// Specify the target to request an update for.
     pub fn target(mut self, target: impl Into<String>) -> Self {
         self.target.replace(target.into());
         self
     }
 
+    /// Specify the endpoints where an update will be requested from.
     pub fn endpoints(mut self, endpoints: Vec<Url>) -> Self {
         self.config.endpoints = endpoints;
         self
     }
 
+    /// Specify the path to the current executable where the updater will try to update in the same directory.
     pub fn executable_path<P: AsRef<Path>>(mut self, p: P) -> Self {
         self.executable_path.replace(p.as_ref().into());
         self
     }
 
+    /// Add a header to the updater request.
     pub fn header<K, V>(mut self, key: K, value: V) -> Result<Self>
     where
         HeaderName: TryFrom<K>,
@@ -255,11 +408,13 @@ impl UpdaterBuilder {
         Ok(self)
     }
 
+    /// Specify a timeout for the updater request.
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = Some(timeout);
         self
     }
 
+    /// Specify custom installer args on Windows.
     pub fn installer_args<I, S>(mut self, args: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -277,6 +432,7 @@ impl UpdaterBuilder {
         self
     }
 
+    /// Build the updater.
     pub fn build(self) -> Result<Updater> {
         if self.config.endpoints.is_empty() {
             return Err(Error::EmptyEndpoints);
@@ -324,6 +480,7 @@ impl UpdaterBuilder {
     }
 }
 
+/// A type that can check for updates and created by [`UpdaterBuilder`].
 pub struct Updater {
     config: Config,
     current_version: Version,
@@ -339,6 +496,7 @@ pub struct Updater {
 }
 
 impl Updater {
+    /// Check for an update. Returns `None` if an update was not found, otherwise it will be `Some`.
     pub fn check(&self) -> Result<Option<Update>> {
         // we want JSON only
         let mut headers = self.headers.clone();
@@ -443,6 +601,7 @@ impl Updater {
     }
 }
 
+/// Information about an update and associted methods to perform the update.
 #[derive(Debug, Clone)]
 pub struct Update {
     /// Config used to check for this update.
@@ -475,10 +634,31 @@ impl Update {
     /// Downloads the updater package, verifies it then return it as bytes.
     ///
     /// Use [`Update::install`] to install it
-    pub fn download<C: Fn(usize, Option<u64>), D: FnOnce()>(
+    pub fn download(&self) -> Result<Vec<u8>> {
+        self.download_extended_inner(
+            None::<Box<dyn Fn(usize, Option<u64>)>>,
+            None::<Box<dyn FnOnce()>>,
+        )
+    }
+
+    /// Downloads the updater package, verifies it then return it as bytes.
+    ///
+    /// Takes two callbacks, the first will be excuted when receiveing each chunk
+    /// while the second will be called only once when the download finishes.
+    ///
+    /// Use [`Update::install`] to install it
+    pub fn download_extended<C: Fn(usize, Option<u64>), D: FnOnce()>(
         &self,
         on_chunk: C,
         on_download_finish: D,
+    ) -> Result<Vec<u8>> {
+        self.download_extended_inner(Some(on_chunk), Some(on_download_finish))
+    }
+
+    fn download_extended_inner<C: Fn(usize, Option<u64>), D: FnOnce()>(
+        &self,
+        on_chunk: Option<C>,
+        on_download_finish: Option<D>,
     ) -> Result<Vec<u8>> {
         // set our headers
         let mut headers = self.headers.clone();
@@ -501,13 +681,15 @@ impl Update {
         struct DownloadProgress<R, C: Fn(usize, Option<u64>)> {
             content_length: Option<u64>,
             inner: R,
-            on_chunk: C,
+            on_chunk: Option<C>,
         }
 
         impl<R: Read, C: Fn(usize, Option<u64>)> Read for DownloadProgress<R, C> {
             fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
                 self.inner.read(buf).map(|n| {
-                    (self.on_chunk)(n, self.content_length);
+                    if let Some(on_chunk) = &self.on_chunk {
+                        (on_chunk)(n, self.content_length);
+                    }
                     n
                 })
             }
@@ -535,7 +717,9 @@ impl Update {
         let mut buffer = Vec::new();
 
         let _ = std::io::copy(&mut source, &mut buffer)?;
-        on_download_finish();
+        if let Some(on_download_finish) = on_download_finish {
+            on_download_finish();
+        }
 
         let mut update_buffer = Cursor::new(&buffer);
 
@@ -550,12 +734,21 @@ impl Update {
     }
 
     /// Downloads and installs the updater package
-    pub fn download_and_install<C: Fn(usize, Option<u64>), D: FnOnce()>(
+    pub fn download_and_install(&self) -> Result<()> {
+        let bytes = self.download()?;
+        self.install(bytes)
+    }
+
+    /// Downloads and installs the updater package
+    ///
+    /// Takes two callbacks, the first will be excuted when receiveing each chunk
+    /// while the second will be called only once when the download finishes.
+    pub fn download_and_install_extended<C: Fn(usize, Option<u64>), D: FnOnce()>(
         &self,
         on_chunk: C,
         on_download_finish: D,
     ) -> Result<()> {
-        let bytes = self.download(on_chunk, on_download_finish)?;
+        let bytes = self.download_extended(on_chunk, on_download_finish)?;
         self.install(bytes)
     }
 
@@ -820,6 +1013,7 @@ pub fn check_update(current_version: Version, config: crate::Config) -> Result<O
 }
 
 /// Get the updater target for the current platform.
+#[doc(hidden)]
 pub fn target() -> Option<String> {
     if let (Some(target), Some(arch)) = (get_updater_target(), get_updater_arch()) {
         Some(format!("{target}-{arch}"))
@@ -855,7 +1049,7 @@ pub(crate) fn get_updater_arch() -> Option<&'static str> {
 }
 
 #[cfg(any(windows, target_os = "macos"))]
-pub fn extract_path_from_executable(executable_path: &Path) -> Result<PathBuf> {
+fn extract_path_from_executable(executable_path: &Path) -> Result<PathBuf> {
     // Return the path of the current executable by default
     // Example C:\Program Files\My App\
     let extract_path = executable_path
@@ -890,7 +1084,7 @@ pub fn extract_path_from_executable(executable_path: &Path) -> Result<PathBuf> {
 // by our tests in the bundler
 //
 // NOTE: The buffer position is not reset.
-pub fn verify_signature<R>(
+fn verify_signature<R>(
     archive_reader: &mut R,
     release_signature: &str,
     pub_key: &str,

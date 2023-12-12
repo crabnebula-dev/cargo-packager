@@ -10,7 +10,7 @@ use serde::{de::Error, Deserialize, Deserializer};
 use time::OffsetDateTime;
 use url::Url;
 
-use crate::{ReleaseManifestPlatform, RemoteRelease, RemoteReleaseInner, UpdateFormat};
+use crate::{ReleaseManifestPlatform, RemoteRelease, RemoteReleaseData, UpdateFormat};
 
 fn parse_version<'de, D>(deserializer: D) -> std::result::Result<Version, D::Error>
 where
@@ -78,9 +78,9 @@ impl<'de> Deserialize<'de> for RemoteRelease {
             notes: release.notes,
             pub_date,
             data: if let Some(platforms) = release.platforms {
-                RemoteReleaseInner::Static { platforms }
+                RemoteReleaseData::Static { platforms }
             } else {
-                RemoteReleaseInner::Dynamic(ReleaseManifestPlatform {
+                RemoteReleaseData::Dynamic(ReleaseManifestPlatform {
                     url: release.url.ok_or_else(|| {
                         Error::custom("the `url` field was not set on the updater response")
                     })?,
