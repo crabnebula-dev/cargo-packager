@@ -77,7 +77,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
                 std::fs::copy(&icon_path, &deb_icon.path)?;
                 icons_set.insert(deb_icon);
             }
-        }  
+        }
     }
     Ok(icons_set)
 }
