@@ -23,7 +23,6 @@
     "build": "napi build --platform --profile release-size-optimized",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
-    "pretest": "napi build --platform",
     "test": "ava --no-worker-threads --timeout 30m",
     "universal": "napi universal",
     "version": "napi version"
