@@ -1,6 +1,6 @@
 [package]
 name = "cargo-packager-updater"
-version = "0.0.0"
+version = "0.1.0"
 description = "Rust executable updater."
 authors = [
   "CrabNebula Ltd.",
@@ -11,9 +11,9 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [features]
-native-tls = ["reqwest/native-tls"]
-native-tls-vendored = ["reqwest/native-tls-vendored"]
-rustls-tls = ["reqwest/rustls-tls"]
+native-tls = [ "reqwest/native-tls" ]
+native-tls-vendored = [ "reqwest/native-tls-vendored" ]
+rustls-tls = [ "reqwest/rustls-tls" ]
 
 [dependencies]
 reqwest = { version = "0.11", default-features = false, features = [ "json", "stream", "blocking" ] }
@@ -24,9 +24,9 @@ dunce = { workspace = true }
 dirs = { workspace = true }
 semver = { workspace = true }
 base64 = { workspace = true }
-time = { workspace = true, features = ["parsing", "formatting"] }
+time = { workspace = true, features = [ "parsing", "formatting" ] }
 http = "0.2"
-url = { version = "2.5", features = ["serde"]}
+url = { version = "2.5", features = [ "serde" ] }
 minisign-verify = "0.2"
 ctor = "0.2"
 tempfile = "3.8"

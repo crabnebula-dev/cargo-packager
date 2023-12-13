@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.4.0]
+
+- [`ecde3fb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ecde3fb71a8f120e71d4781c11214db750042cc4)([#58](https://www.github.com/crabnebula-dev/cargo-packager/pull/58)) Added `files` configuration under `AppImageConfig` for adding custom files on the AppImage's AppDir.
+- [`ecde3fb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ecde3fb71a8f120e71d4781c11214db750042cc4)([#58](https://www.github.com/crabnebula-dev/cargo-packager/pull/58)) Renamed binary `filename` property to `path`, which supports absolute paths.
+- [`f04c17f`](https://www.github.com/crabnebula-dev/cargo-packager/commit/f04c17f72a4af306f47065aff405c4bd0f7b6442)([#87](https://www.github.com/crabnebula-dev/cargo-packager/pull/87)) Add `config.dmg` to configure the DMG on macOS.
+- [`21a6c9e`](https://www.github.com/crabnebula-dev/cargo-packager/commit/21a6c9ef4ddbefe9a6e6c5abf287f2ad993edffb)([#84](https://www.github.com/crabnebula-dev/cargo-packager/pull/84)) Mark most of the types as `non_exhaustive` to allow adding more field later on without having to break downstream users use the newly added helper methods on these types to modify the corresponding fields in-place.
+- [`db75777`](https://www.github.com/crabnebula-dev/cargo-packager/commit/db75777d2799ca37217d568befad39b9377cfa2a) Add `config.windows.sign_command` which can be used to override signing command on windows and allows usage of tools other than `signtool.exe`.
+
 ## \[0.3.0]
 
 - [`65b8c20`](https://www.github.com/crabnebula-dev/cargo-packager/commit/65b8c20a96877038daa4907b80cd96f96e0bfe33)([#54](https://www.github.com/crabnebula-dev/cargo-packager/pull/54)) Code sign binaries and frameworks on macOS.
