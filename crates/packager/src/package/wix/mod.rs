@@ -519,7 +519,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     data.insert("app_exe_source", to_json(&main_binary_path));
 
     // copy icon from `settings.windows().icon_path` folder to resource folder near msi
-    if let Some(icon) = config.find_ico() {
+    if let Some(icon) = config.find_ico()? {
         let icon_path = dunce::canonicalize(icon)?;
         data.insert("icon_path", to_json(icon_path));
     }
