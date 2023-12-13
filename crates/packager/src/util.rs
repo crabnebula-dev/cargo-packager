@@ -279,16 +279,15 @@ pub(crate) fn is_retina<P: AsRef<Path>>(path: P) -> bool {
 pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result<Option<PathBuf>> {
     use image::GenericImageView;
 
-    if config.icons.as_ref().map(|i| i.len()).unwrap_or_default() == 0 {
+    let icons = config.icons()?;
+    if icons.as_ref().map(|i| i.len()).unwrap_or_default() == 0 {
         return Ok(None);
     }
 
     // If one of the icon files is already an ICNS file, just use that.
-    if let Some(icons) = &config.icons {
+    if let Some(icons) = icons {
         std::fs::create_dir_all(out_dir)?;
-
         for icon_path in icons {
-            let icon_path = PathBuf::from(icon_path);
             if icon_path.extension() == Some(std::ffi::OsStr::new("icns")) {
                 let dest_path = out_dir.join(
                     icon_path
@@ -330,8 +329,8 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
     }
 
     let mut images_to_resize: Vec<(image::DynamicImage, u32, u32)> = vec![];
-    if let Some(icons) = &config.icons {
-        for icon_path in icons {
+    if let Some(icons) = config.icons()? {
+        for icon_path in &icons {
             let icon = image::open(icon_path)?;
             let density = if is_retina(icon_path) { 2 } else { 1 };
             let (w, h) = icon.dimensions();

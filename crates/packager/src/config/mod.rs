@@ -1659,15 +1659,12 @@ impl Config {
         let Some(patterns) = &self.icons else {
             return Ok(None);
         };
-
         let mut paths = Vec::new();
-
         for pattern in patterns {
             for icon_path in glob::glob(pattern)? {
                 paths.push(icon_path?);
             }
         }
-
         Ok(Some(paths))
     }
 }
@@ -1754,8 +1751,8 @@ impl Config {
     }
 
     #[allow(unused)]
-    pub(crate) fn find_ico(&self) -> Option<PathBuf> {
-        self.icons
+    pub(crate) fn find_ico(&self) -> crate::Result<Option<PathBuf>> {
+        let icon = self.icons()?
             .as_ref()
             .and_then(|icons| {
                 icons
@@ -1767,7 +1764,8 @@ impl Config {
                         })
                     })
             })
-            .map(PathBuf::from)
+            .map(PathBuf::from);
+        Ok(icon)
     }
 
     #[allow(unused)]
