@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-node@v4
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install
-      - run: pnpm build:debug
+      - run: pnpm build
       - name: packager integration tests
         run: |
           cd bindings/packager/nodejs
