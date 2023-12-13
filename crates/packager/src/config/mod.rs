@@ -1752,7 +1752,8 @@ impl Config {
 
     #[allow(unused)]
     pub(crate) fn find_ico(&self) -> crate::Result<Option<PathBuf>> {
-        let icon = self.icons()?
+        let icon = self
+            .icons()?
             .as_ref()
             .and_then(|icons| {
                 icons
