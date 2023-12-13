@@ -28,12 +28,12 @@
   "license": "MIT",
   "scripts": {
     "artifacts": "napi artifacts",
-    "postbuild": "rm -rf ./build && node generate-config-type.js && tsc",
     "build": "napi build --platform --profile release-size-optimized",
     "build:debug": "napi build --platform && pnpm run postbuild",
+    "postbuild": "rm -rf ./build && node generate-config-type.js && tsc",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
+    "pretest": "napi build --platform",
     "test": "ava --no-worker-threads",
-    "pretest": "pnpm run build:debug",
     "universal": "napi universal",
     "version": "napi version"
   },
