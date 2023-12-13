@@ -343,6 +343,12 @@ export interface WindowsConfig {
    * The default value of this flag is `true`.
    */
   allowDowngrades?: boolean;
+  /**
+   * Specify a custom command to sign the binaries. This command needs to have a `%1` in it which is just a placeholder for the binary path, which we will detect and replace before calling the command.
+   *
+   * By Default we use `signtool.exe` which can be found only on Windows so if you are on another platform and want to cross-compile and sign you will need to use another tool like `osslsigncode`.
+   */
+  signCommand?: string | null;
 }
 /**
  * The macOS configuration.

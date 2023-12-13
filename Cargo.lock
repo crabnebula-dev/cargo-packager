@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ar",
  "base64 0.21.5",
@@ -1040,7 +1040,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager-updater"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "base64 0.21.5",
  "ctor 0.2.6",

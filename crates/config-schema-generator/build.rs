@@ -7,6 +7,7 @@ use std::{
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
+    process::Command,
 };
 
 pub fn main() -> Result<(), Box<dyn Error>> {
@@ -20,5 +21,11 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         let mut schema_file = BufWriter::new(File::create(crate_dir.join(path))?);
         write!(schema_file, "{schema_str}")?;
     }
+
+    let _ = Command::new("node")
+        .arg("./generate-config-type.js")
+        .current_dir("../../bindings/packager/nodejs")
+        .output();
+
     Ok(())
 }
