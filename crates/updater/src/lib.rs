@@ -784,40 +784,41 @@ impl Update {
         match self.format {
             UpdateFormat::Nsis => {
                 // we need to wrap the installer path in quotes for Start-Process
-                let mut installer_arg = std::ffi::OsString::new();
-                installer_arg.push("\"");
-                installer_arg.push(&path);
-                installer_arg.push("\"");
+                let mut installer_path = std::ffi::OsString::new();
+                installer_path.push("\"");
+                installer_path.push(&path);
+                installer_path.push("\"");
+
+                let installer_args = self
+                    .config
+                    .windows
+                    .as_ref()
+                    .and_then(|w| w.installer_args.clone())
+                    .unwrap_or_default();
+                let installer_args = [
+                    self.config
+                        .windows
+                        .as_ref()
+                        .and_then(|w| w.install_mode.clone())
+                        .unwrap_or_default()
+                        .nsis_args(),
+                    installer_args
+                        .iter()
+                        .map(AsRef::as_ref)
+                        .collect::<Vec<_>>()
+                        .as_slice(),
+                ]
+                .concat();
 
                 // Run the installer
-                Command::new(powershell_path)
-                    .args(["-NoProfile", "-WindowStyle", "Hidden"])
+                let mut cmd = Command::new(powershell_path);
+                cmd.args(["-NoProfile", "-WindowStyle", "Hidden"])
                     .args(["Start-Process"])
-                    .arg(installer_arg)
-                    .arg("-ArgumentList")
-                    .arg(
-                        [
-                            self.config
-                                .windows
-                                .as_ref()
-                                .and_then(|w| w.install_mode.clone())
-                                .unwrap_or_default()
-                                .nsis_args(),
-                            self.config
-                                .windows
-                                .as_ref()
-                                .and_then(|w| w.installer_args.clone())
-                                .unwrap_or_default()
-                                .iter()
-                                .map(AsRef::as_ref)
-                                .collect::<Vec<_>>()
-                                .as_slice(),
-                        ]
-                        .concat()
-                        .join(", "),
-                    )
-                    .spawn()
-                    .expect("installer failed to start");
+                    .arg(installer_path);
+                if !installer_args.is_empty() {
+                    cmd.arg("-ArgumentList").arg(installer_args.join(", "));
+                }
+                cmd.spawn().expect("installer failed to start");
 
                 std::process::exit(0);
             }
@@ -829,21 +830,31 @@ impl Update {
                     current_exe_arg.push(current_exe()?);
                     current_exe_arg.push("\"");
 
-                    let mut msi_path_arg = std::ffi::OsString::new();
-                    msi_path_arg.push("\"\"\"");
-                    msi_path_arg.push(&path);
-                    msi_path_arg.push("\"\"\"");
+                    let mut mis_path = std::ffi::OsString::new();
+                    mis_path.push("\"\"\"");
+                    mis_path.push(&path);
+                    mis_path.push("\"\"\"");
 
-                    let msiexec_args = self
+                    let installer_args = self
                         .config
                         .windows
                         .as_ref()
-                        .and_then(|w| w.install_mode.clone())
-                        .unwrap_or_default()
-                        .msiexec_args()
-                        .iter()
-                        .map(|p| p.to_string())
-                        .collect::<Vec<String>>();
+                        .and_then(|w| w.installer_args.clone())
+                        .unwrap_or_default();
+                    let installer_args = [
+                        self.config
+                            .windows
+                            .as_ref()
+                            .and_then(|w| w.install_mode.clone())
+                            .unwrap_or_default()
+                            .msiexec_args(),
+                        installer_args
+                            .iter()
+                            .map(AsRef::as_ref)
+                            .collect::<Vec<_>>()
+                            .as_slice(),
+                    ]
+                    .concat();
 
                     // run the installer and relaunch the application
                     let powershell_install_res = Command::new(powershell_path)
@@ -856,8 +867,8 @@ impl Update {
                             "-ArgumentList",
                         ])
                         .arg("/i,")
-                        .arg(&msi_path_arg)
-                        .arg(format!(", {}, /promptrestart;", msiexec_args.join(", ")))
+                        .arg(&mis_path)
+                        .arg(format!(", {}, /promptrestart;", installer_args.join(", ")))
                         .arg("Start-Process")
                         .arg(current_exe_arg)
                         .spawn();
@@ -870,8 +881,8 @@ impl Update {
                         );
                         let _ = Command::new(msiexec_path)
                             .arg("/i")
-                            .arg(msi_path_arg)
-                            .args(msiexec_args)
+                            .arg(mis_path)
+                            .args(installer_args)
                             .arg("/promptrestart")
                             .spawn();
                     }

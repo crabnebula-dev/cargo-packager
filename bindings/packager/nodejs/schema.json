@@ -169,7 +169,7 @@
       ]
     },
     "icons": {
-      "description": "The app's icon list.",
+      "description": "The app's icon list. Supports glob patterns.",
       "type": [
         "array",
         "null"
