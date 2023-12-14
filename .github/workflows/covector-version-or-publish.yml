@@ -56,7 +56,8 @@ jobs:
         uses: peter-evans/repository-dispatch@v2
         with:
           event-type: publish-packager-nodejs
-          client-payload: '{"releaseId": "${{ steps.covector.outputs[''-crabnebula-packager-releaseId''] }}" }'
+          client-payload: >-
+            {"releaseId": "${{ steps.covector.outputs['-crabnebula-packager-releaseId'] }}" }
 
       - name: Trigger `@crabnebula/updater` publishing workflow
         if: |
@@ -65,4 +66,5 @@ jobs:
         uses: peter-evans/repository-dispatch@v2
         with:
           event-type: publish-updater-nodejs
-          client-payload: '{"releaseId": "${{ steps.covector.outputs[''-crabnebula-updater-releaseId''] }}" }'
+          client-payload: >-
+            {"releaseId": "${{ steps.covector.outputs['-crabnebula-updater-releaseId'] }}" }
