@@ -126,7 +126,7 @@ pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
     match PackageFormat::get_current() {
         PackageFormat::None => {
             let root_crate_dir =
-                env::var("CARGO_MANIFEST_DIR").expect("can't find root_crate_dir variable");
+                env::var("CARGO_MANIFEST_DIR").expect("can't find CARGO_MANIFEST_DIR variable");
             Ok(PathBuf::from(root_crate_dir).join(suffix))
         }
         PackageFormat::App | PackageFormat::Dmg => {
@@ -143,7 +143,11 @@ pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
             let exe_dir = exe.parent().expect("failed to get exe directory");
             Ok(exe_dir.to_path_buf())
         }
-        PackageFormat::Deb => Ok(PathBuf::from("/usr/lib/")),
+        PackageFormat::Deb => {
+            let binary_name = env!("CARGO_PACKAGER_MAIN_BINARY_NAME");
+            let path = format!("/usr/lib/{}/", binary_name);
+            Ok(PathBuf::from(path))
+        }
         PackageFormat::AppImage => Err(Error::UnsupportedPlatform),
     }
 }

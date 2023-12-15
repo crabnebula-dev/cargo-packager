@@ -1,8 +1,14 @@
 use std::env;
 
 fn main() {
-    println!("cargo:rerun-if-env-changed=CARGO_PACKAGER_FORMAT");
-    if let Ok(format) = env::var("CARGO_PACKAGER_FORMAT") {
-        println!("cargo:rustc-cfg=CARGO_PACKAGER_FORMAT=\"{format}\"");
+    track_var("CARGO_PACKAGER_FORMAT");
+    track_var("CARGO_PACKAGER_MAIN_BINARY_NAME");
+}
+
+
+fn track_var(key: &str) {
+    println!("cargo:rerun-if-env-changed={}", key);
+    if let Ok(var) = env::var(key) {
+        println!("cargo:rustc-cfg={}=\"{}\"", key, var);
     }
 }
