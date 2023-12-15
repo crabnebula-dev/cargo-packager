@@ -3,7 +3,7 @@ use std::{env, path::PathBuf};
 pub mod error;
 pub mod starting_binary;
 
-use error::{Error, Result};
+use error::Result;
 
 pub enum PackageFormat {
     /// When no format is used: `cargo run`
@@ -123,33 +123,44 @@ pub fn current_exe() -> std::io::Result<PathBuf> {
 /// it accpets a parameter that will be happened to the resource path when no packaging format
 /// is used.
 pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
-    match PackageFormat::get_current() {
-        PackageFormat::None => {
-            let root_crate_dir =
-                env::var("CARGO_MANIFEST_DIR").expect("can't find CARGO_MANIFEST_DIR variable");
-            Ok(PathBuf::from(root_crate_dir).join(suffix))
-        }
-        PackageFormat::App | PackageFormat::Dmg => {
-            let exe = current_exe()?;
-            let exe_dir = exe.parent().expect("failed to get exe directory");
-            exe_dir
-                .join("../Resources")
-                .canonicalize()
-                .map_err(Into::into)
-        }
-        PackageFormat::Wix => Err(Error::UnsupportedPlatform),
-        PackageFormat::Nsis => {
-            let exe = current_exe()?;
-            let exe_dir = exe.parent().expect("failed to get exe directory");
-            Ok(exe_dir.to_path_buf())
-        }
-        PackageFormat::Deb => {
-            let binary_name = env!("CARGO_PACKAGER_MAIN_BINARY_NAME");
-            let path = format!("/usr/lib/{}/", binary_name);
-            Ok(PathBuf::from(path))
-        }
-        PackageFormat::AppImage => Err(Error::UnsupportedPlatform),
+    #[cfg(any(CARGO_PACKAGER_FORMAT = "app", CARGO_PACKAGER_FORMAT = "dmg"))]
+    {
+        let exe = current_exe()?;
+        let exe_dir = exe.parent().expect("failed to get exe directory");
+        return exe_dir
+            .join("../Resources")
+            .canonicalize()
+            .map_err(Into::into);
     }
+
+    #[cfg(CARGO_PACKAGER_FORMAT = "wix")]
+    {
+        return Err(Error::UnsupportedPlatform);
+    }
+
+    #[cfg(CARGO_PACKAGER_FORMAT = "nsis")]
+    {
+        let exe = current_exe()?;
+        let exe_dir = exe.parent().expect("failed to get exe directory");
+        return Ok(exe_dir.to_path_buf());
+    }
+
+    #[cfg(CARGO_PACKAGER_FORMAT = "deb")]
+    {
+        let binary_name = env!("CARGO_PACKAGER_MAIN_BINARY_NAME");
+        let path = format!("/usr/lib/{}/", binary_name);
+        return Ok(PathBuf::from(path));
+    }
+
+    #[cfg(CARGO_PACKAGER_FORMAT = "appimage")]
+    {
+        return Err(Error::UnsupportedPlatform);
+    }
+
+    // when cargo run
+    let root_crate_dir =
+        env::var("CARGO_MANIFEST_DIR").expect("can't find CARGO_MANIFEST_DIR variable");
+    Ok(PathBuf::from(root_crate_dir).join(suffix))
 }
 
 /// To use this function, you have to build your package with
