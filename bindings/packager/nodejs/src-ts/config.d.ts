@@ -223,7 +223,7 @@ export interface Config {
    */
   category?: AppCategory | null;
   /**
-   * The app's icon list.
+   * The app's icon list. Supports glob patterns.
    */
   icons?: string[] | null;
   /**
