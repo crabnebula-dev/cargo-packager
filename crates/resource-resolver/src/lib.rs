@@ -6,7 +6,7 @@ pub mod starting_binary;
 use error::Result;
 
 pub enum PackageFormat {
-    /// When no format is used: `cargo run`
+    /// When no format is used (`cargo run`)
     None,
     /// The macOS application bundle (.app).
     App,
@@ -23,6 +23,7 @@ pub enum PackageFormat {
 }
 
 impl PackageFormat {
+    /// Get the current package format
     pub fn get_current() -> Self {
         // sync with PackageFormat::short_name function of packager crate
         if cfg!(CARGO_PACKAGER_FORMAT = "app") {
@@ -120,7 +121,7 @@ pub fn current_exe() -> std::io::Result<PathBuf> {
 }
 
 /// See resource_dir for the general explanation. This function behave the same except
-/// it accpets a parameter that will be happened to the resource path when no packaging format
+/// it accepts a parameter that will be happened to the resource path when no packaging format
 /// is used.
 pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
     #[cfg(any(CARGO_PACKAGER_FORMAT = "app", CARGO_PACKAGER_FORMAT = "dmg"))]
@@ -169,12 +170,12 @@ pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
 /// Warning: Having resource folders inside folders can create inconsistency.
 ///
 /// Example:
-/// In case you have an icons folder inside `your-crate/resource/icons/`.
+/// In case you have a resource folder stored `your-crate/resource/icons/`.
 /// With `cargo run` command, you will have to execute
 /// `resource_dir().unwrap().join("resource/icons/")` to get the path,
-/// while on any other formats, it will be `resource_dir ().unwrap().join("icons/")`.
+/// while on any other formats, it will be `resource_dir().unwrap().join("icons/")`.
 /// The resource folder is discarded.
-/// see `resource_dir_with_suffix` for this use case
+/// See `resource_dir_with_suffix` for this use case
 pub fn resource_dir() -> Result<PathBuf> {
     resource_dir_with_suffix("")
 }
