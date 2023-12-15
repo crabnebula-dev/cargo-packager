@@ -120,7 +120,7 @@ pub fn current_exe() -> std::io::Result<PathBuf> {
     starting_binary::STARTING_BINARY.cloned()
 }
 
-/// See resource_dir for the general explanation. This function behave the same except
+/// See [`resource_dir`] for the general explanation. This function behave the same except
 /// it accepts a parameter that will be happened to the resource path when no packaging format
 /// is used.
 pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
@@ -168,13 +168,19 @@ pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
 ///
 /// Warning: Having resource folders inside folders can create inconsistency.
 ///
-/// Example:
-/// In case you have a resource folder stored `your-crate/resource/icons/`.
-/// With `cargo run` command, you will have to execute
-/// `resource_dir().unwrap().join("resource/icons/")` to get the path,
-/// while on any other formats, it will be `resource_dir().unwrap().join("icons/")`.
-/// The resource folder is discarded.
-/// See `resource_dir_with_suffix` for this use case
+/// Example: You want to include the folder `crate/resource/icons/`.
+/// 
+/// - With `cargo run` command, you will have to execute
+///     `resource_dir().unwrap().join("resource/icons/")` to get the path.
+/// - With any other formats, it will be `resource_dir().unwrap().join("icons/")`.
+/// 
+/// For this use case, you can use [`self::resource_dir_with_suffix`]
+/// ```
+/// use cargo_packager_resource_resolver::resource_dir_with_suffix;
+/// 
+/// resource_dir_with_suffix("resource").unwrap().join("icons/");
+/// ```
+/// 
 pub fn resource_dir() -> Result<PathBuf> {
     resource_dir_with_suffix("")
 }
