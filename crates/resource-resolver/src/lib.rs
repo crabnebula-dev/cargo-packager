@@ -159,8 +159,7 @@ pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
     }
 
     // when cargo run
-    let root_crate_dir =
-        env::var("CARGO_MANIFEST_DIR").expect("can't find CARGO_MANIFEST_DIR variable");
+    let root_crate_dir = env!("CARGO_MANIFEST_DIR");
     Ok(PathBuf::from(root_crate_dir).join(suffix))
 }
 
