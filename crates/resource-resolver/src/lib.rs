@@ -169,18 +169,18 @@ pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
 /// Warning: Having resource folders inside folders can create inconsistency.
 ///
 /// Example: You want to include the folder `crate/resource/icons/`.
-/// 
+///
 /// - With `cargo run` command, you will have to execute
 ///     `resource_dir().unwrap().join("resource/icons/")` to get the path.
 /// - With any other formats, it will be `resource_dir().unwrap().join("icons/")`.
-/// 
+///
 /// For this use case, you can use [`self::resource_dir_with_suffix`]
 /// ```
 /// use cargo_packager_resource_resolver::resource_dir_with_suffix;
-/// 
+///
 /// resource_dir_with_suffix("resource").unwrap().join("icons/");
 /// ```
-/// 
+///
 pub fn resource_dir() -> Result<PathBuf> {
     resource_dir_with_suffix("")
 }
