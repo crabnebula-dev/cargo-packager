@@ -11,4 +11,7 @@ pub enum Error {
     /// IO error
     #[error("{0}")]
     Io(#[from] std::io::Error),
+    /// Environement variable error
+    #[error("{0}")]
+    Var(#[from] std::env::VarError),
 }
