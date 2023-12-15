@@ -1,127 +1,165 @@
-use std::ffi::OsString;
+use std::{env, path::PathBuf};
 
-use semver::Version;
-
-
-
-pub mod platform;
+pub mod error;
 pub mod starting_binary;
 
+use error::{Error, Result};
 
-/// `tauri::App` package information.
-#[derive(Debug, Clone)]
-pub struct PackageInfo {
-  /// App name
-  pub name: String,
-  /// App version
-  pub version: Version,
-  /// The crate authors.
-  pub authors: &'static str,
-  /// The crate description.
-  pub description: &'static str,
-  /// The crate name.
-  pub crate_name: &'static str,
+pub enum PackageFormat {
+    /// When no format is used: `cargo run`
+    None,
+    /// The macOS application bundle (.app).
+    App,
+    /// The macOS DMG package (.dmg).
+    Dmg,
+    /// The Microsoft Software Installer (.msi) through WiX Toolset.
+    Wix,
+    /// The NSIS installer (.exe).
+    Nsis,
+    /// The Linux Debian package (.deb).
+    Deb,
+    /// The Linux AppImage package (.AppImage).
+    AppImage,
 }
 
-impl PackageInfo {
-  /// Returns the application package name.
-  /// On macOS and Windows it's the `name` field, and on Linux it's the `name` in `kebab-case`.
-  pub fn package_name(&self) -> String {
-    #[cfg(target_os = "linux")]
-    {
-      use heck::ToKebabCase;
-      self.name.clone().to_kebab_case()
-    }
-    #[cfg(not(target_os = "linux"))]
-    self.name.clone()
-  }
-}
-
-/// Information about environment variables.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct Env {
-  /// The APPIMAGE environment variable.
-  #[cfg(target_os = "linux")]
-  pub appimage: Option<std::ffi::OsString>,
-  /// The APPDIR environment variable.
-  #[cfg(target_os = "linux")]
-  pub appdir: Option<std::ffi::OsString>,
-  /// The command line arguments of the current process.
-  pub args_os: Vec<OsString>,
-}
-
-#[allow(clippy::derivable_impls)]
-impl Default for Env {
-  fn default() -> Self {
-    let args_os = std::env::args_os().skip(1).collect();
-    #[cfg(target_os = "linux")]
-    {
-      let env = Self {
-        #[cfg(target_os = "linux")]
-        appimage: std::env::var_os("APPIMAGE"),
-        #[cfg(target_os = "linux")]
-        appdir: std::env::var_os("APPDIR"),
-        args_os,
-      };
-      if env.appimage.is_some() || env.appdir.is_some() {
-        // validate that we're actually running on an AppImage
-        // an AppImage is mounted to `/$TEMPDIR/.mount_${appPrefix}${hash}`
-        // see https://github.com/AppImage/AppImageKit/blob/1681fd84dbe09c7d9b22e13cdb16ea601aa0ec47/src/runtime.c#L501
-        // note that it is safe to use `std::env::current_exe` here since we just loaded an AppImage.
-        let is_temp = std::env::current_exe()
-          .map(|p| {
-            p.display()
-              .to_string()
-              .starts_with(&format!("{}/.mount_", std::env::temp_dir().display()))
-          })
-          .unwrap_or(true);
-
-        if !is_temp {
-          warn!("`APPDIR` or `APPIMAGE` environment variable found but this application was not detected as an AppImage; this might be a security issue.");
+impl PackageFormat {
+    pub fn get_current() -> Self {
+        // sync with PackageFormat::short_name function of packager crate
+        if cfg!(CARGO_PACKAGER_FORMAT = "app") {
+            PackageFormat::App
+        } else if cfg!(CARGO_PACKAGER_FORMAT = "dmg") {
+            PackageFormat::Dmg
+        } else if cfg!(CARGO_PACKAGER_FORMAT = "wix") {
+            PackageFormat::Wix
+        } else if cfg!(CARGO_PACKAGER_FORMAT = "nsis") {
+            PackageFormat::Nsis
+        } else if cfg!(CARGO_PACKAGER_FORMAT = "deb") {
+            PackageFormat::Deb
+        } else if cfg!(CARGO_PACKAGER_FORMAT = "appimage") {
+            PackageFormat::AppImage
+        } else {
+            PackageFormat::None
         }
-      }
-      env
     }
-    #[cfg(not(target_os = "linux"))]
-    {
-      Self { args_os }
-    }
-  }
 }
 
-/// The result type of `tauri-utils`.
-pub type Result<T> = std::result::Result<T, Error>;
+/// Retrieves the currently running binary's path, taking into account security considerations.
+///
+/// The path is cached as soon as possible (before even `main` runs) and that value is returned
+/// repeatedly instead of fetching the path every time. It is possible for the path to not be found,
+/// or explicitly disabled (see following macOS specific behavior).
+///
+/// # Platform-specific behavior
+///
+/// On `macOS`, this function will return an error if the original path contained any symlinks
+/// due to less protection on macOS regarding symlinks. This behavior can be disabled by setting the
+/// `process-relaunch-dangerous-allow-symlink-macos` feature, although it is *highly discouraged*.
+///
+/// # Security
+///
+/// If the above platform-specific behavior does **not** take place, this function uses the
+/// following resolution.
+///
+/// We canonicalize the path we received from [`std::env::current_exe`] to resolve any soft links.
+/// This avoids the usual issue of needing the file to exist at the passed path because a valid
+/// current executable result for our purpose should always exist. Notably,
+/// [`std::env::current_exe`] also has a security section that goes over a theoretical attack using
+/// hard links. Let's cover some specific topics that relate to different ways an attacker might
+/// try to trick this function into returning the wrong binary path.
+///
+/// ## Symlinks ("Soft Links")
+///
+/// [`std::path::Path::canonicalize`] is used to resolve symbolic links to the original path,
+/// including nested symbolic links (`link2 -> link1 -> bin`). On macOS, any results that include
+/// a symlink are rejected by default due to lesser symlink protections. This can be disabled,
+/// **although discouraged**, with the `process-relaunch-dangerous-allow-symlink-macos` feature.
+///
+/// ## Hard Links
+///
+/// A [Hard Link] is a named entry that points to a file in the file system.
+/// On most systems, this is what you would think of as a "file". The term is
+/// used on filesystems that allow multiple entries to point to the same file.
+/// The linked [Hard Link] Wikipedia page provides a decent overview.
+///
+/// In short, unless the attacker was able to create the link with elevated
+/// permissions, it should generally not be possible for them to hard link
+/// to a file they do not have permissions to - with exception to possible
+/// operating system exploits.
+///
+/// There are also some platform-specific information about this below.
+///
+/// ### Windows
+///
+/// Windows requires a permission to be set for the user to create a symlink
+/// or a hard link, regardless of ownership status of the target. Elevated
+/// permissions users have the ability to create them.
+///
+/// ### macOS
+///
+/// macOS allows for the creation of symlinks and hard links to any file.
+/// Accessing through those links will fail if the user who owns the links
+/// does not have the proper permissions on the original file.
+///
+/// ### Linux
+///
+/// Linux allows for the creation of symlinks to any file. Accessing the
+/// symlink will fail if the user who owns the symlink does not have the
+/// proper permissions on the original file.
+///
+/// Linux additionally provides a kernel hardening feature since version
+/// 3.6 (30 September 2012). Most distributions since then have enabled
+/// the protection (setting `fs.protected_hardlinks = 1`) by default, which
+/// means that a vast majority of desktop Linux users should have it enabled.
+/// **The feature prevents the creation of hardlinks that the user does not own
+/// or have read/write access to.** [See the patch that enabled this].
+///
+/// [Hard Link]: https://en.wikipedia.org/wiki/Hard_link
+/// [See the patch that enabled this]: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=800179c9b8a1e796e441674776d11cd4c05d61d7
+pub fn current_exe() -> std::io::Result<PathBuf> {
+    starting_binary::STARTING_BINARY.cloned()
+}
 
-/// The error type of `tauri-utils`.
-#[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
-pub enum Error {
-  /// Target triple architecture error
-  #[error("Unable to determine target-architecture")]
-  Architecture,
-  /// Target triple OS error
-  #[error("Unable to determine target-os")]
-  Os,
-  /// Target triple environment error
-  #[error("Unable to determine target-environment")]
-  Environment,
-  /// Tried to get resource on an unsupported platform
-  #[error("Unsupported platform for reading resources")]
-  UnsupportedPlatform,
-  /// Get parent process error
-  #[error("Could not get parent process")]
-  ParentProcess,
-  /// Get parent process PID error
-  #[error("Could not get parent PID")]
-  ParentPid,
-  /// Get child process error
-  #[error("Could not get child process")]
-  ChildProcess,
-  /// IO error
-  #[error("{0}")]
-  Io(#[from] std::io::Error),
-  /// Invalid pattern.
-  #[error("invalid pattern `{0}`. Expected either `brownfield` or `isolation`.")]
-  InvalidPattern(String),
+/// See resource_dir for the general explanation. This function behave the same except
+/// it accpets a parameter that will be happened to the resource path when no packaging format
+/// is used.
+pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
+    match PackageFormat::get_current() {
+        PackageFormat::None => {
+            let root_crate_dir =
+                env::var("CARGO_MANIFEST_DIR").expect("can't find root_crate_dir variable");
+            Ok(PathBuf::from(root_crate_dir).join(suffix))
+        }
+        PackageFormat::App | PackageFormat::Dmg => {
+            let exe = current_exe()?;
+            let exe_dir = exe.parent().expect("failed to get exe directory");
+            exe_dir
+                .join("../Resources")
+                .canonicalize()
+                .map_err(Into::into)
+        }
+        PackageFormat::Wix => Err(Error::UnsupportedPlatform),
+        PackageFormat::Nsis => {
+            let exe = current_exe()?;
+            let exe_dir = exe.parent().expect("failed to get exe directory");
+            Ok(exe_dir.to_path_buf())
+        }
+        PackageFormat::Deb => Ok(PathBuf::from("/usr/lib/")),
+        PackageFormat::AppImage => Err(Error::UnsupportedPlatform),
+    }
+}
+
+/// To use this function, you have to build your package with
+/// the `before-each-package-command` atribute.
+///
+/// Warning: Having resource folders inside folders can create inconsistency.
+///
+/// Example:
+/// In case you have an icons folder inside `your-crate/resource/icons/`.
+/// With `cargo run` command, you will have to execute
+/// `resource_dir().unwrap().join("resource/icons/")` to get the path,
+/// while on any other formats, it will be `resource_dir ().unwrap().join("icons/")`.
+/// The resource folder is discarded.
+/// see `resource_dir_with_suffix` for this use case
+pub fn resource_dir() -> Result<PathBuf> {
+    resource_dir_with_suffix("")
 }
