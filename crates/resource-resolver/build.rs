@@ -5,7 +5,6 @@ fn main() {
     track_var("CARGO_PACKAGER_MAIN_BINARY_NAME");
 }
 
-
 fn track_var(key: &str) {
     println!("cargo:rerun-if-env-changed={}", key);
     if let Ok(var) = env::var(key) {
