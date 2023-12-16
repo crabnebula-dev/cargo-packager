@@ -1039,6 +1039,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-packager-resource-resolver"
+version = "0.1.0"
+dependencies = [
+ "ctor 0.2.6",
+ "thiserror",
+]
+
+[[package]]
 name = "cargo-packager-updater"
 version = "0.1.1"
 dependencies = [
