@@ -182,6 +182,10 @@ fn run_before_each_packaging_command_hook(
         let output = cmd
             .env("CARGO_PACKAGER_FORMATS", formats_comma_separated)
             .env("CARGO_PACKAGER_FORMAT", format)
+            .env(
+                "CARGO_PACKAGER_MAIN_BINARY_NAME",
+                config.main_binary_name()?,
+            )
             .output_ok()
             .map_err(|e| {
                 crate::Error::HookCommandFailure(
