@@ -43,7 +43,7 @@ npx packager
 
 ### Configuration
 
-By default, the packager reads its configuration from `Packager.toml` or `packager.json` if it exists, and from `packager.json` keyin `packager.json`,
+By default, the packager reads its configuration from `Packager.toml` or `packager.json` if it exists, and from `packager.json` key in `packager.json`,
 You can also specify a custom configuration using the `-c/--config` cli argument.
 
 For a full list of configuration options, see https://docs.rs/cargo-packager/latest/cargo_packager/config/struct.Config.html.
