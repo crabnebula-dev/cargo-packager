@@ -177,11 +177,11 @@ pub(crate) fn verify_hash(
         #[cfg(target_os = "windows")]
         HashAlgorithm::Sha256 => {
             let hasher = sha2::Sha256::new();
-            verify_data_with_hasher(&data, hash, hasher)
+            verify_data_with_hasher(data, hash, hasher)
         }
         HashAlgorithm::Sha1 => {
             let hasher = sha1::Sha1::new();
-            verify_data_with_hasher(&data, hash, hasher)
+            verify_data_with_hasher(data, hash, hasher)
         }
     }
 }
