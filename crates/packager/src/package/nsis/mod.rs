@@ -13,7 +13,10 @@ use std::{
 use handlebars::{to_json, Handlebars};
 
 use super::Context;
-use crate::codesign::windows::{self as codesign, ConfigSignExt};
+use crate::{
+    codesign::windows::{self as codesign, ConfigSignExt},
+    util::verify_path_hash,
+};
 use crate::{
     config::{Config, LogLevel, NSISInstallerMode, NsisCompression},
     shell::CommandExt,
@@ -27,7 +30,7 @@ const NSIS_URL: &str =
 #[cfg(target_os = "windows")]
 const NSIS_SHA1: &str = "586855a743a6e0ade203d8758af303a48ee0716b";
 const NSIS_APPLICATIONID_URL: &str = "https://github.com/tauri-apps/binary-releases/releases/download/nsis-plugins-v0/NSIS-ApplicationID.zip";
-const NSIS_TAURI_UTILS: &str =
+const NSIS_TAURI_UTILS_URL: &str =
   "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.2.1/nsis_tauri_utils.dll";
 const NSIS_TAURI_UTILS_SHA1: &str = "53A7CFAEB6A4A9653D6D5FBFF02A3C3B8720130A";
 
@@ -50,6 +53,13 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
     "Plugins/x86-unicode/ApplicationID.dll",
     "Plugins/x86-unicode/nsis_tauri_utils.dll",
 ];
+
+const NSIS_REQUIRED_FILES_HASH: &[(&str, &str, &str, HashAlgorithm)] = &[(
+    "Plugins/x86-unicode/nsis_tauri_utils.dll",
+    NSIS_TAURI_UTILS_URL,
+    NSIS_TAURI_UTILS_SHA1,
+    HashAlgorithm::Sha1,
+)];
 
 type DirectoriesSet = BTreeSet<PathBuf>;
 type ResourcesMap = BTreeMap<PathBuf, PathBuf>;
@@ -278,7 +288,7 @@ fn get_and_extract_nsis(
 
     let data = download_and_verify(
         "nsis_tauri_utils.dll",
-        NSIS_TAURI_UTILS,
+        NSIS_TAURI_UTILS_URL,
         NSIS_TAURI_UTILS_SHA1,
         HashAlgorithm::Sha1,
     )?;
@@ -572,6 +582,22 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         tracing::warn!("NSIS directory is missing some files. Recreating it...");
         std::fs::remove_dir_all(&nsis_toolset_path)?;
         get_and_extract_nsis(ctx, &nsis_toolset_path)?;
+    } else {
+        let mismatched = NSIS_REQUIRED_FILES_HASH
+            .iter()
+            .filter(|(p, _, hash, hash_algorithm)| {
+                verify_path_hash(nsis_toolset_path.join(p), hash, *hash_algorithm).is_err()
+            })
+            .collect::<Vec<_>>();
+
+        if !mismatched.is_empty() {
+            tracing::warn!("NSIS directory contains mis-hashed files. Redownloading them.");
+            for (path, url, hash, hash_algorithim) in mismatched {
+                let path = nsis_toolset_path.join(path);
+                let data = download_and_verify(&path, url, hash, *hash_algorithim)?;
+                std::fs::write(path, data)?;
+            }
+        }
     }
 
     build_nsis_app_installer(ctx, &nsis_toolset_path)
