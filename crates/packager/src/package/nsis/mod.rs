@@ -15,7 +15,7 @@ use handlebars::{to_json, Handlebars};
 use super::Context;
 use crate::{
     codesign::windows::{self as codesign, ConfigSignExt},
-    util::verify_path_hash,
+    util::verify_file_hash,
 };
 use crate::{
     config::{Config, LogLevel, NSISInstallerMode, NsisCompression},
@@ -586,7 +586,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         let mismatched = NSIS_REQUIRED_FILES_HASH
             .iter()
             .filter(|(p, _, hash, hash_algorithm)| {
-                verify_path_hash(nsis_toolset_path.join(p), hash, *hash_algorithm).is_err()
+                verify_file_hash(nsis_toolset_path.join(p), hash, *hash_algorithm).is_err()
             })
             .collect::<Vec<_>>();
 

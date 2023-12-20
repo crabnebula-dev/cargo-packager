@@ -198,7 +198,7 @@ fn verify_data_with_hasher(data: &[u8], hash: &str, mut hasher: impl Digest) -> 
     }
 }
 
-pub(crate) fn verify_path_hash<P: AsRef<Path>>(
+pub(crate) fn verify_file_hash<P: AsRef<Path>>(
     path: P,
     hash: &str,
     hash_algorithm: HashAlgorithm,
