@@ -576,8 +576,7 @@ Section Uninstall
 
   ; Delete resources
   {{#each resources}}
-    Delete "$INSTDIR\\{{this.[1]}}"
-    RMDir "$INSTDIR\\{{this.[0]}}"
+    Delete "$INSTDIR\\{{this}}"
   {{/each}}
 
   ; Delete external binaries
@@ -591,7 +590,7 @@ Section Uninstall
   ${If} $DeleteAppDataCheckboxState == 1
     RMDir /R /REBOOTOK "$INSTDIR"
   ${Else}
-    {{#each resources_ancestors}}
+    {{#each resources_dirs}}
     RMDir /REBOOTOK "$INSTDIR\\{{this}}"
     {{/each}}
     RMDir "$INSTDIR"

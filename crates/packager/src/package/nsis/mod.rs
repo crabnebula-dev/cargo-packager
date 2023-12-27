@@ -59,12 +59,16 @@ fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, Res
     let mut directories = BTreeSet::new();
     let mut resources_map = BTreeMap::new();
     for r in config.resources()? {
-        directories.insert(
-            r.target
-                .parent()
-                .unwrap_or_else(|| Path::new(""))
-                .to_path_buf(),
-        );
+        // only add if resource has a parent e.g. `files/a.txt`
+        // and is not empty. this is to ensure that we don't
+        // generate `CreateDirectory "$INSTDIR\"` which is useless
+        // since `INSTDIR` is already created.
+        if let Some(parent) = r.target.parent() {
+            if parent.as_os_str() != "" {
+                directories.insert(parent.to_path_buf());
+            }
+        }
+
         resources_map.insert(r.src, r.target);
     }
     Ok((directories, resources_map))
@@ -445,16 +449,6 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     let (resources_dirs, resources) = generate_resource_data(config)?;
     data.insert("resources_dirs", to_json(&resources_dirs));
     data.insert("resources", to_json(&resources));
-
-    let mut resources_ancestors = resources_dirs
-        .iter()
-        .flat_map(|p| p.ancestors())
-        .collect::<Vec<_>>();
-    resources_ancestors.sort_unstable();
-    resources_ancestors.dedup();
-    resources_ancestors.sort_by_key(|p| std::cmp::Reverse(p.components().count()));
-    resources_ancestors.pop(); // Last one is always ""
-    data.insert("resources_ancestors", to_json(resources_ancestors));
 
     let binaries = generate_binaries_data(config)?;
     data.insert("binaries", to_json(&binaries));
