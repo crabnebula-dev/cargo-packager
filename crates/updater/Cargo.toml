@@ -11,6 +11,7 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [features]
+process-relaunch-dangerous-allow-symlink-macos = []
 native-tls = [ "reqwest/native-tls" ]
 native-tls-vendored = [ "reqwest/native-tls-vendored" ]
 rustls-tls = [ "reqwest/rustls-tls" ]
