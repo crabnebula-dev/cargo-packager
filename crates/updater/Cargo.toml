@@ -1,6 +1,6 @@
 [package]
 name = "cargo-packager-updater"
-version = "0.1.0"
+version = "0.1.1"
 description = "Rust executable updater."
 authors = [
   "CrabNebula Ltd.",
@@ -11,7 +11,7 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [features]
-process-relaunch-dangerous-allow-symlink-macos = []
+process-relaunch-dangerous-allow-symlink-macos = [ ]
 native-tls = [ "reqwest/native-tls" ]
 native-tls-vendored = [ "reqwest/native-tls-vendored" ]
 rustls-tls = [ "reqwest/rustls-tls" ]

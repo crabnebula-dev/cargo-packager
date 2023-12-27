@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.4.1]
+
+- [`7b083a8`](https://www.github.com/crabnebula-dev/cargo-packager/commit/7b083a8c2ae709659c03a1069d96c3a8391e0674)([#99](https://www.github.com/crabnebula-dev/cargo-packager/pull/99)) Add glob patterns support for the icons option in config.
+- [`7e05d24`](https://www.github.com/crabnebula-dev/cargo-packager/commit/7e05d24a697230b1f53ee5ee2f7d217047089d97)([#109](https://www.github.com/crabnebula-dev/cargo-packager/pull/109)) Check if required files/tools for packaging are outdated or mis-hashed and redownload them.
+- [`ea6c31b`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ea6c31b1a3b56bb5408a78f1b2d6b2a2d9ce1161)([#114](https://www.github.com/crabnebula-dev/cargo-packager/pull/114)) Fix NSIS uninstaller leaving resources behind and failing to remove the installation directory.
+
 ## \[0.4.0]
 
 - [`ecde3fb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ecde3fb71a8f120e71d4781c11214db750042cc4)([#58](https://www.github.com/crabnebula-dev/cargo-packager/pull/58)) Added `files` configuration under `AppImageConfig` for adding custom files on the AppImage's AppDir.
