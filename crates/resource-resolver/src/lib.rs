@@ -5,6 +5,7 @@ pub mod starting_binary;
 
 use error::Result;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PackageFormat {
     /// When no format is used (`cargo run`)
     None,
@@ -22,25 +23,23 @@ pub enum PackageFormat {
     AppImage,
 }
 
-impl PackageFormat {
-    /// Get the current package format
-    pub fn get_current() -> Self {
-        // sync with PackageFormat::short_name function of packager crate
-        if cfg!(CARGO_PACKAGER_FORMAT = "app") {
-            PackageFormat::App
-        } else if cfg!(CARGO_PACKAGER_FORMAT = "dmg") {
-            PackageFormat::Dmg
-        } else if cfg!(CARGO_PACKAGER_FORMAT = "wix") {
-            PackageFormat::Wix
-        } else if cfg!(CARGO_PACKAGER_FORMAT = "nsis") {
-            PackageFormat::Nsis
-        } else if cfg!(CARGO_PACKAGER_FORMAT = "deb") {
-            PackageFormat::Deb
-        } else if cfg!(CARGO_PACKAGER_FORMAT = "appimage") {
-            PackageFormat::AppImage
-        } else {
-            PackageFormat::None
-        }
+/// Get the current package format
+pub fn current_format() -> PackageFormat {
+    // sync with PackageFormat::short_name function of packager crate
+    if cfg!(CARGO_PACKAGER_FORMAT = "app") {
+        PackageFormat::App
+    } else if cfg!(CARGO_PACKAGER_FORMAT = "dmg") {
+        PackageFormat::Dmg
+    } else if cfg!(CARGO_PACKAGER_FORMAT = "wix") {
+        PackageFormat::Wix
+    } else if cfg!(CARGO_PACKAGER_FORMAT = "nsis") {
+        PackageFormat::Nsis
+    } else if cfg!(CARGO_PACKAGER_FORMAT = "deb") {
+        PackageFormat::Deb
+    } else if cfg!(CARGO_PACKAGER_FORMAT = "appimage") {
+        PackageFormat::AppImage
+    } else {
+        PackageFormat::None
     }
 }
 
