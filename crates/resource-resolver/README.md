@@ -1,6 +1,6 @@
 # cargo-packager-resource-resolver
 
-Most of the code in this crate come from https://github.com/tauri-apps/tauri/tree/dev/core/tauri-utils.
+Most of the code in this crate come from [tauri-utils](https://github.com/tauri-apps/tauri/tree/dev/core/tauri-utils).
 
 
 ## Licenses
