@@ -14,3 +14,4 @@ ctor = "0.2"
 
 [features]
 process-relaunch-dangerous-allow-symlink-macos = [ ]
+auto-detect-formats = [ ]
