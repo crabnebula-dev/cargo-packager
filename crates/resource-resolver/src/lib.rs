@@ -1,9 +1,10 @@
+use error::Result;
 use std::{env, path::PathBuf};
 
-pub mod error;
-pub mod starting_binary;
+mod error;
+mod starting_binary;
 
-use error::Result;
+pub use error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PackageFormat {
@@ -23,9 +24,15 @@ pub enum PackageFormat {
     AppImage,
 }
 
-/// Get the current package format
+/// Get the current package format.
+/// Can only be used if the app was build with cargo-packager
+/// and the `before-each-package-command` atribute.
+#[cfg(feature = "auto-detect-formats")]
 pub fn current_format() -> PackageFormat {
     // sync with PackageFormat::short_name function of packager crate
+    // maybe having a special crate for the Config struct,
+    // that both packager and resource-resolver could be a
+    // better alternative
     if cfg!(CARGO_PACKAGER_FORMAT = "app") {
         PackageFormat::App
     } else if cfg!(CARGO_PACKAGER_FORMAT = "dmg") {
@@ -115,57 +122,16 @@ pub fn current_format() -> PackageFormat {
 ///
 /// [Hard Link]: https://en.wikipedia.org/wiki/Hard_link
 /// [See the patch that enabled this]: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=800179c9b8a1e796e441674776d11cd4c05d61d7
-pub fn current_exe() -> std::io::Result<PathBuf> {
-    starting_binary::STARTING_BINARY.cloned()
+pub fn current_exe() -> Result<PathBuf> {
+    starting_binary::STARTING_BINARY
+        .cloned()
+        .map_err(|e| Error::Io("Can't detect the path of the current exe".to_string(), e))
 }
 
-/// See [`resource_dir`] for the general explanation. This function behave the same except
-/// it accepts a parameter that will be happened to the resource path when no packaging format
+/// Retreive the resource path of your app, packaged with cargo packager.
+/// This function behave the same as [`resource_dir`], except it accepts
+/// a parameter that will be happened to the resource path when no packaging format
 /// is used.
-pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
-    #[cfg(any(CARGO_PACKAGER_FORMAT = "app", CARGO_PACKAGER_FORMAT = "dmg"))]
-    {
-        let exe = current_exe()?;
-        let exe_dir = exe.parent().expect("failed to get exe directory");
-        return exe_dir
-            .join("../Resources")
-            .canonicalize()
-            .map_err(Into::into);
-    }
-
-    #[cfg(CARGO_PACKAGER_FORMAT = "wix")]
-    {
-        return Err(Error::UnsupportedPlatform);
-    }
-
-    #[cfg(CARGO_PACKAGER_FORMAT = "nsis")]
-    {
-        let exe = current_exe()?;
-        let exe_dir = exe.parent().expect("failed to get exe directory");
-        return Ok(exe_dir.to_path_buf());
-    }
-
-    #[cfg(CARGO_PACKAGER_FORMAT = "deb")]
-    {
-        let binary_name = env!("CARGO_PACKAGER_MAIN_BINARY_NAME");
-        let path = format!("/usr/lib/{}/", binary_name);
-        return Ok(PathBuf::from(path));
-    }
-
-    #[cfg(CARGO_PACKAGER_FORMAT = "appimage")]
-    {
-        return Err(Error::UnsupportedPlatform);
-    }
-
-    // when cargo run
-    let root_crate_dir = env::var("CARGO_MANIFEST_DIR")?;
-    Ok(PathBuf::from(root_crate_dir).join(suffix))
-}
-
-/// To use this function, you have to build your package with
-/// the `before-each-package-command` atribute.
-///
-/// Warning: Having resource folders inside folders can create inconsistency.
 ///
 /// Example: You want to include the folder `crate/resource/icons/`.
 ///
@@ -173,13 +139,54 @@ pub fn resource_dir_with_suffix(suffix: &str) -> Result<PathBuf> {
 ///     `resource_dir().unwrap().join("resource/icons/")` to get the path.
 /// - With any other formats, it will be `resource_dir().unwrap().join("icons/")`.
 ///
-/// For this use case, you can use [`self::resource_dir_with_suffix`]
 /// ```
-/// use cargo_packager_resource_resolver::resource_dir_with_suffix;
+/// use cargo_packager_resource_resolver as resource_resolver;
+/// use resource_resolver::{PackageFormat, resource_dir_with_suffix};
 ///
-/// resource_dir_with_suffix("resource").unwrap().join("icons/");
+/// resource_dir_with_suffix(PackageFormat::None, "resource").unwrap().join("icons/");
 /// ```
-///
-pub fn resource_dir() -> Result<PathBuf> {
-    resource_dir_with_suffix("")
+pub fn resource_dir_with_suffix(package_format: PackageFormat, suffix: &str) -> Result<PathBuf> {
+    match package_format {
+        PackageFormat::None => {
+            let root_crate_dir = env::var("CARGO_MANIFEST_DIR")
+                .map_err(|e| {
+                    match e {
+                        env::VarError::NotPresent => {
+                            Error::Env("PackageFormat::None was use, but CARGO_MANIFEST_DIR environnement variable was not defined".to_string())
+                        },
+                        _ => Error::Var("Can't access CARGO_MANIFEST_DIR environnement variable".to_string(), e)
+                    }
+                })?;
+            Ok(PathBuf::from(root_crate_dir).join(suffix))
+        }
+        PackageFormat::App | PackageFormat::Dmg => {
+            let exe = current_exe()?;
+            let exe_dir = exe.parent().unwrap();
+            exe_dir
+                .join("../Resources")
+                .canonicalize()
+                .map_err(|e| Error::Io("".to_string(), e))
+        }
+        PackageFormat::Wix => Err(Error::UnsupportedPlatform),
+        PackageFormat::Nsis => {
+            let exe = current_exe()?;
+            let exe_dir = exe.parent().unwrap();
+            Ok(exe_dir.to_path_buf())
+        }
+        PackageFormat::Deb => {
+            // maybe this is not reliable, and we need to get the app name from argument
+            let exe = current_exe()?;
+            let binary_name = exe.file_name().unwrap().to_string_lossy();
+
+            let path = format!("/usr/lib/{}/", binary_name);
+            return Ok(PathBuf::from(path));
+        }
+        PackageFormat::AppImage => todo!(),
+    }
+}
+
+/// Retreive the resource path of your app, packaged with cargo packager.
+#[inline]
+pub fn resource_dir(package_format: PackageFormat) -> Result<PathBuf> {
+    resource_dir_with_suffix(package_format, "")
 }
