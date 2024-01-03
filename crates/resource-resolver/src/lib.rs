@@ -179,7 +179,7 @@ pub fn resource_dir_with_suffix(package_format: PackageFormat, suffix: &str) -> 
             let binary_name = exe.file_name().unwrap().to_string_lossy();
 
             let path = format!("/usr/lib/{}/", binary_name);
-            return Ok(PathBuf::from(path));
+            Ok(PathBuf::from(path))
         }
         PackageFormat::AppImage => todo!(),
     }
