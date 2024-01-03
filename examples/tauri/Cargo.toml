@@ -1,6 +1,7 @@
 [package]
 name = "tauri-example-with-updater"
 version = "0.0.0"
+description = "Tauri Example ( with updater )"
 edition = "2021"
 publish = false
 
