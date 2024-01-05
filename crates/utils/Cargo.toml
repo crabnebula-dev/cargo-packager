@@ -1,0 +1,11 @@
+[package]
+name = "cargo-packager-utils"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+
+[dependencies]
+ctor = "0.2"
