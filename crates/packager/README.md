@@ -4,6 +4,7 @@
 
 Executable packager, bundler and updater. A cli tool and library to generate installers or app bundles for your executables.
 It also comes with useful addons:
+
 - an [updater](https://docs.rs/cargo-packager-updater)
 - a [resource resolver](https://docs.rs/cargo-packager-resource-resolver)
 
