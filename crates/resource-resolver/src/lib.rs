@@ -50,6 +50,7 @@ pub enum PackageFormat {
 /// Can only be used if the app was build with cargo-packager
 /// and the `before-each-package-command` atribute.
 #[cfg(feature = "auto-detect-format")]
+#[must_use]
 pub fn current_format() -> PackageFormat {
     // sync with PackageFormat::short_name function of packager crate
     // maybe having a special crate for the Config struct,
@@ -84,8 +85,7 @@ pub fn current_format() -> PackageFormat {
 /// - With any other formats, it will be `resource_dir().unwrap().join("icons/")`.
 ///
 /// ```
-/// use cargo_packager_resource_resolver as resource_resolver;
-/// use resource_resolver::{PackageFormat, resolve_resource};
+/// use cargo_packager_resource_resolver::{resolve_resource, PackageFormat};
 ///
 /// resolve_resource(PackageFormat::None, "resource").unwrap().join("icons/");
 /// ```
@@ -129,6 +129,15 @@ pub fn resolve_resource<P: AsRef<Path>>(package_format: PackageFormat, path: P) 
 }
 
 /// Retreive the resource path of your app, packaged with cargo packager.
+///
+/// ## Example
+///
+/// ```
+/// use cargo_packager_resource_resolver::{resources_dir, PackageFormat};
+///
+/// let resource_path = resources_dir(PackageFormat::Nsis).unwrap();
+/// ```
+///
 #[inline]
 pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
     resolve_resource(package_format, "")
