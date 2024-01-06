@@ -15,7 +15,7 @@ pub enum Error {
     /// IO error
     #[error("{0}: {1}")]
     Io(String, std::io::Error),
-    /// Environement error
+    /// Environment error
     #[error("{0}")]
     Env(String),
     /// Environement variable error
