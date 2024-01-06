@@ -18,7 +18,7 @@ pub enum Error {
     /// Environment error
     #[error("{0}")]
     Env(String),
-    /// Environement variable error
+    /// Environment variable error
     #[error("{0}: {1}")]
     Var(String, std::env::VarError),
 }
