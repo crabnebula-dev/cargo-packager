@@ -73,7 +73,7 @@ pub fn current_format() -> PackageFormat {
     }
 }
 
-/// Retreive the resource path of your app, packaged with cargo packager.
+/// Retrieve the resource path of your app, packaged with cargo packager.
 /// This function behave the same as [`resource_dir`], except it accepts
 /// a parameter that will be happened to the resource path when no packaging format
 /// is used.
