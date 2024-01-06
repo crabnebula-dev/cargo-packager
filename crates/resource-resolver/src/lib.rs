@@ -128,7 +128,7 @@ pub fn resolve_resource<P: AsRef<Path>>(package_format: PackageFormat, path: P) 
     }
 }
 
-/// Retreive the resource path of your app, packaged with cargo packager.
+/// Retrieve the resource path of your app, packaged with cargo packager.
 ///
 /// ## Example
 ///
