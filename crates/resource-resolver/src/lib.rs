@@ -48,7 +48,7 @@ pub enum PackageFormat {
 
 /// Get the current package format.
 /// Can only be used if the app was build with cargo-packager
-/// and the `before-each-package-command` atribute.
+/// and when the `before-each-package-command` Cargo feature is enabled.
 #[cfg(feature = "auto-detect-format")]
 #[must_use]
 pub fn current_format() -> PackageFormat {
