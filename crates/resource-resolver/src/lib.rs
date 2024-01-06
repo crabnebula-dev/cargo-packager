@@ -16,13 +16,25 @@
 //!
 //! let resource_path = resources_dir(PackageFormat::Nsis).unwrap();
 //! ```
+//! ## Automatically detect formats
 //!
-
+//! <div class="warning">
+//!
+//! This feature is only available for apps that were built with cargo packager. So the node js binding will not work.
+//!
+//! </div>
+//!
+//! 1. Make sure to use the `before_each_package_command` field of [cargo packager configuration](https://docs.rs/cargo-packager/latest/cargo_packager/config/struct.Config.html) to build your app (this will not work with the `before_packaging_command` field).
+//! 2. Active the feature `auto-detect-format`.
+//!
+//! ```rs
+//! use cargo_packager_resource_resolver::{resources_dir, current_format};
+//!
+//! let resource_path = resources_dir(current_format()).unwrap();
+//! ```
+//!
 use error::Result;
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::{env, path::PathBuf};
 
 mod error;
 
@@ -74,34 +86,19 @@ pub fn current_format() -> PackageFormat {
 }
 
 /// Retrieve the resource path of your app, packaged with cargo packager.
-/// This function behave the same as [`resource_dir`], except it accepts
-/// a parameter that will be happened to the resource path when no packaging format
-/// is used.
 ///
-/// Example: You want to include the folder `crate/resource/icons/`.
-///
-/// - With `cargo run` command, you will have to execute
-///     `resource_dir().unwrap().join("resource/icons/")` to get the path.
-/// - With any other formats, it will be `resource_dir().unwrap().join("icons/")`.
+/// ## Example
 ///
 /// ```
-/// use cargo_packager_resource_resolver::{resolve_resource, PackageFormat};
+/// use cargo_packager_resource_resolver::{resources_dir, PackageFormat};
 ///
-/// resolve_resource(PackageFormat::None, "resource").unwrap().join("icons/");
+/// let resource_path = resources_dir(PackageFormat::Nsis).unwrap();
 /// ```
-pub fn resolve_resource<P: AsRef<Path>>(package_format: PackageFormat, path: P) -> Result<PathBuf> {
+///
+pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
     match package_format {
         PackageFormat::None => {
-            let root_crate_dir = env::var("CARGO_MANIFEST_DIR")
-                .map_err(|e| {
-                    match e {
-                        env::VarError::NotPresent => {
-                            Error::Env("PackageFormat::None was use, but CARGO_MANIFEST_DIR environnement variable was not defined".to_string())
-                        },
-                        _ => Error::Var("Can't access CARGO_MANIFEST_DIR environnement variable".to_string(), e)
-                    }
-                })?;
-            Ok(PathBuf::from(root_crate_dir).join(path))
+            env::current_dir().map_err(|e| Error::Io("Can't access current dir".to_string(), e))
         }
         PackageFormat::App | PackageFormat::Dmg => {
             let exe = current_exe()?;
@@ -116,31 +113,14 @@ pub fn resolve_resource<P: AsRef<Path>>(package_format: PackageFormat, path: P) 
             let exe_dir = exe.parent().unwrap();
             Ok(exe_dir.to_path_buf())
         }
-        PackageFormat::Deb => {
-            // maybe this is not reliable, and we need to get the app name from argument
+        PackageFormat::Deb | PackageFormat::AppImage => {
             let exe = current_exe()?;
             let binary_name = exe.file_name().unwrap().to_string_lossy();
 
             let path = format!("/usr/lib/{}/", binary_name);
             Ok(PathBuf::from(path))
         }
-        PackageFormat::AppImage => Err(Error::UnsupportedPlatform),
     }
-}
-
-/// Retrieve the resource path of your app, packaged with cargo packager.
-///
-/// ## Example
-///
-/// ```
-/// use cargo_packager_resource_resolver::{resources_dir, PackageFormat};
-///
-/// let resource_path = resources_dir(PackageFormat::Nsis).unwrap();
-/// ```
-///
-#[inline]
-pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
-    resolve_resource(package_format, "")
 }
 
 fn current_exe() -> Result<PathBuf> {
