@@ -4,7 +4,7 @@
 
 //! # cargo-packager-updater
 //!
-//! Resource resolver for apps that was packaged by [`cargo-packager`](https://docs.rs/cargo-packager).
+//! Resource resolver for apps that were packaged by [`cargo-packager`](https://docs.rs/cargo-packager).
 //!
 //! It resolves the root path which contains resources, which was set using the `resources`
 //! field of [cargo packager configuration](https://docs.rs/cargo-packager/latest/cargo_packager/config/struct.Config.html).
