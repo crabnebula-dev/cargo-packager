@@ -349,6 +349,27 @@ export interface WindowsConfig {
    * By Default we use `signtool.exe` which can be found only on Windows so if you are on another platform and want to cross-compile and sign you will need to use another tool like `osslsigncode`.
    */
   signCommand?: string | null;
+  /**
+   * Whether to include updater service binary that can be used with [`cargo-packager-updater`] to deliver updates through a Windows Service for a more-secure updating process.
+   *
+   * Requires the installer to run as administrator.
+   */
+  updaterService?: UpdaterServiceConfig | null;
+}
+/**
+ * The updater windows service config which includes a service binary that can be used with [`cargo-packager-updater`] to deliver updates through a Windows Service for a more-secure updating process.
+ *
+ * Requires the installer to run as administrator.
+ */
+export interface UpdaterServiceConfig {
+  /**
+   * Whether this config is enabled or not. Defaults to `true`.
+   */
+  enabled?: boolean;
+  /**
+   * The public key generated from cargo-packager and used to sign the installers which will be used by the updater service to download and verify updates.
+   */
+  pubkey: string;
 }
 /**
  * The macOS configuration.

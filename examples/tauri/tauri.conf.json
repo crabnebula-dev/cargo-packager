@@ -7,14 +7,14 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "tauri-example-with-updater",
+    "productName": "tauri-example",
     "version": "0.0.1"
   },
   "tauri": {
     "bundle": {
       "active": false,
       "targets": "all",
-      "identifier": "com.tauri-with-updater.example",
+      "identifier": "com.tauri.example",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

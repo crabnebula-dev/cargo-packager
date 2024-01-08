@@ -40,6 +40,11 @@ ${StrLoc}
 !define MANUPRODUCTKEY "Software\${MANUFACTURER}\${PRODUCTNAME}"
 !define UNINSTALLERSIGNCOMMAND "{{uninstaller_sign_cmd}}"
 !define ESTIMATEDSIZE "{{estimated_size}}"
+!define INCLUDEUPDATERSERVICE "{{include_updater_service}}"
+!define UPDATERSERVICEINSTALLERPATH "{{updater_service_installer_path}}"
+!define UPDATERSERVICEINSTALLERFILENAME "{{updater_service_installer_filename}}"
+!define UPDATERSERVICEPRODUCTNAME "{{updater_service_product_name}}"
+!define UPDATERSERVICEPUBKEY "{{updater_service_pubkey}}"
 
 Name "${PRODUCTNAME}"
 BrandingText "${COPYRIGHT}"
@@ -85,6 +90,10 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
   !define MULTIUSER_INSTALLMODE_FUNCTION RestorePreviousInstallLocation
   !define MULTIUSER_EXECUTIONLEVEL Highest
   !include MultiUser.nsh
+!endif
+
+!if "${INCLUDEUPDATERSERVICE}" == "true"
+  RequestExecutionLevel highest
 !endif
 
 ; installer icon
@@ -343,6 +352,7 @@ Function un.ConfirmLeave
     SendMessage $DeleteAppDataCheckbox ${BM_GETCHECK} 0 0 $DeleteAppDataCheckboxState
 FunctionEnd
 {{/if}}
+!define MUI_PAGE_CUSTOMFUNCTION_PRE un.SkipIfPassive
 !insertmacro MUI_UNPAGE_CONFIRM
 
 ; 2. Uninstalling Page
@@ -414,30 +424,6 @@ Function .onInit
   !endif
 FunctionEnd
 
-
-Section EarlyChecks
-  ; Abort silent installer if downgrades is disabled
-  !if "${ALLOWDOWNGRADES}" == "false"
-  IfSilent 0 silent_downgrades_done
-    ; If downgrading
-    ${If} $R0 == -1
-      System::Call 'kernel32::AttachConsole(i -1)i.r0'
-      ${If} $0 != 0
-        System::Call 'kernel32::GetStdHandle(i -11)i.r0'
-        System::call 'kernel32::SetConsoleTextAttribute(i r0, i 0x0004)' ; set red color
-        FileWrite $0 "$(silentDowngrades)"
-      ${EndIf}
-      Abort
-    ${EndIf}
-  silent_downgrades_done:
-  !endif
-
-SectionEnd
-
-{{#if preinstall_section}}
-{{unescape_newlines preinstall_section}}
-{{/if}}
-
 !macro CheckIfAppIsRunning
   nsis_tauri_utils::FindProcess "${MAINBINARYNAME}.exe"
   Pop $R0
@@ -469,11 +455,41 @@ SectionEnd
   app_check_done:
 !macroend
 
-Section Install
+Section EarlyChecks
   SetOutPath $INSTDIR
 
-  !insertmacro CheckIfAppIsRunning
+  ; Abort silent installer if downgrades is disabled
+  !if "${ALLOWDOWNGRADES}" == "false"
+  IfSilent 0 silent_downgrades_done
+    ; If downgrading
+    ${If} $R0 == -1
+      System::Call 'kernel32::AttachConsole(i -1)i.r0'
+      ${If} $0 != 0
+        System::Call 'kernel32::GetStdHandle(i -11)i.r0'
+        System::call 'kernel32::SetConsoleTextAttribute(i r0, i 0x0004)' ; set red color
+        FileWrite $0 "$(silentDowngrades)"
+      ${EndIf}
+      Abort
+    ${EndIf}
+  silent_downgrades_done:
+  !endif
 
+  !insertmacro CheckIfAppIsRunning
+SectionEnd
+
+{{#if preinstall_section}}
+{{unescape_newlines preinstall_section}}
+{{/if}}
+
+!if "${INCLUDEUPDATERSERVICE}" == "true"
+  Section UpdaterService
+    File "${UPDATERSERVICEINSTALLERPATH}"
+    ExecWait "${UPDATERSERVICEINSTALLERFILENAME} /P /NS" $0
+    WriteRegStr HKLM "Software\${MANUFACTURER}\${UPDATERSERVICEPRODUCTNAME}" "PubKey" "${UPDATERSERVICEPUBKEY}"
+  SectionEnd
+!endif
+
+Section Install
   ; Copy main executable
   File "${MAINBINARYSRCPATH}"
 
@@ -558,6 +574,10 @@ Function .onInstSuccess
 FunctionEnd
 
 Function un.onInit
+  ${GetOptions} $CMDLINE "/P" $PassiveMode
+  IfErrors +2 0
+    StrCpy $PassiveMode 1
+
   !insertmacro SetContext
 
   !if "${INSTALLMODE}" == "both"
@@ -625,6 +645,14 @@ Section Uninstall
   ${EndIf}
   {{/if}}
 
+  ; Uninstall Service
+  !if "${INCLUDEUPDATERSERVICE}" == "true"
+    ReadRegStr $4 HKLM "Software\${MANUFACTURER}\${UPDATERSERVICEPRODUCTNAME}" ""
+    ReadRegStr $R1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UPDATERSERVICEPRODUCTNAME}" "UninstallString"
+    ExecWait '$R1 /P _?=$4' $0
+    DeleteRegValue HKLM "Software\${MANUFACTURER}\${UPDATERSERVICEPRODUCTNAME}" "PubKey"
+  !endif
+
   ${GetOptions} $CMDLINE "/P" $R0
   IfErrors +2 0
     SetAutoClose true
@@ -637,6 +665,9 @@ Function RestorePreviousInstallLocation
 FunctionEnd
 
 Function SkipIfPassive
+  ${IfThen} $PassiveMode == 1  ${|} Abort ${|}
+FunctionEnd
+Function un.SkipIfPassive
   ${IfThen} $PassiveMode == 1  ${|} Abort ${|}
 FunctionEnd
 

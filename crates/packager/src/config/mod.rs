@@ -1195,6 +1195,55 @@ impl NsisConfig {
     }
 }
 
+/// The updater windows service config which includes a service binary
+/// that can be used with [`cargo-packager-updater`] to deliver updates
+/// through a Windows Service for a more-secure updating process.
+///
+/// Requires the installer to run as administrator.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct UpdaterServiceConfig {
+    /// Whether this config is enabled or not. Defaults to `true`.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// The public key generated from cargo-packager and used to sign the installers which will
+    /// be used by the updater service to download and verify updates.
+    pub pubkey: String,
+}
+
+impl Default for UpdaterServiceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            pubkey: "".into(),
+        }
+    }
+}
+
+impl UpdaterServiceConfig {
+    /// Creates a new [`UpdaterServiceConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set whether the updater service is enabled or not. Defaults to `true`.
+    ///
+    /// Requires the installer to run as administrator.
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
+        self
+    }
+
+    /// Set the public key generated from cargo-packager and used to sign the installers which will
+    /// be used by the updater service to download and verify updates.
+    pub fn pubkey<S: Into<String>>(mut self, pubkey: S) -> Self {
+        self.pubkey = pubkey.into();
+        self
+    }
+}
+
 /// The Windows configuration.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1235,6 +1284,13 @@ pub struct WindowsConfig {
     /// need to use another tool like `osslsigncode`.
     #[serde(alias = "sign-command", alias = "sign_command")]
     pub sign_command: Option<String>,
+
+    /// Whether to include updater service binary that can be used with [`cargo-packager-updater`] to deliver updates
+    /// through a Windows Service for a more-secure updating process.
+    ///
+    /// Requires the installer to run as administrator.
+    #[serde(alias = "updater-service", alias = "updater_service")]
+    pub updater_service: Option<UpdaterServiceConfig>,
 }
 
 impl Default for WindowsConfig {
@@ -1246,6 +1302,7 @@ impl Default for WindowsConfig {
             tsp: false,
             allow_downgrades: true,
             sign_command: None,
+            updater_service: None,
         }
     }
 }
@@ -1289,6 +1346,16 @@ impl WindowsConfig {
     /// The default value of this flag is `true`.
     pub fn allow_downgrades(mut self, allow: bool) -> Self {
         self.allow_downgrades = allow;
+        self
+    }
+
+    /// Sets the updater service config which
+    /// controls whether to include updater service binary that can be used with [`cargo-packager-updater`] to deliver updates
+    /// through a Windows Service for a more-secure updating process.
+    ///
+    /// Requires the installer to run as administrator.
+    pub fn updater_service(mut self, config: UpdaterServiceConfig) -> Self {
+        self.updater_service = Some(config);
         self
     }
 }

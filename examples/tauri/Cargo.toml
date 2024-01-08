@@ -1,5 +1,5 @@
 [package]
-name = "tauri-example-with-updater"
+name = "tauri-example"
 version = "0.0.0"
 description = "Tauri Example ( with updater )"
 edition = "2021"
@@ -23,8 +23,8 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [package.metadata.packager]
 before-packaging-command = "cargo tauri build"
-product-name = "Tauri example (with updater)"
-identifier = "com.tauri-with-updater.example"
+product-name = "Tauri example"
+identifier = "com.tauri.example"
 resources = [
   "Cargo.toml",
   "../../README.md",
@@ -56,6 +56,9 @@ libs = [
 
 [package.metadata.packager.appimage.linuxdeploy-plugins]
 "gtk" = "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
+
+[package.metadata.packager.windows.updater-service]
+pubkey = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2Njc0OTE5Mzk2Q0ExODkKUldTSm9XdzVHVWxuUmtJdjB4RnRXZGVqR3NQaU5SVitoTk1qNFFWQ3pjL2hZWFVDOFNrcEVvVlcK"
 
 [package.metadata.packager.nsis]
 appdata-paths = ["$LOCALAPPDATA/$IDENTIFIER"]

@@ -638,6 +638,36 @@
             "string",
             "null"
           ]
+        },
+        "updaterService": {
+          "description": "Whether to include updater service binary that can be used with [`cargo-packager-updater`] to deliver updates through a Windows Service for a more-secure updating process.\n\nRequires the installer to run as administrator.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UpdaterServiceConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "UpdaterServiceConfig": {
+      "description": "The updater windows service config which includes a service binary that can be used with [`cargo-packager-updater`] to deliver updates through a Windows Service for a more-secure updating process.\n\nRequires the installer to run as administrator.",
+      "type": "object",
+      "required": [
+        "pubkey"
+      ],
+      "properties": {
+        "enabled": {
+          "description": "Whether this config is enabled or not. Defaults to `true`.",
+          "default": true,
+          "type": "boolean"
+        },
+        "pubkey": {
+          "description": "The public key generated from cargo-packager and used to sign the installers which will be used by the updater service to download and verify updates.",
+          "type": "string"
         }
       },
       "additionalProperties": false

@@ -157,7 +157,7 @@ use url::Url;
 
 use crate::current_exe::current_exe;
 
-mod current_exe;
+pub mod current_exe;
 mod custom_serialization;
 mod error;
 
