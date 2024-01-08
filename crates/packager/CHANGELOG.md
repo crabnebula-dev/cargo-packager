@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.4.3]
+
+- [`2a50c8e`](https://www.github.com/crabnebula-dev/cargo-packager/commit/2a50c8ea734193036db0ab461f9005ea904cf4b7)([#124](https://www.github.com/crabnebula-dev/cargo-packager/pull/124)) Fix packaing of external binaries.
+
 ## \[0.4.2]
 
 - [`c18bf3e`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c18bf3e77f91c1c4797992b25902753deee5c986)([#117](https://www.github.com/crabnebula-dev/cargo-packager/pull/117)) Fix the `non-standard-file-perm` and `non-standard-dir-perm` issue in Debian packages
