@@ -155,7 +155,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                 guid: Uuid::new_v4().to_string(),
                 path: dest.into_os_string().into_string().unwrap_or_default(),
                 id: regex
-                    .replace_all(&*dest_file_name.replace('-', "_"), "")
+                    .replace_all(&dest_file_name.replace('-', "_"), "")
                     .to_string(),
             });
         }
