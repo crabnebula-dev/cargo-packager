@@ -2,4 +2,4 @@
 "cargo-packager": patch
 ---
 
-Fix Debian packages launching issues due to previous patch
+Fix Debian packages launching issues due to incorrect permissions
