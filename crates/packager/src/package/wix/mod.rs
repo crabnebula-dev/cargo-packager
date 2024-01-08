@@ -133,27 +133,29 @@ struct Binary {
 #[tracing::instrument(level = "trace")]
 fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
     let mut binaries = Vec::new();
-    let cwd = std::env::current_dir()?;
     let tmp_dir = std::env::temp_dir();
     let regex = Regex::new(r"[^\w\d\.]")?;
 
     if let Some(external_binaries) = &config.external_binaries {
+        let cwd = std::env::current_dir()?;
+        let target_triple = config.target_triple();
         for src in external_binaries {
-            let src = src.with_extension("exe");
-            let bin_path = dunce::canonicalize(cwd.join(src))?;
-            let dest_filename = bin_path
+            let file_name = src
                 .file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(bin_path.clone()))?
-                .to_string_lossy()
-                .replace(&format!("-{}", config.target_triple()), "");
-            let dest = tmp_dir.join(&dest_filename);
+                .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
+                .to_string_lossy();
+            let src = src.with_file_name(format!("{file_name}-{target_triple}.exe"));
+            let bin_path = dunce::canonicalize(cwd.join(src))?;
+            let dest_file_name = format!("{file_name}.exe");
+            let dest = tmp_dir.join(&*dest_file_name);
+
             std::fs::copy(bin_path, &dest)?;
 
             binaries.push(Binary {
                 guid: Uuid::new_v4().to_string(),
                 path: dest.into_os_string().into_string().unwrap_or_default(),
                 id: regex
-                    .replace_all(&dest_filename.replace('-', "_"), "")
+                    .replace_all(&*dest_file_name.replace('-', "_"), "")
                     .to_string(),
             });
         }
@@ -167,8 +169,8 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
                     .binary_path(bin)
                     .with_extension("exe")
                     .into_os_string()
-                    .into_string()
-                    .unwrap_or_default(),
+                    .to_string_lossy()
+                    .to_string(),
                 id: regex
                     .replace_all(
                         &bin.path

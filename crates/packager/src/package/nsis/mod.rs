@@ -89,18 +89,19 @@ type BinariesMap = BTreeMap<PathBuf, String>;
 #[tracing::instrument(level = "trace")]
 fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
     let mut binaries = BinariesMap::new();
-    let cwd = std::env::current_dir()?;
 
     if let Some(external_binaries) = &config.external_binaries {
+        let cwd = std::env::current_dir()?;
+        let target_triple = config.target_triple();
         for src in external_binaries {
-            let src = src.with_extension("exe");
-            let bin_path = dunce::canonicalize(cwd.join(src))?;
-            let dest_filename = bin_path
+            let file_name = src
                 .file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(bin_path.clone()))?
-                .to_string_lossy()
-                .replace(&format!("-{}", config.target_triple()), "");
-            binaries.insert(bin_path, dest_filename);
+                .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
+                .to_string_lossy();
+            let src = src.with_file_name(format!("{file_name}-{target_triple}.exe"));
+            let bin_path = dunce::canonicalize(cwd.join(src))?;
+            let dest_file_name = format!("{file_name}.exe");
+            binaries.insert(bin_path, dest_file_name);
         }
     }
 
