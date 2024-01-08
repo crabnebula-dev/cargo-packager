@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.1.2]
+
+- [`bd7e6fc`](https://www.github.com/crabnebula-dev/cargo-packager/commit/bd7e6fc102a74dc4da39848f44d04968b498b3cf)([#123](https://www.github.com/crabnebula-dev/cargo-packager/pull/123)) Fixes published package not including the build folder.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.4.2`
+
 ## \[0.1.1]
 
 - [`7e05d24`](https://www.github.com/crabnebula-dev/cargo-packager/commit/7e05d24a697230b1f53ee5ee2f7d217047089d97)([#109](https://www.github.com/crabnebula-dev/cargo-packager/pull/109)) Check if required files/tools for packaging are outdated or mis-hashed and redownload them.

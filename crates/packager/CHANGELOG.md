@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.4.2]
+
+- [`c18bf3e`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c18bf3e77f91c1c4797992b25902753deee5c986)([#117](https://www.github.com/crabnebula-dev/cargo-packager/pull/117)) Fix the `non-standard-file-perm` and `non-standard-dir-perm` issue in Debian packages
+
 ## \[0.4.1]
 
 - [`7b083a8`](https://www.github.com/crabnebula-dev/cargo-packager/commit/7b083a8c2ae709659c03a1069d96c3a8391e0674)([#99](https://www.github.com/crabnebula-dev/cargo-packager/pull/99)) Add glob patterns support for the icons option in config.
