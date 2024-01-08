@@ -1786,14 +1786,21 @@ impl Config {
     pub(crate) fn copy_external_binaries(&self, path: &Path) -> crate::Result<Vec<PathBuf>> {
         let mut paths = Vec::new();
         if let Some(external_binaries) = &self.external_binaries {
+            let cwd = std::env::current_dir()?;
+            let target_triple = self.target_triple();
             for src in external_binaries {
-                let src = dunce::canonicalize(src)?;
-                let file_name_no_triple = src
+                let file_name = src
                     .file_name()
                     .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
-                    .to_string_lossy()
-                    .replace(&format!("-{}", self.target_triple()), "");
-                let dest = path.join(file_name_no_triple);
+                    .to_string_lossy();
+                #[cfg(windows)]
+                let src = src.with_file_name(format!("{file_name}-{target_triple}.exe"));
+                #[cfg(not(windows))]
+                let src = src.with_file_name(format!("{file_name}-{target_triple}"));
+                #[cfg(windows)]
+                let dest = path.join(format!("{file_name}.exe"));
+                #[cfg(not(windows))]
+                let dest = path.join(&*file_name);
                 std::fs::copy(src, &dest)?;
                 paths.push(dest);
             }
