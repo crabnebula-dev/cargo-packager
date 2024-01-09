@@ -252,6 +252,16 @@ fn generate_control_file(
     if let Some(authors) = &config.authors {
         writeln!(file, "Maintainer: {}", authors.join(", "))?;
     }
+    if let Some(section) = config.deb().and_then(|d| d.section.as_ref()) {
+        writeln!(file, "Section: {}", section)?;
+    }
+
+    if let Some(priority) = config.deb().and_then(|d| d.priority.as_ref()) {
+        writeln!(file, "Priority: {}", priority)?;
+    }else{
+        writeln!(file, "Priority: optional")?;
+    }
+
     if let Some(homepage) = &config.homepage {
         writeln!(file, "Homepage: {}", homepage)?;
     }
@@ -282,7 +292,7 @@ fn generate_control_file(
             writeln!(file, " {}", line)?;
         }
     }
-    writeln!(file, "Priority: optional")?;
+
     file.flush()?;
     Ok(())
 }

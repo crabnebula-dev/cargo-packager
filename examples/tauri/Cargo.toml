@@ -44,6 +44,7 @@ icons = [
 
 [package.metadata.packager.deb]
 depends = ["libgtk-3-0", "libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"]
+section = "rust"
 
 [package.metadata.packager.appimage]
 bins = ["/usr/bin/xdg-open"]
