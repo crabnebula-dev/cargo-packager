@@ -258,7 +258,7 @@ fn generate_control_file(
 
     if let Some(priority) = config.deb().and_then(|d| d.priority.as_ref()) {
         writeln!(file, "Priority: {}", priority)?;
-    }else{
+    } else {
         writeln!(file, "Priority: optional")?;
     }
 
