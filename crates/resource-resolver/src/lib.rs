@@ -98,7 +98,7 @@ pub fn current_format() -> PackageFormat {
 pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
     match package_format {
         PackageFormat::None => {
-            env::current_dir().map_err(|e| Error::Io("Can't access current dir".to_string(), e))
+            env::current_dir().map_err(|e| Error::io("Can't access current dir", e))
         }
         PackageFormat::App | PackageFormat::Dmg => {
             let exe = current_exe()?;
@@ -106,24 +106,57 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
             exe_dir
                 .join("../Resources")
                 .canonicalize()
-                .map_err(|e| Error::Io("".to_string(), e))
+                .map_err(|e| Error::io("Can't canonicalize path", e))
         }
         PackageFormat::Wix | PackageFormat::Nsis => {
             let exe = current_exe()?;
             let exe_dir = exe.parent().unwrap();
             Ok(exe_dir.to_path_buf())
         }
-        PackageFormat::Deb | PackageFormat::AppImage => {
+        PackageFormat::Deb => {
             let exe = current_exe()?;
-            let binary_name = exe.file_name().unwrap().to_string_lossy();
+            let exe_name = exe.file_name().unwrap().to_string_lossy();
 
-            let path = format!("/usr/lib/{}/", binary_name);
+            let path = format!("/usr/lib/{}/", exe_name);
             Ok(PathBuf::from(path))
+        }
+
+        PackageFormat::AppImage => {
+            let Some(appdir) = std::env::var_os("APPDIR") else {
+                return Err(Error::env("Can't find APPDIR env var"));
+            };
+
+            // validate that we're actually running on an AppImage
+            // an AppImage is mounted to `/$TEMPDIR/.mount_${appPrefix}${hash}`
+            // see https://github.com/AppImage/AppImageKit/blob/1681fd84dbe09c7d9b22e13cdb16ea601aa0ec47/src/runtime.c#L501
+            // note that it is safe to use `std::env::current_exe` here since we just loaded an AppImage.
+            let is_temp = std::env::current_exe()
+                .map(|p| {
+                    p.display()
+                        .to_string()
+                        .starts_with(&format!("{}/.mount_", std::env::temp_dir().display()))
+                })
+                .unwrap_or(true);
+
+            if !is_temp {
+                log::warn!("`APPDIR` or `APPIMAGE` environment variable found but this application was not detected as an AppImage; this might be a security issue.");
+            }
+
+            let appdir: &std::path::Path = appdir.as_ref();
+
+            let exe = current_exe()?;
+            let exe_name = exe.file_name().unwrap().to_string_lossy();
+
+            Ok(PathBuf::from(format!(
+                "{}/usr/lib/{}",
+                appdir.display(),
+                exe_name
+            )))
         }
     }
 }
 
 fn current_exe() -> Result<PathBuf> {
     cargo_packager_utils::current_exe::current_exe()
-        .map_err(|e| Error::Io("Can't detect the path of the current exe".to_string(), e))
+        .map_err(|e| Error::io("Can't detect the path of the current exe", e))
 }

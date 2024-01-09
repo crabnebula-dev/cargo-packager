@@ -13,6 +13,7 @@ features = [ "auto-detect-format" ]
 [dependencies]
 thiserror.workspace = true
 cargo-packager-utils.workspace = true
+log = "0.4.20"
 
 [features]
 process-relaunch-dangerous-allow-symlink-macos = [ ]

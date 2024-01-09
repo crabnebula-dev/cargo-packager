@@ -19,3 +19,15 @@ pub enum Error {
     #[error("{0}: {1}")]
     Var(String, std::env::VarError),
 }
+
+impl Error {
+    /// Construct an [`Error::Io`] error variant
+    pub fn io(desc: &str, err: std::io::Error) -> Self {
+        Error::Io(desc.to_owned(), err)
+    }
+
+    /// Construct an [`Error::Env`] error variant
+    pub fn env(desc: &str) -> Self {
+        Error::Env(desc.to_owned())
+    }
+}
