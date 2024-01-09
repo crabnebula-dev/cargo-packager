@@ -8,7 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [package.metadata.docs.rs]
-features = [ "auto-detect-format " ]
+features = [ "auto-detect-format" ]
 
 [dependencies]
 thiserror.workspace = true
