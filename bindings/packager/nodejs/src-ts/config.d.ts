@@ -407,6 +407,21 @@ export interface DebianConfig {
    * Default file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```
    */
   desktopTemplate?: string | null;
+
+  /**
+   * Define the section in Debian Control file. It is recommended to add a section in the debian application.
+   * 
+   * See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+   */
+  section?: string | null;
+
+  /**
+   * Change the priority of the Debian Package. By default, it is set to optional. 
+   * 
+   * See : https://www.debian.org/doc/debian-policy/ch-archive.html#priorities
+   */
+  priority?: string | null;
+
   /**
    * List of custom files to add to the deb package. Maps a dir/file to a dir/file inside the debian package.
    */
