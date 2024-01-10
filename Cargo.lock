@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "ar",
  "base64 0.21.5",
@@ -1059,6 +1059,7 @@ dependencies = [
  "time",
  "tiny_http",
  "url",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -1066,6 +1067,17 @@ name = "cargo-packager-updater-app-test"
 version = "0.1.0"
 dependencies = [
  "cargo-packager-updater",
+]
+
+[[package]]
+name = "cargo-packager-updater-service"
+version = "0.0.0"
+dependencies = [
+ "cargo-packager-updater",
+ "dunce",
+ "serde_json",
+ "windows 0.52.0",
+ "winreg 0.52.0",
 ]
 
 [[package]]
@@ -3686,7 +3698,7 @@ dependencies = [
  "iana-time-zone-haiku",
  "js-sys",
  "wasm-bindgen",
- "windows-core",
+ "windows-core 0.51.1",
 ]
 
 [[package]]
@@ -7041,7 +7053,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-example-with-updater"
+name = "tauri-example"
 version = "0.0.0"
 dependencies = [
  "cargo-packager-updater",
@@ -8411,6 +8423,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be"
+dependencies = [
+ "windows-core 0.52.0",
+ "windows-targets 0.52.0",
+]
+
+[[package]]
 name = "windows-bindgen"
 version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8427,6 +8449,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1f8cf84f35d2db49a46868f947758c7a1138116f7fac3bc844f43ade1292e64"
 dependencies = [
  "windows-targets 0.48.5",
+]
+
+[[package]]
+name = "windows-core"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
+dependencies = [
+ "windows-targets 0.52.0",
 ]
 
 [[package]]

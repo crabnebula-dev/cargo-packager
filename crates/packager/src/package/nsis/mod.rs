@@ -15,6 +15,7 @@ use handlebars::{to_json, Handlebars};
 use super::Context;
 use crate::{
     codesign::windows::{self as codesign, ConfigSignExt},
+    config::Binary,
     util::verify_file_hash,
 };
 use crate::{
@@ -42,6 +43,7 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
     "Stubs/lzma_solid-x86-unicode",
     "Plugins/x86-unicode/ApplicationID.dll",
     "Plugins/x86-unicode/nsis_tauri_utils.dll",
+    "Plugins/x86-unicode/UserInfo.dll",
     "Include/MUI2.nsh",
     "Include/FileFunc.nsh",
     "Include/x64.nsh",
@@ -50,6 +52,7 @@ const NSIS_REQUIRED_FILES: &[&str] = &[
 ];
 #[cfg(not(target_os = "windows"))]
 const NSIS_REQUIRED_FILES: &[&str] = &[
+    "Plugins/x86-unicode/UserInfo.dll",
     "Plugins/x86-unicode/ApplicationID.dll",
     "Plugins/x86-unicode/nsis_tauri_utils.dll",
 ];
@@ -358,6 +361,78 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         to_json(config.windows().map(|w| w.allow_downgrades)),
     );
 
+    if let Some(updater_service) = ctx
+        .config
+        .windows()
+        .and_then(|w| w.updater_service.as_ref())
+    {
+        if updater_service.enabled {
+            let updater_service_bin = ctx.tools_path.join("updater-service.exe");
+
+            let parent = ctx.intermediates_path.join("updater-service").join(arch);
+            let app_updater_service_filename =
+                format!("{} updater service.exe", config.product_name);
+            let app_updater_service_path = parent.join(&app_updater_service_filename);
+            std::fs::create_dir_all(parent)?;
+            std::fs::copy(updater_service_bin, &app_updater_service_path)?;
+
+            let mut service_config = Config::default();
+            service_config.out_dir = config.out_dir.clone();
+            service_config.product_name = format!("{} Updater Service", config.product_name);
+            service_config.identifier = config
+                .identifier
+                .clone()
+                .map(|i| format!("{i}.updater-service"));
+            service_config.log_level = config.log_level.clone();
+            service_config.version = config.version.clone();
+            service_config.target_triple = config.target_triple.clone();
+            service_config.publisher = config.publisher.clone();
+            service_config.license_file = config.license_file.clone();
+            service_config.copyright = config.copyright.clone();
+            service_config
+                .description
+                .replace(format!("{} Updater Service", config.product_name));
+            let mut nsis = config.nsis.clone().unwrap_or_default();
+            nsis.install_mode = NSISInstallerMode::PerMachine;
+            nsis.appdata_paths = None;
+            service_config.nsis.replace(nsis);
+            service_config.windows = config.windows.clone().map(|mut w| {
+                w.updater_service = None;
+                w
+            });
+            service_config.binaries = vec![Binary {
+                main: true,
+                path: app_updater_service_path,
+            }];
+
+            let mut service_ctx = ctx.clone();
+            service_ctx.config = service_config;
+
+            let service_installer = &build_nsis_app_installer(&service_ctx, nsis_path)?[0];
+            let service_installer_filename = service_installer.file_name().unwrap_or_default();
+
+            data.insert("include_updater_service", to_json(true));
+            data.insert("updater_service_installer_path", to_json(service_installer));
+            data.insert(
+                "updater_service_filename",
+                to_json(app_updater_service_filename),
+            );
+            data.insert(
+                "updater_service_installer_filename",
+                to_json(service_installer_filename.to_string_lossy()),
+            );
+            data.insert(
+                "updater_service_name",
+                to_json(service_ctx.config.product_name.replace(' ', "-")),
+            );
+            data.insert(
+                "updater_service_product_name",
+                to_json(service_ctx.config.product_name),
+            );
+            data.insert("updater_service_pubkey", to_json(&updater_service.pubkey));
+        }
+    }
+
     if config.can_sign() {
         let sign_cmd = format!("{:?}", codesign::sign_command("%1", &config.sign_params())?);
         data.insert("uninstaller_sign_cmd", to_json(sign_cmd));
@@ -462,7 +537,6 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     let binaries = generate_binaries_data(config)?;
     data.insert("binaries", to_json(&binaries));
-
     let estimated_size =
         generate_estimated_size(main_binary_path, resources.keys().chain(binaries.keys()))?;
     data.insert("estimated_size", to_json(estimated_size));
@@ -566,6 +640,20 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 #[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let nsis_toolset_path = ctx.tools_path.join("NSIS");
+
+    let include_updater_service = ctx
+        .config
+        .windows()
+        .and_then(|w| w.updater_service.as_ref())
+        .map(|u| u.enabled)
+        .unwrap_or_default();
+    let updater_service_bin = ctx.tools_path.join("updater-service.exe");
+    if include_updater_service && !updater_service_bin.exists() {
+        // TODO: download updater_service bin
+        let bytes =
+            include_bytes!("../../../../updater-service/cargo-packager-updater-service.exe");
+        let _ = std::fs::write(updater_service_bin, bytes);
+    }
 
     if !nsis_toolset_path.exists() {
         get_and_extract_nsis(ctx, &nsis_toolset_path)?;

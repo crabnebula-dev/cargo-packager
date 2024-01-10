@@ -66,6 +66,10 @@ pub enum Error {
     /// Error returned when persisting a temporary file fails.
     #[error(transparent)]
     PersistError(#[from] tempfile::PersistError),
+    #[cfg(windows)]
+    /// Win32 errors.
+    #[error(transparent)]
+    Win32(#[from] windows::core::Error),
 }
 
 /// Convenience alias for `cargo-packager-updater` crate Result type.

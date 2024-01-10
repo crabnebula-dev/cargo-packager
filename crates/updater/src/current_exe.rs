@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+//! Retrieves the currently running binary's path, taking into account security considerations.
+
 /// Retrieves the currently running binary's path, taking into account security considerations.
 ///
 /// The path is cached as soon as possible (before even `main` runs) and that value is returned

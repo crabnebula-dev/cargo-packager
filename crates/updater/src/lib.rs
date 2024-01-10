@@ -157,7 +157,7 @@ use url::Url;
 
 use crate::current_exe::current_exe;
 
-mod current_exe;
+pub mod current_exe;
 mod custom_serialization;
 mod error;
 
@@ -733,6 +733,22 @@ impl Update {
         self.install_inner(bytes)
     }
 
+    #[doc(hidden)]
+    pub fn install_no_exit(&self, bytes: Vec<u8>) -> Result<()> {
+        let (mut first_cmd, fallback_cmd) = self.installer_cmd(bytes)?;
+
+        let res = first_cmd.output();
+        if res.is_err() {
+            if let Some(mut fallback) = fallback_cmd {
+                fallback.output()?;
+            } else {
+                res?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Downloads and installs the updater package
     pub fn download_and_install(&self) -> Result<()> {
         let bytes = self.download()?;
@@ -759,7 +775,10 @@ impl Update {
     // │── [AppName]_[version]_x64-setup.exe           # NSIS installer
     // └── ...
     #[cfg(windows)]
-    fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
+    fn installer_cmd(
+        &self,
+        bytes: Vec<u8>,
+    ) -> Result<(std::process::Command, Option<std::process::Command>)> {
         use std::{io::Write, process::Command};
 
         let extension = match self.format {
@@ -779,8 +798,6 @@ impl Update {
             |p| format!("{p}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"),
         );
 
-        // we support 2 type of files exe & msi for now
-        // If it's an `exe` we expect an installer not a runtime.
         match self.format {
             UpdateFormat::Nsis => {
                 // we need to wrap the installer path in quotes for Start-Process
@@ -818,9 +835,8 @@ impl Update {
                 if !installer_args.is_empty() {
                     cmd.arg("-ArgumentList").arg(installer_args.join(", "));
                 }
-                cmd.spawn().expect("installer failed to start");
 
-                std::process::exit(0);
+                Ok((cmd, None))
             }
             UpdateFormat::Wix => {
                 {
@@ -857,7 +873,8 @@ impl Update {
                     .concat();
 
                     // run the installer and relaunch the application
-                    let powershell_install_res = Command::new(powershell_path)
+                    let mut powershell_install_cmd = Command::new(powershell_path);
+                    powershell_install_cmd
                         .args(["-NoProfile", "-WindowStyle", "Hidden"])
                         .args([
                             "Start-Process",
@@ -870,28 +887,42 @@ impl Update {
                         .arg(&mis_path)
                         .arg(format!(", {}, /promptrestart;", installer_args.join(", ")))
                         .arg("Start-Process")
-                        .arg(current_exe_arg)
-                        .spawn();
-                    if powershell_install_res.is_err() {
-                        // fallback to running msiexec directly - relaunch won't be available
-                        // we use this here in case powershell fails in an older machine somehow
-                        let msiexec_path = system_root.as_ref().map_or_else(
-                            |_| "msiexec.exe".to_string(),
-                            |p| format!("{p}\\System32\\msiexec.exe"),
-                        );
-                        let _ = Command::new(msiexec_path)
-                            .arg("/i")
-                            .arg(mis_path)
-                            .args(installer_args)
-                            .arg("/promptrestart")
-                            .spawn();
-                    }
+                        .arg(current_exe_arg);
 
-                    std::process::exit(0);
+                    // fallback to running msiexec directly - relaunch won't be available
+                    // we use this here in case powershell fails in an older machine somehow
+                    let msiexec_path = system_root.as_ref().map_or_else(
+                        |_| "msiexec.exe".to_string(),
+                        |p| format!("{p}\\System32\\msiexec.exe"),
+                    );
+                    let mut msiexec_install_cmd = Command::new(msiexec_path);
+                    msiexec_install_cmd
+                        .arg("/i")
+                        .arg(mis_path)
+                        .args(installer_args)
+                        .arg("/promptrestart");
+
+                    Ok((powershell_install_cmd, Some(msiexec_install_cmd)))
                 }
             }
             _ => unreachable!(),
         }
+    }
+
+    #[cfg(windows)]
+    fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
+        let (mut first_cmd, fallback_cmd) = self.installer_cmd(bytes)?;
+
+        let res = first_cmd.spawn();
+        if res.is_err() {
+            if let Some(mut fallback) = fallback_cmd {
+                fallback.spawn()?;
+            } else {
+                res?;
+            }
+        }
+
+        std::process::exit(0);
     }
 
     // Linux (AppImage)
@@ -1016,11 +1047,59 @@ impl Update {
     }
 }
 
-/// Check for an update using the provided
+/// Check for an update using the provided config
 pub fn check_update(current_version: Version, config: crate::Config) -> Result<Option<Update>> {
     UpdaterBuilder::new(current_version, config)
         .build()?
         .check()
+}
+
+/// Check for an update using the service installed.
+#[cfg(windows)]
+pub fn try_update_using_service(
+    publisher: String,
+    product_name: String,
+    current_version: Version,
+    config: crate::Config,
+) -> Result<()> {
+    use windows::{
+        core::PCWSTR,
+        Win32::System::Services::{
+            CloseServiceHandle, OpenSCManagerW, OpenServiceW, StartServiceW, SC_MANAGER_CONNECT,
+            SERVICE_START,
+        },
+    };
+
+    let svc_name = format!("{}-Updater-Service", product_name.replace(' ', "-"));
+    let svc_name = encode_wide(svc_name);
+
+    let publisher = encode_wide(publisher);
+    let product_name = encode_wide(product_name);
+    let current_version = encode_wide(current_version.to_string());
+    let config = encode_wide(serde_json::to_string(&config)?);
+
+    let args = [
+        PCWSTR::from_raw(publisher.as_ptr()),
+        PCWSTR::from_raw(product_name.as_ptr()),
+        PCWSTR::from_raw(current_version.as_ptr()),
+        PCWSTR::from_raw(config.as_ptr()),
+    ];
+
+    pub fn encode_wide(string: impl AsRef<std::ffi::OsStr>) -> Vec<u16> {
+        std::os::windows::ffi::OsStrExt::encode_wide(string.as_ref())
+            .chain(std::iter::once(0))
+            .collect()
+    }
+
+    unsafe {
+        let scm = OpenSCManagerW(PCWSTR::null(), PCWSTR::null(), SC_MANAGER_CONNECT)?;
+        let service = OpenServiceW(scm, PCWSTR::from_raw(svc_name.as_ptr()), SERVICE_START)?;
+        StartServiceW(service, Some(&args))?;
+        CloseServiceHandle(service)?;
+        CloseServiceHandle(scm)?;
+    };
+
+    Ok(())
 }
 
 /// Get the updater target for the current platform.

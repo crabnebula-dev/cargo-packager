@@ -16,7 +16,7 @@ fn version() -> &'static str {
 }
 
 const UPDATER_PUB_KEY: &str = include_str!("../dummy.pub.key");
-const UPDATER_ENDPOINT: &str = "http://localhost:2342";
+const UPDATER_ENDPOINT: &str = "http://localhost:8080/update.json";
 
 #[tauri::command]
 fn check_update<R: Runtime>(app: AppHandle<R>) -> Result<(bool, Option<String>), ()> {
@@ -94,6 +94,23 @@ fn install_update<R: Runtime>(app: AppHandle<R>) -> Result<(), ()> {
     Ok(())
 }
 
+#[tauri::command]
+fn check_update_using_service() {
+    let config = Config {
+        endpoints: vec![UPDATER_ENDPOINT.parse().unwrap()],
+        ..Default::default()
+    };
+
+    cargo_packager_updater::try_update_using_service(
+        "tauri".to_string(),
+        "Tauri example".to_string(),
+        version().parse().unwrap(),
+        config,
+    )
+    .unwrap();
+    // std::process::exit(1);
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -101,7 +118,8 @@ fn main() {
             version,
             check_update,
             download_update,
-            install_update
+            install_update,
+            check_update_using_service,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -14,7 +14,7 @@ createApp({
     const greetMsg = ref("");
     async function greet() {
       // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-      greetMsg.value = await invoke("greet", {
+      greetMsg.value = await invoke("check_update_using_service", {
         name: greetInput.value,
       });
     }
@@ -29,13 +29,16 @@ createApp({
       () =>
         updateStatus.value === "has-update" ||
         updateStatus.value == "downloading" ||
-        updateStatus.value === "ready-for-install",
+        updateStatus.value === "ready-for-install"
     );
 
     async function checkUpdate() {
       const [hasUpdate, version] = await invoke("check_update");
       if (version) updateVersion.value = version;
       updateStatus.value = hasUpdate ? "has-update" : "no-updates";
+    }
+    async function checkUpdateUsingService() {
+      await invoke("check_update_using_service");
     }
 
     async function downloadUpdate() {
@@ -81,6 +84,7 @@ createApp({
       updateProgress,
       checkBtnDisabled,
       checkUpdate,
+      checkUpdateUsingService,
       downloadUpdate,
       installUpdate,
     };
@@ -116,6 +120,7 @@ createApp({
 
       <p>Current Verion: {{version}}</p>
       <button @click="checkUpdate" :disabled="checkBtnDisabled">Check Update</button>
+      <button @click="checkUpdateUsingService">Or Check Update using Service</button>
 
       <template v-if="updateStatus !== 'unchecked'">
         <p v-if="updateStatus === 'no-updates'">There is no updates available!</p>

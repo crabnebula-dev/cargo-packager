@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::{util, Config};
 
 /// The packaging context info
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Context {
     /// The config for the app we are packaging
     pub config: Config,

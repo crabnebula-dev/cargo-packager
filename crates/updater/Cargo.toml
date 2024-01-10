@@ -32,6 +32,15 @@ minisign-verify = "0.2"
 ctor = "0.2"
 tempfile = "3.9"
 
+[target."cfg(target_os = \"windows\")".dependencies.windows]
+version = "0.52"
+features = [
+  "Win32_Foundation",
+  "Win32_System_Services",
+  "Win32_Security",
+]
+
+
 [target."cfg(target_os = \"macos\")".dependencies]
 tar = { workspace = true }
 flate2 = "1.0"
