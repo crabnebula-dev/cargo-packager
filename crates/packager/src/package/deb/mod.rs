@@ -9,8 +9,8 @@ use std::{
     ffi::OsStr,
     fs::File,
     io::Write,
-    path::{Path, PathBuf},
     os::unix::fs::MetadataExt,
+    path::{Path, PathBuf},
 };
 
 use handlebars::Handlebars;
@@ -18,8 +18,8 @@ use heck::AsKebabCase;
 use image::{codecs::png::PngDecoder, ImageDecoder};
 use relative_path::PathExt;
 use serde::Serialize;
-use walkdir::WalkDir;
 use tar::HeaderMode;
+use walkdir::WalkDir;
 
 use super::Context;
 use crate::{
