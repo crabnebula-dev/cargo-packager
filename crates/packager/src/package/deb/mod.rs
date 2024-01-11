@@ -10,6 +10,7 @@ use std::{
     fs::File,
     io::Write,
     path::{Path, PathBuf},
+    os::unix::fs::MetadataExt,
 };
 
 use handlebars::Handlebars;
@@ -18,6 +19,7 @@ use image::{codecs::png::PngDecoder, ImageDecoder};
 use relative_path::PathExt;
 use serde::Serialize;
 use walkdir::WalkDir;
+use tar::HeaderMode;
 
 use super::Context;
 use crate::{
@@ -426,22 +428,15 @@ fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> cr
             continue;
         }
         let dest_path = src_path.strip_prefix(src_dir)?;
+        let stat = std::fs::metadata(src_path)?;
+        let mut header = tar::Header::new_gnu();
+        header.set_metadata_in_mode(&stat, HeaderMode::Deterministic);
+        header.set_mtime(stat.mtime() as u64);
+
         if entry.file_type().is_dir() {
-            let stat = std::fs::metadata(src_path)?;
-            let mut header = tar::Header::new_gnu();
-            header.set_mode(0o755);
-            header.set_metadata(&stat);
-            header.set_uid(0);
-            header.set_gid(0);
             tar_builder.append_data(&mut header, dest_path, &mut std::io::empty())?;
         } else {
             let mut src_file = std::fs::File::open(src_path)?;
-            let stat = src_file.metadata()?;
-            let mut header = tar::Header::new_gnu();
-            header.set_mode(0o644);
-            header.set_metadata(&stat);
-            header.set_uid(0);
-            header.set_gid(0);
             tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
         }
     }
