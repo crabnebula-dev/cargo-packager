@@ -294,7 +294,6 @@ fn generate_control_file(
             writeln!(file, " {}", line)?;
         }
     }
-
     file.flush()?;
     Ok(())
 }
@@ -432,7 +431,6 @@ fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> cr
         let mut header = tar::Header::new_gnu();
         header.set_metadata_in_mode(&stat, HeaderMode::Deterministic);
         header.set_mtime(stat.mtime() as u64);
-
         if entry.file_type().is_dir() {
             tar_builder.append_data(&mut header, dest_path, &mut std::io::empty())?;
         } else {
