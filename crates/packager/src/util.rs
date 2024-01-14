@@ -141,7 +141,19 @@ pub fn target_triple() -> crate::Result<String> {
 
 pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
     tracing::info!("Downloading {}", url);
+
+    // This is required because ureq does not bind native-tls as the default TLS implementation when rustls is not available.
+    // See <https://github.com/crabnebula-dev/cargo-packager/issues/127>
+    #[cfg(feature = "native-tls")]
+    let agent = ureq::AgentBuilder::new()
+        .tls_connector(std::sync::Arc::new(
+            native_tls::TlsConnector::new().unwrap(),
+        ))
+        .try_proxy_from_env(true)
+        .build();
+    #[cfg(not(feature = "native-tls"))]
     let agent = ureq::AgentBuilder::new().try_proxy_from_env(true).build();
+
     let response = agent.get(url).call().map_err(Box::new)?;
     let mut bytes = Vec::new();
     response.into_reader().read_to_end(&mut bytes)?;
