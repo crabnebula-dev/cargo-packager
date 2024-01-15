@@ -311,6 +311,11 @@ pub struct DebianConfig {
     /// ```
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
+    /// Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+    pub section: Option<String>,
+    /// Change the priority of the Debian Package. By default, it is set to `optional`.
+    /// Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
+    pub priority: Option<String>,
     /// List of custom files to add to the deb package.
     /// Maps a dir/file to a dir/file inside the debian package.
     pub files: Option<HashMap<String, String>>,
@@ -355,6 +360,19 @@ impl DebianConfig {
     /// ```
     pub fn desktop_template<P: Into<PathBuf>>(mut self, desktop_template: P) -> Self {
         self.desktop_template.replace(desktop_template.into());
+        self
+    }
+
+    /// Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+    pub fn section<S: Into<String>>(mut self, section: S) -> Self {
+        self.section.replace(section.into());
+        self
+    }
+
+    /// Change the priority of the Debian Package. By default, it is set to `optional`.
+    /// Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
+    pub fn priority<S: Into<String>>(mut self, priority: S) -> Self {
+        self.priority.replace(priority.into());
         self
     }
 

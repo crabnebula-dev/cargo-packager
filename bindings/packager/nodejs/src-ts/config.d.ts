@@ -408,6 +408,14 @@ export interface DebianConfig {
    */
   desktopTemplate?: string | null;
   /**
+   * Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+   */
+  section?: string | null;
+  /**
+   * Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, extra
+   */
+  priority?: string | null;
+  /**
    * List of custom files to add to the deb package. Maps a dir/file to a dir/file inside the debian package.
    */
   files?: {

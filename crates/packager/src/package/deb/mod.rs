@@ -9,6 +9,7 @@ use std::{
     ffi::OsStr,
     fs::File,
     io::Write,
+    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
 };
 
@@ -17,6 +18,7 @@ use heck::AsKebabCase;
 use image::{codecs::png::PngDecoder, ImageDecoder};
 use relative_path::PathExt;
 use serde::Serialize;
+use tar::HeaderMode;
 use walkdir::WalkDir;
 
 use super::Context;
@@ -252,6 +254,16 @@ fn generate_control_file(
     if let Some(authors) = &config.authors {
         writeln!(file, "Maintainer: {}", authors.join(", "))?;
     }
+    if let Some(section) = config.deb().and_then(|d| d.section.as_ref()) {
+        writeln!(file, "Section: {}", section)?;
+    }
+
+    if let Some(priority) = config.deb().and_then(|d| d.priority.as_ref()) {
+        writeln!(file, "Priority: {}", priority)?;
+    } else {
+        writeln!(file, "Priority: optional")?;
+    }
+
     if let Some(homepage) = &config.homepage {
         writeln!(file, "Homepage: {}", homepage)?;
     }
@@ -282,7 +294,6 @@ fn generate_control_file(
             writeln!(file, " {}", line)?;
         }
     }
-    writeln!(file, "Priority: optional")?;
     file.flush()?;
     Ok(())
 }
@@ -416,22 +427,14 @@ fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> cr
             continue;
         }
         let dest_path = src_path.strip_prefix(src_dir)?;
+        let stat = std::fs::metadata(src_path)?;
+        let mut header = tar::Header::new_gnu();
+        header.set_metadata_in_mode(&stat, HeaderMode::Deterministic);
+        header.set_mtime(stat.mtime() as u64);
         if entry.file_type().is_dir() {
-            let stat = std::fs::metadata(src_path)?;
-            let mut header = tar::Header::new_gnu();
-            header.set_mode(0o755);
-            header.set_metadata(&stat);
-            header.set_uid(0);
-            header.set_gid(0);
             tar_builder.append_data(&mut header, dest_path, &mut std::io::empty())?;
         } else {
             let mut src_file = std::fs::File::open(src_path)?;
-            let stat = src_file.metadata()?;
-            let mut header = tar::Header::new_gnu();
-            header.set_mode(0o644);
-            header.set_metadata(&stat);
-            header.set_uid(0);
-            header.set_gid(0);
             tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
         }
     }
