@@ -364,14 +364,14 @@ impl DebianConfig {
     }
 
     /// Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
-    pub fn section<S: Into<String>>(self, section: S) -> Self {
+    pub fn section<S: Into<String>>(mut self, section: S) -> Self {
         self.section.replace(section.into());
         self
     }
 
     /// Change the priority of the Debian Package. By default, it is set to `optional`.
     /// Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
-    pub fn priority<S: Into<String>>(self, priority: S) -> Self {
+    pub fn priority<S: Into<String>>(mut self, priority: S) -> Self {
         self.priority.replace(priority.into());
         self
     }
