@@ -412,7 +412,7 @@ export interface DebianConfig {
    */
   section?: string | null;
   /**
-   * Change the priority of the Debian Package. By default, it is set to optional. Recognized Priorities as of now are :  required, important, standard, optional, extra
+   * Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, extra
    */
   priority?: string | null;
   /**
