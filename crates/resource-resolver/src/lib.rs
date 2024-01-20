@@ -34,6 +34,7 @@
 //! ```
 //!
 use error::Result;
+use heck::ToKebabCase;
 use std::{env, path::PathBuf};
 
 mod error;
@@ -115,7 +116,7 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
         }
         PackageFormat::Deb => {
             let exe = current_exe()?;
-            let exe_name = exe.file_name().unwrap().to_string_lossy();
+            let exe_name = exe.file_name().unwrap().to_string_lossy().to_kebab_case();
 
             let path = format!("/usr/lib/{}/", exe_name);
             Ok(PathBuf::from(path))
@@ -145,7 +146,7 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
             let appdir: &std::path::Path = appdir.as_ref();
 
             let exe = current_exe()?;
-            let exe_name = exe.file_name().unwrap().to_string_lossy();
+            let exe_name = exe.file_name().unwrap().to_string_lossy().to_kebab_case();
 
             Ok(PathBuf::from(format!(
                 "{}/usr/lib/{}",
