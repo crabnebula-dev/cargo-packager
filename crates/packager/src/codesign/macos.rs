@@ -148,7 +148,7 @@ pub fn delete_keychain() {
 #[derive(Debug)]
 pub struct SignTarget {
     pub path: PathBuf,
-    pub is_an_executable: bool,
+    pub is_native_binary: bool,
 }
 
 #[tracing::instrument(level = "trace")]
@@ -170,7 +170,7 @@ pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> cr
             &target.path,
             identity,
             config,
-            target.is_an_executable,
+            target.is_native_binary,
             packager_keychain,
         )?;
     }
@@ -188,8 +188,8 @@ fn sign(
     path_to_sign: &Path,
     identity: &str,
     config: &Config,
-    is_an_executable: bool,
-    pcakger_keychain: bool,
+    is_native_binary: bool,
+    packager_keychain: bool,
 ) -> crate::Result<()> {
     tracing::info!(
         "Codesigning {} with identity \"{}\"",
@@ -199,7 +199,7 @@ fn sign(
 
     let mut args = vec!["--force", "-s", identity];
 
-    if pcakger_keychain {
+    if packager_keychain {
         args.push("--keychain");
         args.push(KEYCHAIN_ID);
     }
@@ -209,14 +209,12 @@ fn sign(
         args.push(entitlements_path);
     }
 
-    if is_an_executable {
+    if is_native_binary {
         args.push("--options");
         args.push("runtime");
     }
 
-    if path_to_sign.is_dir() {
-        args.push("--deep");
-    }
+    args.push("--timestamp");
 
     Command::new("codesign")
         .args(args)
@@ -275,7 +273,7 @@ pub fn notarize(
         try_sign(
             vec![SignTarget {
                 path: zip_path.clone(),
-                is_an_executable: false,
+                is_native_binary: false,
             }],
             identity,
             config,

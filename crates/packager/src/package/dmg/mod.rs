@@ -199,7 +199,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         codesign::try_sign(
             vec![codesign::SignTarget {
                 path: dmg_path.clone(),
-                is_an_executable: false,
+                is_native_binary: false,
             }],
             identity,
             config,
