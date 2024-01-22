@@ -49,6 +49,8 @@ pub enum PackageFormat {
     Deb,
     /// The Linux AppImage package (.AppImage).
     AppImage,
+    /// The Linux Pacman bundle (PKGBUILD)
+    Pacman,
 }
 
 impl Display for PackageFormat {
@@ -59,7 +61,7 @@ impl Display for PackageFormat {
 
 impl PackageFormat {
     /// Maps a short name to a [PackageFormat].
-    /// Possible values are "deb", "ios", "wix", "app", "rpm", "appimage", "dmg".
+    /// Possible values are "deb", "ios", "wix", "app", "rpm", "pacman", "appimage", "dmg".
     pub fn from_short_name(name: &str) -> Option<PackageFormat> {
         // Other types we may eventually want to support: apk.
         match name {
@@ -69,6 +71,7 @@ impl PackageFormat {
             "nsis" => Some(PackageFormat::Nsis),
             "deb" => Some(PackageFormat::Deb),
             "appimage" => Some(PackageFormat::AppImage),
+            "pacman" => Some(PackageFormat::Pacman),
             _ => None,
         }
     }
@@ -84,6 +87,7 @@ impl PackageFormat {
             PackageFormat::Nsis => "nsis",
             PackageFormat::Deb => "deb",
             PackageFormat::AppImage => "appimage",
+            PackageFormat::Pacman => "pacman",
         }
     }
 
@@ -91,7 +95,7 @@ impl PackageFormat {
     ///
     /// - **macOS**: App, Dmg
     /// - **Windows**: Nsis, Wix
-    /// - **Linux**: Deb, AppImage
+    /// - **Linux**: Deb, AppImage, Pacman
     pub fn platform_all() -> &'static [PackageFormat] {
         &[
             #[cfg(target_os = "macos")]
@@ -118,6 +122,14 @@ impl PackageFormat {
                 target_os = "openbsd"
             ))]
             PackageFormat::AppImage,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Pacman,
         ]
     }
 
@@ -125,7 +137,7 @@ impl PackageFormat {
     ///
     /// - **macOS**: App, Dmg
     /// - **Windows**: Nsis
-    /// - **Linux**: Deb, AppImage
+    /// - **Linux**: Deb, AppImage, Pacman
     pub fn platform_default() -> &'static [PackageFormat] {
         &[
             #[cfg(target_os = "macos")]
@@ -150,6 +162,14 @@ impl PackageFormat {
                 target_os = "openbsd"
             ))]
             PackageFormat::AppImage,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Pacman,
         ]
     }
 
@@ -167,6 +187,7 @@ impl PackageFormat {
             PackageFormat::Wix => 0,
             PackageFormat::Nsis => 0,
             PackageFormat::Deb => 0,
+            PackageFormat::Pacman => 0,
             PackageFormat::AppImage => 0,
             PackageFormat::Dmg => 1,
         }
@@ -484,6 +505,84 @@ impl AppImageConfig {
                 .map(|(k, v)| (k.into(), v.into()))
                 .collect(),
         );
+        self
+    }
+}
+
+/// The Linux pacman configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct PacmanConfig {
+    // Arch Linux Specific settings.
+    /// List of Pacman dependencies.
+    pub depends: Option<Vec<String>>,
+    /// Additional packages that are provided by this app.
+    pub provides: Option<Vec<String>>,
+    /// Packages that conflict with the app.
+    pub conflicts: Option<Vec<String>>,
+    /// Only use if this app replaces some obsolete packages
+    pub replaces: Option<Vec<String>>,
+    /// Source of the package to be stored at PKGBUILD.
+    /// PKGBUILD is a bash script, so version can be referred as ${pkgver}
+    pub source: Option<Vec<String>>,
+}
+
+impl PacmanConfig {
+    /// Creates a new [`PacmanConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the list of pacman dependencies.
+    pub fn depends<I, S>(mut self, depends: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.depends
+            .replace(depends.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of additional packages that are provided by this app.
+    pub fn provides<I, S>(mut self, provides: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.provides
+            .replace(provides.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of packages that conflict with the app.
+    pub fn conflicts<I, S>(mut self, conflicts: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.conflicts
+            .replace(conflicts.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of obsolete packages that are replaced by this package.
+    pub fn replaces<I, S>(mut self, replaces: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.replaces
+            .replace(replaces.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of sources where the package will be stored.
+    pub fn source<I, S>(mut self, source: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.source
+            .replace(source.into_iter().map(Into::into).collect());
         self
     }
 }
@@ -1546,6 +1645,8 @@ pub struct Config {
     pub deb: Option<DebianConfig>,
     /// AppImage configuration.
     pub appimage: Option<AppImageConfig>,
+    /// Pacman configuration.
+    pub pacman: Option<PacmanConfig>,
     /// WiX configuration.
     pub wix: Option<WixConfig>,
     /// Nsis configuration.
@@ -1588,6 +1689,11 @@ impl Config {
     /// Returns the [appimage](Config::appimage) specific configuration.
     pub fn appimage(&self) -> Option<&AppImageConfig> {
         self.appimage.as_ref()
+    }
+
+    /// Returns the [pacman](Config::pacman) specific configuration.
+    pub fn pacman(&self) -> Option<&PacmanConfig> {
+        self.pacman.as_ref()
     }
 
     /// Returns the [dmg](Config::dmg) specific configuration.

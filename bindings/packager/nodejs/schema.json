@@ -252,6 +252,17 @@
         }
       ]
     },
+    "pacman": {
+      "description": "Pacman configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PacmanConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "wix": {
       "description": "WiX configuration.",
       "anyOf": [
@@ -433,6 +444,13 @@
           "type": "string",
           "enum": [
             "appimage"
+          ]
+        },
+        {
+          "description": "The Linux Pacman bundle (PKGBUILD)",
+          "type": "string",
+          "enum": [
+            "pacman"
           ]
         }
       ]
@@ -790,6 +808,63 @@
             "null"
           ],
           "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "PacmanConfig": {
+      "description": "The Linux pacman configuration.",
+      "type": "object",
+      "properties": {
+        "depends": {
+          "description": "List of Pacman dependencies.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provides": {
+          "description": "Additional packages that are provided by this app.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "conflicts": {
+          "description": "Packages that conflict with the app.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "replaces": {
+          "description": "Only use if this app replaces some obsolete packages",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "description": "Source of the package to be stored at PKGBUILD. PKGBUILD is a bash script, so version can be referred as ${pkgver}",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
             "type": "string"
           }
         }

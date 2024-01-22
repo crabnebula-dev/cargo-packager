@@ -29,6 +29,14 @@ mod deb;
 #[cfg(target_os = "macos")]
 mod dmg;
 mod nsis;
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd"
+))]
+mod pacman;
 #[cfg(windows)]
 mod wix;
 
@@ -121,6 +129,14 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
                 target_os = "openbsd"
             ))]
             PackageFormat::AppImage => appimage::package(&ctx),
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Pacman => pacman::package(&ctx),
 
             _ => {
                 tracing::warn!("ignoring {}", format.short_name());
