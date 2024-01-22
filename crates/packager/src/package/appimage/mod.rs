@@ -3,17 +3,21 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+use handlebars::{to_json, Handlebars};
+use std::io::Write;
+use std::os::unix::fs::MetadataExt;
 use std::{
     collections::BTreeMap,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     process::Command,
 };
+use tar::HeaderMode;
 
-use handlebars::{to_json, Handlebars};
+use crate::util::PathExt;
+use crate::{shell::CommandExt, util};
 
 use super::Context;
-use crate::{shell::CommandExt, util};
 
 #[tracing::instrument(level = "trace")]
 fn donwload_dependencies(
@@ -59,6 +63,30 @@ fn donwload_dependencies(
     }
 
     Ok(())
+}
+
+fn tar_and_gzip_file<P: AsRef<Path>>(file: P) -> crate::Result<PathBuf> {
+    let file = file.as_ref();
+    let dest_path = file.with_additional_extension("tar.gz");
+    let dest_file = util::create_file(&dest_path)?;
+    let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
+    let gzip_encoder = create_tar_from_file(file, gzip_encoder)?;
+    let mut dest_file = gzip_encoder.finish().into_result()?;
+    dest_file.flush()?;
+    Ok(dest_path)
+}
+
+fn create_tar_from_file<P: AsRef<Path>, W: Write>(src_file: P, dest_file: W) -> crate::Result<W> {
+    let src_file = src_file.as_ref();
+    let mut tar_builder = tar::Builder::new(dest_file);
+    let dest_path = src_file.file_name().unwrap();
+    let stat = std::fs::metadata(src_file)?;
+    let mut header = tar::Header::new_gnu();
+    header.set_metadata_in_mode(&stat, HeaderMode::Deterministic);
+    header.set_mtime(stat.mtime() as u64);
+    let mut src_file = std::fs::File::open(src_file)?;
+    tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
+    tar_builder.into_inner().map_err(Into::into)
 }
 
 #[tracing::instrument(level = "trace")]
@@ -177,5 +205,6 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .output_ok()
         .map_err(crate::Error::AppImageScriptFailed)?;
 
-    Ok(vec![appimage_path])
+    let appimage_targz = tar_and_gzip_file(&appimage_path)?;
+    Ok(vec![appimage_path, appimage_targz])
 }
