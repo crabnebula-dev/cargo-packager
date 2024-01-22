@@ -143,10 +143,7 @@ fn generate_pkgbuild_file(
     let sha_hash = sha512.finalize();
 
     writeln!(file, "sha512sums=(\"{:x}\")", sha_hash)?;
-    writeln!(
-        file,
-        "package() {{\n\tcp -r ${{srcdir}}/* ${{pkgdir}}/\n}}"
-    )?;
+    writeln!(file, "package() {{\n\tcp -r ${{srcdir}}/* ${{pkgdir}}/\n}}")?;
 
     file.flush()?;
     Ok(())
