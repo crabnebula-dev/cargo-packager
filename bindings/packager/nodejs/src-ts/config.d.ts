@@ -412,7 +412,7 @@ export interface DebianConfig {
    */
   desktopTemplate?: string | null;
   /**
-   * Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+   * Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
    */
   section?: string | null;
   /**

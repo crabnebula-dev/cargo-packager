@@ -33,7 +33,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     util::create_clean_dir(&intermediates_path)?;
 
     let package_base_name = format!(
-        "{}-{}-1-{}",
+        "{}_{}_{}",
         config.main_binary_name()?,
         config.version,
         arch
@@ -67,7 +67,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
 /// Generates the pacman PKGBUILD file.
 /// For more information about the format of this file, see
-/// https://wiki.archlinux.org/title/PKGBUILD
+/// <https://wiki.archlinux.org/title/PKGBUILD>
 fn generate_pkgbuild_file(
     config: &Config,
     arch: &str,

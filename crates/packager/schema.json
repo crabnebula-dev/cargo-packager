@@ -741,7 +741,7 @@
           ]
         },
         "section": {
-          "description": "Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections",
+          "description": "Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>",
           "type": [
             "string",
             "null"

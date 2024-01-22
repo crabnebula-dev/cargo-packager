@@ -332,7 +332,7 @@ pub struct DebianConfig {
     /// ```
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
-    /// Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+    /// Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
     pub section: Option<String>,
     /// Change the priority of the Debian Package. By default, it is set to `optional`.
     /// Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
@@ -384,7 +384,7 @@ impl DebianConfig {
         self
     }
 
-    /// Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+    /// Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
     pub fn section<S: Into<String>>(mut self, section: S) -> Self {
         self.section.replace(section.into());
         self
