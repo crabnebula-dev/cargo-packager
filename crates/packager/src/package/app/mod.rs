@@ -90,8 +90,15 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
                 let mut buffer = [0; 4];
                 std::io::Read::read_exact(&mut open_file, &mut buffer)?;
 
-                const MACH_O_MAGIC_NUMBERS: [u32; 5] =
-                    [0xfeedface, 0xfeedfacf, 0xcafebabe, 0xcefaedfe, 0xcffaedfe];
+                const MACH_O_MAGIC_NUMBERS: [u32; 5] = [
+                    0xfeedface, // 32 bit binary little-endian
+                    0xcefaedfe, // 32 bit binary big-endian
+                    0xfeedfacf, // 64 bit binary little-endian
+                    0xcffaedfe, // 64 bit binary big-endian
+                    0xcafebabe, // universal binary
+                    0xfeedfeed, // core dump files
+                    0xfacffeed, // used by electron on x86
+                ];
 
                 let magic = u32::from_be_bytes(buffer);
 
