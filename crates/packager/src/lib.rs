@@ -90,6 +90,7 @@ pub mod sign;
 pub use config::{Config, PackageFormat};
 pub use error::{Error, Result};
 pub use sign::SigningConfig;
+use flate2::{write::GzEncoder, Compression};
 
 pub use package::{package, PackageOuput};
 use util::PathExt;
@@ -140,9 +141,9 @@ pub fn sign_outputs(
             let path = if path.is_dir() {
                 let zip = path.with_additional_extension("tar.gz");
                 let dest_file = util::create_file(&zip)?;
-                let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
+                let gzip_encoder = GzEncoder::new(dest_file, Compression::default());
                 let writer = util::create_tar_from_dir(path, gzip_encoder)?;
-                let mut dest_file = writer.finish().into_result()?;
+                let mut dest_file = writer.finish()?;
                 dest_file.flush()?;
 
                 package.paths.push(zip);

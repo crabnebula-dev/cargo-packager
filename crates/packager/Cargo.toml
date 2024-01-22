@@ -61,7 +61,7 @@ walkdir = "2"
 os_pipe = "1"
 minisign = "0.7"
 tar = { workspace = true }
-libflate = "2.0"
+flate2 = "1.0"
 strsim = "0.10"
 schemars = { workspace = true, optional = true }
 native-tls = { version = "0.2", optional = true }
