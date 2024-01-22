@@ -28,7 +28,7 @@ export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
 /**
  * The type of the package we're packaging.
  */
-export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage";
+export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage" | "pacman";
 /**
  * The possible app categories. Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
  */
@@ -265,6 +265,10 @@ export interface Config {
    */
   appimage?: AppImageConfig | null;
   /**
+   * Pacman configuration.
+   */
+  pacman?: PacmanConfig | null;
+  /**
    * WiX configuration.
    */
   wix?: WixConfig | null;
@@ -412,7 +416,7 @@ export interface DebianConfig {
    */
   section?: string | null;
   /**
-   * Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, extra
+   * Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
    */
   priority?: string | null;
   /**
@@ -446,6 +450,31 @@ export interface AppImageConfig {
   linuxdeployPlugins?: {
     [k: string]: string;
   } | null;
+}
+/**
+ * The Linux pacman configuration.
+ */
+export interface PacmanConfig {
+  /**
+   * List of Pacman dependencies.
+   */
+  depends?: string[] | null;
+  /**
+   * Additional packages that are provided by this app.
+   */
+  provides?: string[] | null;
+  /**
+   * Packages that conflict with the app.
+   */
+  conflicts?: string[] | null;
+  /**
+   * Only use if this app replaces some obsolete packages
+   */
+  replaces?: string[] | null;
+  /**
+   * Source of the package to be stored at PKGBUILD. PKGBUILD is a bash script, so version can be referred as ${pkgver}
+   */
+  source?: string[] | null;
 }
 /**
  * The wix format configuration
