@@ -13,10 +13,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use flate2::{write::GzEncoder, Compression};
 use handlebars::Handlebars;
 use heck::AsKebabCase;
 use image::{codecs::png::PngDecoder, ImageDecoder};
-use flate2::{write::GzEncoder, Compression};
 use relative_path::PathExt;
 use serde::Serialize;
 use tar::HeaderMode;

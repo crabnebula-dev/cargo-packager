@@ -89,8 +89,8 @@ pub mod sign;
 
 pub use config::{Config, PackageFormat};
 pub use error::{Error, Result};
-pub use sign::SigningConfig;
 use flate2::{write::GzEncoder, Compression};
+pub use sign::SigningConfig;
 
 pub use package::{package, PackageOuput};
 use util::PathExt;

@@ -2,14 +2,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use super::{Context, deb::{copy_custom_files, generate_data, tar_and_gzip_dir}};
+use super::{
+    deb::{copy_custom_files, generate_data, tar_and_gzip_dir},
+    Context,
+};
+use crate::{config::Config, util};
 use heck::AsKebabCase;
 use sha2::{Digest, Sha512};
-use std::{fs::File,
+use std::{
+    fs::File,
     io::{self, Write},
     path::{Path, PathBuf},
 };
-use crate::{config::Config, util};
 
 #[tracing::instrument(level = "trace")]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
@@ -28,7 +32,12 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let intermediates_path = intermediates_path.join("pacman");
     util::create_clean_dir(&intermediates_path)?;
 
-    let package_base_name = format!("{}-{}-1-{}", config.main_binary_name()?, config.version, arch);
+    let package_base_name = format!(
+        "{}-{}-1-{}",
+        config.main_binary_name()?,
+        config.version,
+        arch
+    );
     let package_name = format!("{}.tar.gz", package_base_name);
 
     let pkg_dir = intermediates_path.join(&package_base_name);
@@ -64,78 +73,81 @@ fn generate_pkgbuild_file(
     arch: &str,
     dest_dir: &Path,
     package_path: &Path,
-  ) -> crate::Result<()> {
+) -> crate::Result<()> {
     let pkgbuild_path = dest_dir.with_file_name("PKGBUILD");
     let mut file = util::create_file(&pkgbuild_path)?;
-  
+
     if let Some(authors) = &config.authors {
-      writeln!(file, "# Maintainer: {}", authors.join(", "))?;
+        writeln!(file, "# Maintainer: {}", authors.join(", "))?;
     }
     writeln!(file, "pkgname={}-bin", AsKebabCase(&config.product_name))?;
     writeln!(file, "pkgver={}", config.version)?;
     writeln!(file, "pkgrel=1")?;
     writeln!(file, "epoch=")?;
-    writeln!(file, "pkgdesc=\"{}\"", config.description.as_deref().unwrap_or(""))?;
+    writeln!(
+        file,
+        "pkgdesc=\"{}\"",
+        config.description.as_deref().unwrap_or("")
+    )?;
     writeln!(file, "arch=('{}')", arch)?;
 
     if let Some(homepage) = &config.homepage {
-      writeln!(file, "url=\"{}\"", homepage)?;
+        writeln!(file, "url=\"{}\"", homepage)?;
     }
-  
+
     let dependencies = config
-      .pacman()
-      .cloned()
-      .and_then(|d| d.depends)
-      .unwrap_or_default();
+        .pacman()
+        .cloned()
+        .and_then(|d| d.depends)
+        .unwrap_or_default();
     writeln!(file, "depends=({})", dependencies.join(" \n"))?;
-  
+
     let provides = config
-      .pacman()
-      .cloned()
-      .and_then(|d| d.provides)
-      .unwrap_or_default();
+        .pacman()
+        .cloned()
+        .and_then(|d| d.provides)
+        .unwrap_or_default();
     writeln!(file, "provides=({})", provides.join(" \n"))?;
-  
+
     let conflicts = config
-      .pacman()
-      .cloned()
-      .and_then(|d| d.conflicts)
-      .unwrap_or_default();
+        .pacman()
+        .cloned()
+        .and_then(|d| d.conflicts)
+        .unwrap_or_default();
     writeln!(file, "conflicts=({})", conflicts.join(" \n"))?;
-  
+
     let replaces = config
-      .pacman()
-      .cloned()
-      .and_then(|d| d.replaces)
-      .unwrap_or_default();
+        .pacman()
+        .cloned()
+        .and_then(|d| d.replaces)
+        .unwrap_or_default();
     writeln!(file, "replaces=({})", replaces.join(" \n"))?;
-  
+
     writeln!(file, "options=(!lto)")?;
     let source = config
         .pacman()
         .cloned()
         .and_then(|d| d.source)
         .unwrap_or_default();
-    
+
     if source.is_empty() {
-      writeln!(file, "source=({:?})", package_path.file_name().unwrap())?;
+        writeln!(file, "source=({:?})", package_path.file_name().unwrap())?;
     } else {
-      writeln!(file, "source=({})", source.join(" \n"))?;
+        writeln!(file, "source=({})", source.join(" \n"))?;
     }
-  
+
     // Generate SHA512 sum of the package
     let mut sha_file = File::open(package_path)?;
     let mut sha512 = Sha512::new();
     io::copy(&mut sha_file, &mut sha512)?;
     let sha_hash = sha512.finalize();
-  
+
     writeln!(file, "sha512sums=(\"{:x}\")", sha_hash)?;
     writeln!(
-      file,
-      "package() {{\n\tcp -r ${{srcdir}}/data/* ${{pkgdir}}/\n}}"
+        file,
+        "package() {{\n\tcp -r ${{srcdir}}/data/* ${{pkgdir}}/\n}}"
     )?;
-  
+
     file.flush()?;
     Ok(())
-  }
-  
+}
