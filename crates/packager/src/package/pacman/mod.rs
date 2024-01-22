@@ -145,7 +145,7 @@ fn generate_pkgbuild_file(
     writeln!(file, "sha512sums=(\"{:x}\")", sha_hash)?;
     writeln!(
         file,
-        "package() {{\n\tcp -r ${{srcdir}}/data/* ${{pkgdir}}/\n}}"
+        "package() {{\n\tcp -r ${{srcdir}}/* ${{pkgdir}}/\n}}"
     )?;
 
     file.flush()?;
