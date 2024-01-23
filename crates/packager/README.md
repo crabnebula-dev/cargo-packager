@@ -13,6 +13,7 @@ It also has a compatible updater through [cargo-packager-updater](https://docs.r
 - Linux
   - Debian package (.deb)
   - AppImage (.AppImage)
+  - Pacman (.tar.gz and PKGBUILD)
 - Windows
   - NSIS (.exe)
   - MSI using WiX Toolset (.msi)
