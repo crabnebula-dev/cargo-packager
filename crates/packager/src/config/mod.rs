@@ -515,7 +515,6 @@ impl AppImageConfig {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[non_exhaustive]
 pub struct PacmanConfig {
-    // Arch Linux Specific settings.
     /// List of Pacman dependencies.
     pub depends: Option<Vec<String>>,
     /// Additional packages that are provided by this app.
