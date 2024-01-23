@@ -447,7 +447,7 @@
           ]
         },
         {
-          "description": "The Linux Pacman bundle (PKGBUILD)",
+          "description": "The Linux Pacman package (.tar.gz and PKGBUILD)",
           "type": "string",
           "enum": [
             "pacman"
