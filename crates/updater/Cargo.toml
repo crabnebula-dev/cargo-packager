@@ -14,7 +14,7 @@ native-tls-vendored = ["reqwest/native-tls-vendored"]
 rustls-tls = ["reqwest/rustls-tls"]
 
 [dependencies]
-cargo-packager-utils = { path = "../utils" }
+cargo-packager-utils = { version = "0.0.0", path = "../utils" }
 
 reqwest = { version = "0.11", default-features = false, features = [
   "json",
