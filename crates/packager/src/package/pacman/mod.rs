@@ -44,8 +44,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     tracing::debug!("Generating data");
     let _ = generate_data(config, &pkg_dir)?;
 
-    tracing::debug!("Copying files specified in `deb.files`");
-    if let Some(files) = config.deb().and_then(|d| d.files.as_ref()) {
+    tracing::debug!("Copying files specified in `pacman.files`");
+    if let Some(files) = config.pacman().and_then(|d| d.files.as_ref()) {
         copy_custom_files(files, &pkg_dir)?;
     }
 

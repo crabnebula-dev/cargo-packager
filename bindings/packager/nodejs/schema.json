@@ -818,6 +818,16 @@
       "description": "The Linux pacman configuration.",
       "type": "object",
       "properties": {
+        "files": {
+          "description": "List of custom files to add to the pacman package. Maps a dir/file to a dir/file inside the pacman package.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "depends": {
           "description": "List of Pacman dependencies.",
           "type": [

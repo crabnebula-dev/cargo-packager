@@ -515,6 +515,9 @@ impl AppImageConfig {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[non_exhaustive]
 pub struct PacmanConfig {
+    /// List of custom files to add to the pacman package.
+    /// Maps a dir/file to a dir/file inside the pacman package.
+    pub files: Option<HashMap<String, String>>,
     /// List of Pacman dependencies.
     pub depends: Option<Vec<String>>,
     /// Additional packages that are provided by this app.
@@ -533,7 +536,22 @@ impl PacmanConfig {
     pub fn new() -> Self {
         Self::default()
     }
-
+    /// Set the list of custom files to add to the pacman package.
+    /// Maps a dir/file to a dir/file inside the pacman package.
+    pub fn files<I, S, T>(mut self, files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, T)>,
+        S: Into<String>,
+        T: Into<String>,
+    {
+        self.files.replace(
+            files
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
+        );
+        self
+    }
     /// Set the list of pacman dependencies.
     pub fn depends<I, S>(mut self, depends: I) -> Self
     where
