@@ -7053,7 +7053,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-example-with-updater"
+name = "tauri-example"
 version = "0.0.0"
 dependencies = [
  "cargo-packager-updater",

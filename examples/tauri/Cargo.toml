@@ -1,7 +1,7 @@
 [package]
-name = "tauri-example-with-updater"
+name = "tauri-example"
 version = "0.0.0"
-description = "Tauri Example ( with updater )"
+description = "Tauri Example"
 edition = "2021"
 publish = false
 
@@ -23,8 +23,8 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [package.metadata.packager]
 before-packaging-command = "cargo tauri build"
-product-name = "Tauri example (with updater)"
-identifier = "com.tauri-with-updater.example"
+product-name = "Tauri example"
+identifier = "com.tauri.example"
 resources = [
   "Cargo.toml",
   "../../README.md",
