@@ -57,9 +57,6 @@ importers:
       '@types/node':
         specifier: ^20.8.10
         version: 20.9.1
-      ava:
-        specifier: ^6.0.0
-        version: 6.0.0
 
   bindings/updater/nodejs:
     devDependencies:
