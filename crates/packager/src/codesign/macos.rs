@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
+    cmp::Ordering,
     ffi::OsString,
     fs::File,
     io::prelude::*,
@@ -145,10 +146,62 @@ pub fn delete_keychain() {
         .output_ok();
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SignTarget {
     pub path: PathBuf,
     pub is_native_binary: bool,
+}
+
+impl Ord for SignTarget {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // This ordering implementation ensures that signing targets with
+        // a shorter path are greater than signing targets with a longer path.
+        //
+        // When sorting in ascending order, this means we first get the long paths
+        // and then the shorter paths (aka depth-first). This is required in order
+        // for signing to work properly on macOS since more deeply nested files
+        // need to be signed first.
+
+        let mut self_iter = self.path.iter();
+        let mut other_iter = other.path.iter();
+
+        let mut self_prev = None;
+        let mut other_prev = None;
+
+        loop {
+            match (self_iter.next(), other_iter.next()) {
+                (Some(s), Some(o)) => {
+                    self_prev = Some(s);
+                    other_prev = Some(o);
+                }
+                // This path has less components than the other path
+                // and thus should come later (Ordering greater)
+                (None, Some(_)) => return Ordering::Greater,
+
+                // This path has more components than the previous path
+                // and thus should come earlier
+                (Some(_), None) => return Ordering::Less,
+
+                (None, None) => {
+                    return match (self_prev, other_prev) {
+                        // Compare by name
+                        (Some(s), Some(o)) => s.cmp(o),
+
+                        // See above for ordering when component size is not the same
+                        (None, Some(_)) => Ordering::Greater,
+                        (Some(_), None) => Ordering::Less,
+                        (None, None) => Ordering::Equal,
+                    };
+                }
+            }
+        }
+    }
+}
+
+impl PartialOrd for SignTarget {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[tracing::instrument(level = "trace")]

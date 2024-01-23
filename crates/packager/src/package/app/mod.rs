@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
+    collections::BinaryHeap,
     ffi::OsStr,
     path::{Path, PathBuf},
     process::Command,
@@ -43,7 +44,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let bin_dir = contents_directory.join("MacOS");
     std::fs::create_dir_all(&bin_dir)?;
 
-    let mut sign_paths = Vec::new();
+    let mut sign_paths = BinaryHeap::new();
 
     let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
 
@@ -159,6 +160,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         remove_extra_attr(&app_bundle_path)?;
 
         // sign application
+        let sign_paths = sign_paths.into_sorted_vec();
         codesign::try_sign(sign_paths, identity, config)?;
 
         // notarization is required for distribution
