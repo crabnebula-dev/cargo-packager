@@ -137,6 +137,7 @@
 #![deny(missing_docs)]
 
 use base64::Engine;
+use cargo_packager_utils::current_exe::current_exe;
 use http::HeaderName;
 use minisign_verify::{PublicKey, Signature};
 use reqwest::{
@@ -155,9 +156,6 @@ use std::{
 use time::OffsetDateTime;
 use url::Url;
 
-use crate::current_exe::current_exe;
-
-mod current_exe;
 mod custom_serialization;
 mod error;
 
