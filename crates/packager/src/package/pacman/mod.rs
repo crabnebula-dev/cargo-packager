@@ -92,37 +92,32 @@ fn generate_pkgbuild_file(
 
     let dependencies = config
         .pacman()
-        .cloned()
-        .and_then(|d| d.depends)
+        .and_then(|d| d.depends.clone())
         .unwrap_or_default();
     writeln!(file, "depends=({})", dependencies.join(" \n"))?;
 
     let provides = config
         .pacman()
-        .cloned()
-        .and_then(|d| d.provides)
+        .and_then(|d| d.provides.clone())
         .unwrap_or_default();
     writeln!(file, "provides=({})", provides.join(" \n"))?;
 
     let conflicts = config
         .pacman()
-        .cloned()
-        .and_then(|d| d.conflicts)
+        .and_then(|d| d.conflicts.clone())
         .unwrap_or_default();
     writeln!(file, "conflicts=({})", conflicts.join(" \n"))?;
 
     let replaces = config
         .pacman()
-        .cloned()
-        .and_then(|d| d.replaces)
+        .and_then(|d| d.replaces.clone())
         .unwrap_or_default();
     writeln!(file, "replaces=({})", replaces.join(" \n"))?;
 
     writeln!(file, "options=(!lto)")?;
     let source = config
         .pacman()
-        .cloned()
-        .and_then(|d| d.source)
+        .and_then(|d| d.source.clone())
         .unwrap_or_default();
 
     if source.is_empty() {
