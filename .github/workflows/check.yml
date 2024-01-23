@@ -32,6 +32,7 @@ jobs:
           version: latest
       - run: pnpm install
       - run: pnpm format:check
+
   rustfmt:
     if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ubuntu-latest

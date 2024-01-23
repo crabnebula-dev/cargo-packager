@@ -1,0 +1,18 @@
+{
+  "name": "@crabnebula/packager-resource-resolver-linux-arm-gnueabihf",
+  "version": "0.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm"
+  ],
+  "main": "packager-resource-resolver.linux-arm-gnueabihf.node",
+  "files": [
+    "packager-resource-resolver.linux-arm-gnueabihf.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
+}

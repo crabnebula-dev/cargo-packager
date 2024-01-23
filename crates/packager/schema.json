@@ -377,7 +377,7 @@
       ]
     },
     "PackageFormat": {
-      "description": "The type of the package we're packaging.",
+      "description": "Types of supported packages by [`cargo-packager`](https://docs.rs/cargo-packager).",
       "oneOf": [
         {
           "description": "All available package formats for the current platform.\n\nSee [`PackageFormat::platform_all`]",

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+use std::path::PathBuf;
+
 /// The result type of `resource-resolver`.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -9,25 +11,21 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
-    /// IO error
-    #[error("{0}: {1}")]
-    Io(String, std::io::Error),
-    /// Environment error
-    #[error("{0}")]
-    Env(String),
-    /// Environment variable error
-    #[error("{0}: {1}")]
-    Var(String, std::env::VarError),
-}
-
-impl Error {
-    /// Construct an [`Error::Io`] error variant
-    pub fn io(desc: &str, err: std::io::Error) -> Self {
-        Error::Io(desc.to_owned(), err)
-    }
-
-    /// Construct an [`Error::Env`] error variant
-    pub fn env(desc: &str) -> Self {
-        Error::Env(desc.to_owned())
-    }
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    /// Unkown package format.
+    #[error("Unkown package format")]
+    UnkownPackageFormat,
+    /// Unsupported package format.
+    #[error("Unsupported package format")]
+    UnsupportedPackageFormat,
+    /// Couldn't find `APPDIR` environment variable.
+    #[error("Couldn't find `APPDIR` environment variable")]
+    AppDirNotFound,
+    /// `APPDIR` or `APPIMAGE` environment variable found but this application was not detected as an AppImage; this might be a security issue.
+    #[error("`APPDIR` or `APPIMAGE` environment variable found but this application was not detected as an AppImage; this might be a security issue.")]
+    InvalidAppImage,
+    /// Couldn't find parent of path.
+    #[error("Couldn't find parent of {0}")]
+    ParentNotFound(PathBuf),
 }

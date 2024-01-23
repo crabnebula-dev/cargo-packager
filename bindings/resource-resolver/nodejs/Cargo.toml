@@ -1,0 +1,20 @@
+[package]
+name = "crabnebula_packager_resource_resolver"
+version = "0.0.0"
+publish = false
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi = { workspace = true, features = ["napi4"] }
+napi-derive = { workspace = true }
+cargo-packager-resource-resolver = { path = "../../../crates/resource-resolver" }
+dunce.workspace = true
+
+[build-dependencies]
+napi-build = { workspace = true }

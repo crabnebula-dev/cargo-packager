@@ -26,7 +26,7 @@ export type HookCommand =
  */
 export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
 /**
- * The type of the package we're packaging.
+ * Types of supported packages by [`cargo-packager`](https://docs.rs/cargo-packager).
  */
 export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage";
 /**
@@ -412,7 +412,7 @@ export interface DebianConfig {
    */
   section?: string | null;
   /**
-   * Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, extra
+   * Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
    */
   priority?: string | null;
   /**

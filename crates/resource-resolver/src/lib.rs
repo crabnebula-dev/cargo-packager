@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-//! # cargo-packager-updater
+//! # cargo-packager-resource-resolver
 //!
 //! Resource resolver for apps that were packaged by [`cargo-packager`](https://docs.rs/cargo-packager).
 //!
@@ -33,56 +33,39 @@
 //! let resource_path = resources_dir(current_format()).unwrap();
 //! ```
 //!
+use std::path::PathBuf;
+
+use cargo_packager_utils::current_exe::current_exe;
+pub use cargo_packager_utils::PackageFormat;
 use error::Result;
-use heck::ToKebabCase;
-use std::{env, path::PathBuf};
 
 mod error;
 
 pub use error::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PackageFormat {
-    /// When no format is used (`cargo run`)
-    None,
-    /// The macOS application bundle (.app).
-    App,
-    /// The macOS DMG package (.dmg).
-    Dmg,
-    /// The Microsoft Software Installer (.msi) through WiX Toolset.
-    Wix,
-    /// The NSIS installer (.exe).
-    Nsis,
-    /// The Linux Debian package (.deb).
-    Deb,
-    /// The Linux AppImage package (.AppImage).
-    AppImage,
-}
-
 /// Get the current package format.
 /// Can only be used if the app was build with cargo-packager
 /// and when the `before-each-package-command` Cargo feature is enabled.
 #[cfg(feature = "auto-detect-format")]
-#[must_use]
-pub fn current_format() -> PackageFormat {
+pub fn current_format() -> crate::Result<PackageFormat> {
     // sync with PackageFormat::short_name function of packager crate
     // maybe having a special crate for the Config struct,
     // that both packager and resource-resolver could be a
     // better alternative
     if cfg!(CARGO_PACKAGER_FORMAT = "app") {
-        PackageFormat::App
+        Ok(PackageFormat::App)
     } else if cfg!(CARGO_PACKAGER_FORMAT = "dmg") {
-        PackageFormat::Dmg
+        Ok(PackageFormat::Dmg)
     } else if cfg!(CARGO_PACKAGER_FORMAT = "wix") {
-        PackageFormat::Wix
+        Ok(PackageFormat::Wix)
     } else if cfg!(CARGO_PACKAGER_FORMAT = "nsis") {
-        PackageFormat::Nsis
+        Ok(PackageFormat::Nsis)
     } else if cfg!(CARGO_PACKAGER_FORMAT = "deb") {
-        PackageFormat::Deb
+        Ok(PackageFormat::Deb)
     } else if cfg!(CARGO_PACKAGER_FORMAT = "appimage") {
-        PackageFormat::AppImage
+        Ok(PackageFormat::AppImage)
     } else {
-        PackageFormat::None
+        Err(Error::UnkownPackageFormat)
     }
 }
 
@@ -95,37 +78,32 @@ pub fn current_format() -> PackageFormat {
 ///
 /// let resource_path = resources_dir(PackageFormat::Nsis).unwrap();
 /// ```
-///
 pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
     match package_format {
-        PackageFormat::None => {
-            env::current_dir().map_err(|e| Error::io("Can't access current dir", e))
-        }
         PackageFormat::App | PackageFormat::Dmg => {
             let exe = current_exe()?;
-            let exe_dir = exe.parent().unwrap();
-            exe_dir
-                .join("../Resources")
-                .canonicalize()
-                .map_err(|e| Error::io("Can't canonicalize path", e))
+            let exe_dir = exe
+                .parent()
+                .ok_or_else(|| Error::ParentNotFound(exe.clone()))?;
+            Ok(exe_dir.join("../Resources"))
         }
         PackageFormat::Wix | PackageFormat::Nsis => {
             let exe = current_exe()?;
-            let exe_dir = exe.parent().unwrap();
+            let exe_dir = exe
+                .parent()
+                .ok_or_else(|| Error::ParentNotFound(exe.clone()))?;
             Ok(exe_dir.to_path_buf())
         }
         PackageFormat::Deb => {
             let exe = current_exe()?;
-            let exe_name = exe.file_name().unwrap().to_string_lossy().to_kebab_case();
+            let exe_name = exe.file_name().unwrap().to_string_lossy();
 
             let path = format!("/usr/lib/{}/", exe_name);
             Ok(PathBuf::from(path))
         }
 
         PackageFormat::AppImage => {
-            let Some(appdir) = std::env::var_os("APPDIR") else {
-                return Err(Error::env("Can't find APPDIR env var"));
-            };
+            let appdir = std::env::var_os("APPDIR").ok_or(Error::AppDirNotFound)?;
 
             // validate that we're actually running on an AppImage
             // an AppImage is mounted to `/$TEMPDIR/.mount_${appPrefix}${hash}`
@@ -140,13 +118,13 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
                 .unwrap_or(true);
 
             if !is_temp {
-                log::warn!("`APPDIR` or `APPIMAGE` environment variable found but this application was not detected as an AppImage; this might be a security issue.");
+                return Err(Error::InvalidAppImage);
             }
 
             let appdir: &std::path::Path = appdir.as_ref();
 
             let exe = current_exe()?;
-            let exe_name = exe.file_name().unwrap().to_string_lossy().to_kebab_case();
+            let exe_name = exe.file_name().unwrap().to_string_lossy();
 
             Ok(PathBuf::from(format!(
                 "{}/usr/lib/{}",
@@ -154,10 +132,6 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
                 exe_name
             )))
         }
+        _ => Err(Error::UnsupportedPackageFormat),
     }
-}
-
-fn current_exe() -> Result<PathBuf> {
-    cargo_packager_utils::current_exe::current_exe()
-        .map_err(|e| Error::io("Can't detect the path of the current exe", e))
 }

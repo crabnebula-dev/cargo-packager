@@ -984,10 +984,11 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager"
-version = "0.4.3"
+version = "0.4.5"
 dependencies = [
  "ar",
  "base64 0.21.5",
+ "cargo-packager-utils",
  "cargo_metadata",
  "clap",
  "dirs",
@@ -1040,7 +1041,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager-resource-resolver"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "cargo-packager-utils",
  "heck",
@@ -1081,9 +1082,12 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager-utils"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
+ "clap",
  "ctor 0.2.6",
+ "schemars",
+ "serde",
 ]
 
 [[package]]
@@ -1591,6 +1595,17 @@ dependencies = [
  "napi-derive",
  "serde_json",
  "tracing",
+]
+
+[[package]]
+name = "crabnebula_packager_resource_resolver"
+version = "0.0.0"
+dependencies = [
+ "cargo-packager-resource-resolver",
+ "dunce",
+ "napi",
+ "napi-build",
+ "napi-derive",
 ]
 
 [[package]]
@@ -3231,9 +3246,9 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.3.22"
+version = "0.3.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d6250322ef6e60f93f9a2162799302cd6f68f79f6e5d85c8c16f14d1d958178"
+checksum = "bb2c4422095b67ee78da96fbb51a4cc413b3b25883c7717ff7ca1ab31022c9c9"
 dependencies = [
  "bytes",
  "fnv",
@@ -3403,7 +3418,7 @@ dependencies = [
  "httpdate",
  "itoa 1.0.10",
  "pin-project-lite",
- "socket2 0.5.5",
+ "socket2 0.4.10",
  "tokio",
  "tower-service",
  "tracing",

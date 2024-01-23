@@ -49,6 +49,18 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
+  bindings/resource-resolver/nodejs:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^2.16.5
+        version: 2.16.5
+      '@types/node':
+        specifier: ^20.8.10
+        version: 20.9.1
+      ava:
+        specifier: ^6.0.0
+        version: 6.0.0
+
   bindings/updater/nodejs:
     devDependencies:
       '@crabnebula/packager':

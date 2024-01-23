@@ -1,5 +1,10 @@
 [workspace]
-members = ["crates/*", "examples/*", "bindings/*/nodejs", "crates/updater/tests/app"]
+members = [
+    "crates/*",
+    "examples/*",
+    "bindings/*/nodejs",
+    "crates/updater/tests/app",
+]
 exclude = ["examples/deno", "examples/wails", "examples/electron"]
 resolver = "2"
 
@@ -25,7 +30,6 @@ tar = "0.4"
 napi = { version = "2.14", default-features = false }
 napi-derive = "2.14"
 napi-build = "2.1.0"
-cargo-packager-utils = { path = "crates/utils" }
 
 [profile.release-size-optimized]
 inherits = "release"

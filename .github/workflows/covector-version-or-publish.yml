@@ -68,3 +68,13 @@ jobs:
           event-type: publish-updater-nodejs
           client-payload: >-
             {"releaseId": "${{ steps.covector.outputs['-crabnebula-updater-releaseId'] }}" }
+
+      - name: Trigger `@crabnebula/packager-resource-resolver` publishing workflow
+        if: |
+          steps.covector.outputs.successfulPublish == 'true' &&
+          contains(steps.covector.outputs.packagesPublished, '@crabnebula/packager-resource-resolver')
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          event-type: publish-packager-resource-resolver-nodejs
+          client-payload: >-
+            {"releaseId": "${{ steps.covector.outputs['-crabnebula-packager-resource-resolver-releaseId'] }}" }
