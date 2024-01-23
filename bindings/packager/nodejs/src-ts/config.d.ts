@@ -456,19 +456,33 @@ export interface AppImageConfig {
  */
 export interface PacmanConfig {
   /**
-   * List of Pacman dependencies.
+   * List of custom files to add to the pacman package. Maps a dir/file to a dir/file inside the pacman package.
+   */
+  files?: {
+    [k: string]: string;
+  } | null;
+  /**
+   * List of softwares that must be installed for the app to build and run.
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
    */
   depends?: string[] | null;
   /**
    * Additional packages that are provided by this app.
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
    */
   provides?: string[] | null;
   /**
-   * Packages that conflict with the app.
+   * Packages that conflict or cause problems with the app. All these packages and packages providing this item will need to be removed
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#conflicts>
    */
   conflicts?: string[] | null;
   /**
-   * Only use if this app replaces some obsolete packages
+   * Only use if this app replaces some obsolete packages. For example, if you rename any package.
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#replaces>
    */
   replaces?: string[] | null;
   /**
