@@ -8,6 +8,7 @@ on:
       - ".github/workflows/check-nodejs-bindings.yml"
       - "crates/packager/**"
       - "crates/updater/**"
+      - "crates/resource-resolver/**"
       - "bindings/*/nodejs/**"
   pull_request:
     branches:
@@ -16,6 +17,7 @@ on:
       - ".github/workflows/check-nodejs-bindings.yml"
       - "crates/packager/**"
       - "crates/updater/**"
+      - "crates/resource-resolver/**"
       - "bindings/*/nodejs/**"
 
 env:

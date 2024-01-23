@@ -1,7 +1,10 @@
 # @crabnebula/packager
 
 Executable packager, bundler and updater. A cli tool and library to generate installers or app bundles for your executables.
-It also has a compatible updater through [@crabnebula/updater](https://www.npmjs.com/package/@crabnebula/updater).
+It also comes with useful addons:
+
+- an [updater](https://www.npmjs.com/package/@crabnebula/updater)
+- a [resource resolver](https://www.npmjs.com/package/@crabnebula/packager-resource-resolver)
 
 #### Supported packages:
 

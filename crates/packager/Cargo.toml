@@ -31,7 +31,8 @@ targets = [
 [features]
 default = [ "cli", "rustls-tls" ]
 cli = [ "clap", "dep:tracing-subscriber" ]
-schema = [ "schemars" ]
+schema = [ "schemars", "cargo-packager-utils/schema" ]
+clap = ["dep:clap", "cargo-packager-utils/clap" ]
 native-tls = [ "ureq/native-tls" ]
 native-tls-vendored = [ "native-tls", "native-tls/vendored" ]
 rustls-tls = [ "ureq/tls" ]
@@ -65,6 +66,7 @@ flate2 = "1.0"
 strsim = "0.10"
 schemars = { workspace = true, optional = true }
 native-tls = { version = "0.2", optional = true }
+cargo-packager-utils = { version = "0.0.0", path = "../utils" , features = ["serde"] }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 winreg = "0.52"

@@ -5,7 +5,9 @@
 //! [![cargo-packager splash](https://github.com/crabnebula-dev/cargo-packager/raw/main/.github/splash.png)](https://github.com/crabnebula-dev/cargo-packager)
 //!
 //! Executable packager, bundler and updater. A cli tool and library to generate installers or app bundles for your executables.
-//! It also has a compatible updater through [cargo-packager-updater](https://docs.rs/cargo-packager-updater).
+//! It also comes with useful addons:
+//! - an [updater](https://docs.rs/cargo-packager-updater)
+//! - a [resource resolver](https://docs.rs/cargo-packager-resource-resolver)
 //!
 //! ### Supported packages
 //!

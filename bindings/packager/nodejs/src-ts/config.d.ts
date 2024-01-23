@@ -26,7 +26,7 @@ export type HookCommand =
  */
 export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
 /**
- * The type of the package we're packaging.
+ * Types of supported packages by [`cargo-packager`](https://docs.rs/cargo-packager).
  */
 export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage" | "pacman";
 /**

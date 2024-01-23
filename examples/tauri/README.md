@@ -10,7 +10,7 @@
 3. package the app
 
    ```sh
-   cargo r -p cargo-packager -- -p tauri-example-with-updater  --release --private-key dummy.key --password ""
+   cargo r -p cargo-packager -- -p tauri-example  --release --private-key dummy.key --password ""
    ```
 
 4. increase the version in `Cargo.toml`

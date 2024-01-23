@@ -100,10 +100,20 @@
     }
   },
   "packages": {
+    "cargo-packager-utils": {
+      "path": "./crates/utils",
+      "manager": "rust",
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/cargo-packager-utils-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
     "cargo-packager": {
       "path": "./crates/packager",
       "manager": "rust",
-      "dependencies": ["cargo-packager-config"],
+      "dependencies": ["cargo-packager-utils"],
       "assets": [
         {
           "path": "${ pkg.path }/target/package/cargo-packager-${ pkgFile.version }.crate",
@@ -114,13 +124,14 @@
     "@crabnebula/packager": {
       "path": "./bindings/packager/nodejs",
       "manager": "javascript",
-      "dependencies": ["cargo-packager"],
+      "dependencies": ["cargo-packager", "cargo-packager-utils"],
       "prepublish": [],
       "publish": [],
       "postpublish": []
     },
     "cargo-packager-updater": {
       "path": "./crates/updater",
+      "dependencies": ["cargo-packager-utils"],
       "manager": "rust",
       "assets": [
         {
@@ -132,7 +143,29 @@
     "@crabnebula/updater": {
       "path": "./bindings/updater/nodejs",
       "manager": "javascript",
-      "dependencies": ["cargo-packager-updater"],
+      "dependencies": ["cargo-packager-updater", "cargo-packager-utils"],
+      "prepublish": [],
+      "publish": [],
+      "postpublish": []
+    },
+    "cargo-packager-resource-resolver": {
+      "path": "./crates/resource-resolver",
+      "dependencies": ["cargo-packager-utils"],
+      "manager": "rust",
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/cargo-packager-resource-resolver-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "@crabnebula/packager-resource-resolver": {
+      "path": "./bindings/resource-resolver/nodejs",
+      "manager": "javascript",
+      "dependencies": [
+        "cargo-packager-resource-resolver",
+        "cargo-packager-utils"
+      ],
       "prepublish": [],
       "publish": [],
       "postpublish": []
