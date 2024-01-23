@@ -75,7 +75,7 @@ fn generate_pkgbuild_file(
     if let Some(authors) = &config.authors {
         writeln!(file, "# Maintainer: {}", authors.join(", "))?;
     }
-    writeln!(file, "pkgname={}-bin", AsKebabCase(&config.product_name))?;
+    writeln!(file, "pkgname={}", AsKebabCase(&config.product_name))?;
     writeln!(file, "pkgver={}", config.version)?;
     writeln!(file, "pkgrel=1")?;
     writeln!(file, "epoch=")?;
