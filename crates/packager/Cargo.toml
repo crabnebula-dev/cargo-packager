@@ -63,7 +63,7 @@ os_pipe = "1"
 minisign = "0.7"
 tar = { workspace = true }
 flate2 = "1.0"
-strsim = "0.10"
+strsim = "0.11"
 schemars = { workspace = true, optional = true }
 native-tls = { version = "0.2", optional = true }
 cargo-packager-utils = { version = "0.0.0", path = "../utils" , features = ["serde"] }
