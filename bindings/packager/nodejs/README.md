@@ -26,7 +26,7 @@ The packager is distributed on NPM as a CLI, you can install it:
 ```sh
 # pnpm
 pnpm add -D @crabnebula/packager
-# pnpm
+# yarn
 yarn add -D @crabnebula/packager
 # npm
 npm i -D @crabnebula/packager
@@ -39,7 +39,7 @@ Once, you are done configuring your app, run:
 ```sh
 # pnpm
 pnpm packager
-# pnpm
+# yarn
 yarn packager
 # npm
 npx packager

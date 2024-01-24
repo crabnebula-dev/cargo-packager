@@ -5,7 +5,7 @@ Updater for apps that was packaged by [`@crabnebula/packager`](https://www.npmjs
 ```sh
 # pnpm
 pnpm add @crabnebula/updater
-# pnpm
+# yarn
 yarn add @crabnebula/updater
 # npm
 npm i @crabnebula/updater
