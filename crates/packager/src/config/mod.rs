@@ -161,7 +161,7 @@ pub struct DebianConfig {
     /// ```
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
-    /// Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+    /// Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
     pub section: Option<String>,
     /// Change the priority of the Debian Package. By default, it is set to `optional`.
     /// Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
@@ -213,7 +213,7 @@ impl DebianConfig {
         self
     }
 
-    /// Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+    /// Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
     pub fn section<S: Into<String>>(mut self, section: S) -> Self {
         self.section.replace(section.into());
         self
@@ -334,6 +334,111 @@ impl AppImageConfig {
                 .map(|(k, v)| (k.into(), v.into()))
                 .collect(),
         );
+        self
+    }
+}
+
+/// The Linux pacman configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct PacmanConfig {
+    /// List of custom files to add to the pacman package.
+    /// Maps a dir/file to a dir/file inside the pacman package.
+    pub files: Option<HashMap<String, String>>,
+    /// List of softwares that must be installed for the app to build and run.
+    ///
+    /// See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
+    pub depends: Option<Vec<String>>,
+    /// Additional packages that are provided by this app.
+    ///
+    /// See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
+    pub provides: Option<Vec<String>>,
+    /// Packages that conflict or cause problems with the app.
+    /// All these packages and packages providing this item will need to be removed
+    ///
+    /// See : <https://wiki.archlinux.org/title/PKGBUILD#conflicts>
+    pub conflicts: Option<Vec<String>>,
+    /// Only use if this app replaces some obsolete packages.
+    /// For example, if you rename any package.
+    ///
+    /// See : <https://wiki.archlinux.org/title/PKGBUILD#replaces>
+    pub replaces: Option<Vec<String>>,
+    /// Source of the package to be stored at PKGBUILD.
+    /// PKGBUILD is a bash script, so version can be referred as ${pkgver}
+    pub source: Option<Vec<String>>,
+}
+
+impl PacmanConfig {
+    /// Creates a new [`PacmanConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set the list of custom files to add to the pacman package.
+    /// Maps a dir/file to a dir/file inside the pacman package.
+    pub fn files<I, S, T>(mut self, files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, T)>,
+        S: Into<String>,
+        T: Into<String>,
+    {
+        self.files.replace(
+            files
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
+        );
+        self
+    }
+    /// Set the list of pacman dependencies.
+    pub fn depends<I, S>(mut self, depends: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.depends
+            .replace(depends.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of additional packages that are provided by this app.
+    pub fn provides<I, S>(mut self, provides: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.provides
+            .replace(provides.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of packages that conflict with the app.
+    pub fn conflicts<I, S>(mut self, conflicts: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.conflicts
+            .replace(conflicts.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of obsolete packages that are replaced by this package.
+    pub fn replaces<I, S>(mut self, replaces: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.replaces
+            .replace(replaces.into_iter().map(Into::into).collect());
+        self
+    }
+    /// Set the list of sources where the package will be stored.
+    pub fn source<I, S>(mut self, source: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.source
+            .replace(source.into_iter().map(Into::into).collect());
         self
     }
 }
@@ -1396,6 +1501,8 @@ pub struct Config {
     pub deb: Option<DebianConfig>,
     /// AppImage configuration.
     pub appimage: Option<AppImageConfig>,
+    /// Pacman configuration.
+    pub pacman: Option<PacmanConfig>,
     /// WiX configuration.
     pub wix: Option<WixConfig>,
     /// Nsis configuration.
@@ -1438,6 +1545,11 @@ impl Config {
     /// Returns the [appimage](Config::appimage) specific configuration.
     pub fn appimage(&self) -> Option<&AppImageConfig> {
         self.appimage.as_ref()
+    }
+
+    /// Returns the [pacman](Config::pacman) specific configuration.
+    pub fn pacman(&self) -> Option<&PacmanConfig> {
+        self.pacman.as_ref()
     }
 
     /// Returns the [dmg](Config::dmg) specific configuration.

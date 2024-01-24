@@ -14,6 +14,7 @@ It also comes with useful addons:
 - Linux
   - Debian package (.deb)
   - AppImage (.AppImage)
+  - Pacman (.tar.gz and PKGBUILD)
 - Windows
   - NSIS (.exe)
   - MSI using WiX Toolset (.msi)

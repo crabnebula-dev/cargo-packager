@@ -252,6 +252,17 @@
         }
       ]
     },
+    "pacman": {
+      "description": "Pacman configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PacmanConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "wix": {
       "description": "WiX configuration.",
       "anyOf": [
@@ -433,6 +444,13 @@
           "type": "string",
           "enum": [
             "appimage"
+          ]
+        },
+        {
+          "description": "The Linux Pacman package (.tar.gz and PKGBUILD)",
+          "type": "string",
+          "enum": [
+            "pacman"
           ]
         }
       ]
@@ -723,7 +741,7 @@
           ]
         },
         "section": {
-          "description": "Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections",
+          "description": "Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>",
           "type": [
             "string",
             "null"
@@ -790,6 +808,73 @@
             "null"
           ],
           "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "PacmanConfig": {
+      "description": "The Linux pacman configuration.",
+      "type": "object",
+      "properties": {
+        "files": {
+          "description": "List of custom files to add to the pacman package. Maps a dir/file to a dir/file inside the pacman package.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "depends": {
+          "description": "List of softwares that must be installed for the app to build and run.\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#provides>",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provides": {
+          "description": "Additional packages that are provided by this app.\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#provides>",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "conflicts": {
+          "description": "Packages that conflict or cause problems with the app. All these packages and packages providing this item will need to be removed\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#conflicts>",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "replaces": {
+          "description": "Only use if this app replaces some obsolete packages. For example, if you rename any package.\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#replaces>",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "description": "Source of the package to be stored at PKGBUILD. PKGBUILD is a bash script, so version can be referred as ${pkgver}",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
             "type": "string"
           }
         }

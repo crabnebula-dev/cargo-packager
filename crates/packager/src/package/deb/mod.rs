@@ -13,6 +13,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use flate2::{write::GzEncoder, Compression};
 use handlebars::Handlebars;
 use heck::AsKebabCase;
 use image::{codecs::png::PngDecoder, ImageDecoder};
@@ -329,13 +330,13 @@ fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
 /// Creates a `.tar.gz` file from the given directory (placing the new file
 /// within the given directory's parent directory), then deletes the original
 /// directory and returns the path to the new file.
-fn tar_and_gzip_dir<P: AsRef<Path>>(src_dir: P) -> crate::Result<PathBuf> {
+pub fn tar_and_gzip_dir<P: AsRef<Path>>(src_dir: P) -> crate::Result<PathBuf> {
     let src_dir = src_dir.as_ref();
     let dest_path = src_dir.with_additional_extension("tar.gz");
     let dest_file = util::create_file(&dest_path)?;
-    let gzip_encoder = libflate::gzip::Encoder::new(dest_file)?;
+    let gzip_encoder = GzEncoder::new(dest_file, Compression::default());
     let gzip_encoder = create_tar_from_dir(src_dir, gzip_encoder)?;
-    let mut dest_file = gzip_encoder.finish().into_result()?;
+    let mut dest_file = gzip_encoder.finish()?;
     dest_file.flush()?;
     Ok(dest_path)
 }

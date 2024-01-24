@@ -28,7 +28,7 @@ export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
 /**
  * Types of supported packages by [`cargo-packager`](https://docs.rs/cargo-packager).
  */
-export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage";
+export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage" | "pacman";
 /**
  * The possible app categories. Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
  */
@@ -265,6 +265,10 @@ export interface Config {
    */
   appimage?: AppImageConfig | null;
   /**
+   * Pacman configuration.
+   */
+  pacman?: PacmanConfig | null;
+  /**
    * WiX configuration.
    */
   wix?: WixConfig | null;
@@ -408,7 +412,7 @@ export interface DebianConfig {
    */
   desktopTemplate?: string | null;
   /**
-   * Define the section in Debian Control file. See : https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections
+   * Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
    */
   section?: string | null;
   /**
@@ -446,6 +450,45 @@ export interface AppImageConfig {
   linuxdeployPlugins?: {
     [k: string]: string;
   } | null;
+}
+/**
+ * The Linux pacman configuration.
+ */
+export interface PacmanConfig {
+  /**
+   * List of custom files to add to the pacman package. Maps a dir/file to a dir/file inside the pacman package.
+   */
+  files?: {
+    [k: string]: string;
+  } | null;
+  /**
+   * List of softwares that must be installed for the app to build and run.
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
+   */
+  depends?: string[] | null;
+  /**
+   * Additional packages that are provided by this app.
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
+   */
+  provides?: string[] | null;
+  /**
+   * Packages that conflict or cause problems with the app. All these packages and packages providing this item will need to be removed
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#conflicts>
+   */
+  conflicts?: string[] | null;
+  /**
+   * Only use if this app replaces some obsolete packages. For example, if you rename any package.
+   *
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#replaces>
+   */
+  replaces?: string[] | null;
+  /**
+   * Source of the package to be stored at PKGBUILD. PKGBUILD is a bash script, so version can be referred as ${pkgver}
+   */
+  source?: string[] | null;
 }
 /**
  * The wix format configuration
