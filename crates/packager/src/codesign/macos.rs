@@ -154,47 +154,12 @@ pub struct SignTarget {
 
 impl Ord for SignTarget {
     fn cmp(&self, other: &Self) -> Ordering {
-        // This ordering implementation ensures that signing targets with
-        // a shorter path are greater than signing targets with a longer path.
-        //
-        // When sorting in ascending order, this means we first get the long paths
-        // and then the shorter paths (aka depth-first). This is required in order
-        // for signing to work properly on macOS since more deeply nested files
-        // need to be signed first.
+        let self_count = self.path.components().count();
+        let other_count = other.path.components().count();
 
-        let mut self_iter = self.path.iter();
-        let mut other_iter = other.path.iter();
-
-        let mut self_prev = None;
-        let mut other_prev = None;
-
-        loop {
-            match (self_iter.next(), other_iter.next()) {
-                (Some(s), Some(o)) => {
-                    self_prev = Some(s);
-                    other_prev = Some(o);
-                }
-                // This path has less components than the other path
-                // and thus should come later (Ordering greater)
-                (None, Some(_)) => return Ordering::Greater,
-
-                // This path has more components than the previous path
-                // and thus should come earlier
-                (Some(_), None) => return Ordering::Less,
-
-                (None, None) => {
-                    return match (self_prev, other_prev) {
-                        // Compare by name
-                        (Some(s), Some(o)) => s.cmp(o),
-
-                        // See above for ordering when component size is not the same
-                        (None, Some(_)) => Ordering::Greater,
-                        (Some(_), None) => Ordering::Less,
-                        (None, None) => Ordering::Equal,
-                    };
-                }
-            }
-        }
+        // Sort by path depth (note that we compare other to self, not self to other) so
+        // that longer paths have a smaller value!
+        other_count.cmp(&self_count)
     }
 }
 
