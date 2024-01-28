@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
+    collections::BinaryHeap,
     ffi::OsStr,
     path::{Path, PathBuf},
     process::Command,
@@ -43,7 +44,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let bin_dir = contents_directory.join("MacOS");
     std::fs::create_dir_all(&bin_dir)?;
 
-    let mut sign_paths = Vec::new();
+    let mut sign_paths = BinaryHeap::new();
 
     let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
 
@@ -53,67 +54,12 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     tracing::debug!("Copying frameworks");
     let framework_paths = copy_frameworks_to_bundle(&contents_directory, config)?;
 
-    // All dylib files and native executables should be signed manually
-    // It is highly discouraged by Apple to use the --deep codesign parameter in larger projects.
-    // https://developer.apple.com/forums/thread/129980
-    for framework_path in &framework_paths {
-        if let Some(framework_path) = framework_path.to_str() {
-            // Find all files in the current framework folder
-            let files = walkdir::WalkDir::new(framework_path)
-                .into_iter()
-                .flatten()
-                .map(|dir| dir.into_path())
-                .collect::<Vec<_>>();
-
-            // Filter all files for Mach-O headers. This will target all .dylib and native executable files
-            for file in files {
-                let metadata = match std::fs::metadata(&file) {
-                    Ok(f) => f,
-                    Err(err) => {
-                        tracing::warn!("Failed to get metadata for {}: {err}, this file will not be scanned for Mach-O header!", file.display());
-                        continue;
-                    }
-                };
-
-                if !metadata.is_file() {
-                    continue;
-                }
-
-                let mut open_file = match std::fs::File::open(&file) {
-                    Ok(f) => f,
-                    Err(err) => {
-                        tracing::warn!("Failed to open {} for reading: {err}, this file will not be scanned for Mach-O header!", file.display());
-                        continue;
-                    }
-                };
-
-                let mut buffer = [0; 4];
-                std::io::Read::read_exact(&mut open_file, &mut buffer)?;
-
-                const MACH_O_MAGIC_NUMBERS: [u32; 5] =
-                    [0xfeedface, 0xfeedfacf, 0xcafebabe, 0xcefaedfe, 0xcffaedfe];
-
-                let magic = u32::from_be_bytes(buffer);
-
-                let is_mach = MACH_O_MAGIC_NUMBERS.contains(&magic);
-                if !is_mach {
-                    continue;
-                }
-
-                sign_paths.push(SignTarget {
-                    path: file,
-                    is_native_binary: true,
-                });
-            }
-        }
-    }
-
     sign_paths.extend(
         framework_paths
             .into_iter()
             .filter(|p| {
                 let ext = p.extension();
-                ext == Some(OsStr::new("framework")) || ext == Some(OsStr::new("dylib"))
+                ext == Some(OsStr::new("framework"))
             })
             .map(|path| SignTarget {
                 path,
@@ -125,19 +71,61 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     config.copy_resources(&resources_dir)?;
 
     tracing::debug!("Copying external binaries");
-    let bin_paths = config.copy_external_binaries(&bin_dir)?;
-    sign_paths.extend(bin_paths.into_iter().map(|path| SignTarget {
-        path,
-        is_native_binary: true,
-    }));
-
+    config.copy_external_binaries(&bin_dir)?;
     tracing::debug!("Copying binaries");
     for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
         let dest_path = bin_dir.join(bin.path.file_name().unwrap());
         std::fs::copy(&bin_path, &dest_path)?;
+    }
+
+    // All dylib files and native executables should be signed manually
+    // It is highly discouraged by Apple to use the --deep codesign parameter in larger projects.
+    // https://developer.apple.com/forums/thread/129980
+
+    // Find all files in the app bundle
+    let files = walkdir::WalkDir::new(&app_bundle_path)
+        .into_iter()
+        .flatten()
+        .map(|dir| dir.into_path());
+
+    // Filter all files for Mach-O headers. This will target all .dylib and native executable files
+    for file in files {
+        let metadata = match std::fs::metadata(&file) {
+            Ok(f) => f,
+            Err(err) => {
+                tracing::warn!("Failed to get metadata for {}: {err}, this file will not be scanned for Mach-O header!", file.display());
+                continue;
+            }
+        };
+
+        if !metadata.is_file() {
+            continue;
+        }
+
+        let mut open_file = match std::fs::File::open(&file) {
+            Ok(f) => f,
+            Err(err) => {
+                tracing::warn!("Failed to open {} for reading: {err}, this file will not be scanned for Mach-O header!", file.display());
+                continue;
+            }
+        };
+
+        let mut buffer = [0; 4];
+        std::io::Read::read_exact(&mut open_file, &mut buffer)?;
+
+        const MACH_O_MAGIC_NUMBERS: [u32; 5] =
+            [0xfeedface, 0xfeedfacf, 0xcafebabe, 0xcefaedfe, 0xcffaedfe];
+
+        let magic = u32::from_be_bytes(buffer);
+
+        let is_mach = MACH_O_MAGIC_NUMBERS.contains(&magic);
+        if !is_mach {
+            continue;
+        }
+
         sign_paths.push(SignTarget {
-            path: dest_path,
+            path: file,
             is_native_binary: true,
         });
     }
@@ -159,6 +147,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         remove_extra_attr(&app_bundle_path)?;
 
         // sign application
+        let sign_paths = sign_paths.into_sorted_vec();
         codesign::try_sign(sign_paths, identity, config)?;
 
         // notarization is required for distribution
