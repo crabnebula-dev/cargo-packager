@@ -6,8 +6,9 @@ use cargo_packager_updater::{
     Updater, UpdaterBuilder,
 };
 use napi::{
+    bindgen_prelude::AsyncTask,
     threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-    Error, Result, Status,
+    Env, Error, JsArrayBuffer, Result, Status, Task,
 };
 
 mod from_impls;
@@ -178,94 +179,196 @@ impl Update {
     }
 }
 
-#[napi_derive::napi]
-impl Update {
-    #[napi(
-        ts_args_type = "onChunk?: (chunkLength: number, contentLength: number | null) => void, onDownloadFinished?: () => void"
-    )]
-    pub async fn download(
-        &self,
-        on_chunk: Option<ThreadsafeFunction<(u32, Option<u32>), ErrorStrategy::CalleeHandled>>,
-        on_download_finish: Option<ThreadsafeFunction<(), ErrorStrategy::CalleeHandled>>,
-    ) -> Result<Vec<u8>> {
-        let update = self.create_update()?;
+type TaskCallbackFunction<T> = Option<ThreadsafeFunction<T, ErrorStrategy::Fatal>>;
 
-        update
-            .download_extended(
-                |c, l| {
-                    if let Some(on_chunk) = &on_chunk {
-                        on_chunk.call(
-                            Ok((c as u32, l.map(|l| l as u32))),
-                            ThreadsafeFunctionCallMode::Blocking,
-                        );
-                    }
-                },
-                || {
-                    if let Some(on_download_finish) = on_download_finish {
-                        on_download_finish.call(Ok(()), ThreadsafeFunctionCallMode::Blocking);
-                    }
-                },
-            )
-            .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))
+pub struct DownloadTask {
+    update: cargo_packager_updater::Update,
+    on_chunk: TaskCallbackFunction<(u32, Option<u32>)>,
+    on_download_finished: TaskCallbackFunction<()>,
+}
+
+impl DownloadTask {
+    pub fn create(
+        update: &Update,
+        on_chunk: TaskCallbackFunction<(u32, Option<u32>)>,
+        on_download_finished: TaskCallbackFunction<()>,
+    ) -> Result<Self> {
+        Ok(Self {
+            update: update.create_update()?,
+            on_chunk,
+            on_download_finished,
+        })
+    }
+}
+
+impl Task for DownloadTask {
+    type Output = Vec<u8>;
+    type JsValue = JsArrayBuffer;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        let on_chunk = |chunk_len: usize, content_len: Option<u64>| {
+            if let Some(on_chunk) = &self.on_chunk {
+                on_chunk.call(
+                    (chunk_len as _, content_len.map(|v| v as _)),
+                    ThreadsafeFunctionCallMode::NonBlocking,
+                );
+            }
+        };
+
+        let on_finish = || {
+            if let Some(on_download_finished) = &self.on_download_finished {
+                on_download_finished.call((), ThreadsafeFunctionCallMode::NonBlocking);
+            }
+        };
+
+        self.update
+            .download_extended(on_chunk, on_finish)
+            .map_err(|e| Error::new(Status::GenericFailure, e))
     }
 
-    #[napi]
-    pub async fn install(&self, bytes: Vec<u8>) -> Result<()> {
-        let update = self.create_update()?;
-        update
-            .install(bytes)
-            .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))
+    fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        let mut buffer = env.create_arraybuffer(output.len())?;
+        unsafe { std::ptr::copy(output.as_ptr(), buffer.as_mut_ptr(), output.len()) };
+
+        Ok(buffer.into_raw())
+    }
+}
+
+pub struct InstallTask {
+    update: cargo_packager_updater::Update,
+    bytes: Option<Vec<u8>>,
+}
+
+impl InstallTask {
+    pub fn create(update: &Update, bytes: Vec<u8>) -> Result<Self> {
+        Ok(Self {
+            update: update.create_update()?,
+            bytes: Some(bytes),
+        })
+    }
+}
+
+impl Task for InstallTask {
+    type Output = ();
+    type JsValue = ();
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        self.update
+            .install(self.bytes.take().unwrap())
+            .map_err(|e| Error::new(Status::GenericFailure, e))
     }
 
-    #[napi(
-        ts_args_type = "onChunk?: (chunkLength: number, contentLength?: number) => void, onDownloadFinished?: () => void"
-    )]
-    pub async fn download_and_install(
-        &self,
-        on_chunk: Option<ThreadsafeFunction<(u32, Option<u32>), ErrorStrategy::CalleeHandled>>,
-        on_download_finish: Option<ThreadsafeFunction<(), ErrorStrategy::CalleeHandled>>,
-    ) -> Result<()> {
-        let update = self.create_update()?;
-        let bytes = update
-            .download_extended(
-                |c, l| {
-                    if let Some(on_chunk) = &on_chunk {
-                        on_chunk.call(
-                            Ok((c as u32, l.map(|l| l as u32))),
-                            ThreadsafeFunctionCallMode::Blocking,
-                        );
-                    }
-                },
-                || {
-                    if let Some(on_download_finish) = on_download_finish {
-                        on_download_finish.call(Ok(()), ThreadsafeFunctionCallMode::Blocking);
-                    }
-                },
-            )
-            .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
-        update
+    fn resolve(&mut self, _env: Env, _output: Self::Output) -> Result<Self::JsValue> {
+        Ok(())
+    }
+}
+
+pub struct DownloadAndInstallTask {
+    download_task: DownloadTask,
+}
+
+impl DownloadAndInstallTask {
+    pub fn new(download_task: DownloadTask) -> Self {
+        Self { download_task }
+    }
+}
+
+impl Task for DownloadAndInstallTask {
+    type Output = ();
+    type JsValue = ();
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        let bytes = self.download_task.compute()?;
+        self.download_task
+            .update
             .install(bytes)
-            .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))
+            .map_err(|e| Error::new(Status::GenericFailure, e))
+    }
+
+    fn resolve(&mut self, _env: Env, _output: Self::Output) -> Result<Self::JsValue> {
+        Ok(())
+    }
+}
+
+pub struct CheckUpdateTask {
+    updater: Updater,
+}
+
+impl CheckUpdateTask {
+    pub fn create(current_version: String, options: Options) -> Result<Self> {
+        let current_version = current_version.parse().map_err(|e| {
+            Error::new(
+                Status::InvalidArg,
+                format!("Failed to parse string as a valid semver, {e}"),
+            )
+        })?;
+
+        let updater = options.into_updater(current_version)?;
+
+        Ok(Self { updater })
+    }
+}
+
+impl Task for CheckUpdateTask {
+    type Output = Option<cargo_packager_updater::Update>;
+    type JsValue = Option<Update>;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        self.updater.check().map_err(|e| {
+            Error::new(
+                Status::GenericFailure,
+                format!("Failed to check for update, {e}"),
+            )
+        })
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output.map(Into::into))
     }
 }
 
 #[napi_derive::napi]
-pub async fn check_update(current_version: String, options: Options) -> Result<Option<Update>> {
-    let current_version = current_version.parse().map_err(|e| {
-        Error::new(
-            Status::InvalidArg,
-            format!("Failed to parse string as a valid semver, {e}"),
-        )
-    })?;
+impl Update {
+    #[napi(
+        ts_args_type = "onChunk?: (chunkLength: number, contentLength: number | null) => void, onDownloadFinished?: () => void",
+        ts_return_type = "Promise<ArrayBuffer>"
+    )]
+    pub fn download(
+        &self,
+        on_chunk: TaskCallbackFunction<(u32, Option<u32>)>,
+        on_download_finish: TaskCallbackFunction<()>,
+    ) -> Result<AsyncTask<DownloadTask>> {
+        DownloadTask::create(self, on_chunk, on_download_finish).map(AsyncTask::new)
+    }
 
-    let updater = options.into_updater(current_version)?;
+    #[napi(ts_return_type = "Promise<void>", ts_args_type = "buffer: ArrayBuffer")]
+    pub fn install(&self, bytes: JsArrayBuffer) -> Result<AsyncTask<InstallTask>> {
+        let bytes = bytes.into_value()?;
+        let bytes = bytes.as_ref().to_vec();
+        InstallTask::create(self, bytes).map(AsyncTask::new)
+    }
 
-    let update = updater.check().map_err(|e| {
-        Error::new(
-            Status::GenericFailure,
-            format!("Failed to check for update, {e}"),
-        )
-    })?;
+    #[napi(
+        ts_args_type = "onChunk?: (chunkLength: number, contentLength?: number) => void, onDownloadFinished?: () => void",
+        ts_return_type = "Promise<void>"
+    )]
+    pub fn download_and_install(
+        &self,
+        on_chunk: TaskCallbackFunction<(u32, Option<u32>)>,
+        on_download_finish: TaskCallbackFunction<()>,
+    ) -> Result<AsyncTask<DownloadAndInstallTask>> {
+        let download_task = DownloadTask::create(self, on_chunk, on_download_finish)?;
+        Ok(AsyncTask::new(DownloadAndInstallTask::new(download_task)))
+    }
+}
 
-    Ok(update.map(Into::into))
+#[napi_derive::napi(ts_return_type = "Promise<Update | null>")]
+pub fn check_update(
+    current_version: String,
+    options: Options,
+) -> Result<AsyncTask<CheckUpdateTask>> {
+    Ok(AsyncTask::new(CheckUpdateTask::create(
+        current_version,
+        options,
+    )?))
 }
