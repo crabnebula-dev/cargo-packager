@@ -1,5 +1,6 @@
 [package]
 name = "cargo-packager-utils"
+description = "Utilities for cargo-packager crates"
 version = "0.1.0"
 authors = { workspace = true }
 edition = { workspace = true }
