@@ -978,7 +978,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager"
-version = "0.4.5"
+version = "0.5.0"
 dependencies = [
  "ar",
  "base64 0.21.7",
@@ -1035,7 +1035,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager-resource-resolver"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "cargo-packager-utils",
  "heck",
@@ -1045,7 +1045,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager-updater"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "base64 0.21.7",
  "cargo-packager-utils",
@@ -1076,7 +1076,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager-utils"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "clap",
  "ctor 0.2.6",
