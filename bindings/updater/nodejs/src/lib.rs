@@ -338,14 +338,14 @@ impl Update {
         on_chunk: TaskCallbackFunction<(u32, Option<u32>)>,
         on_download_finish: TaskCallbackFunction<()>,
     ) -> Result<AsyncTask<DownloadTask>> {
-        DownloadTask::create(&self, on_chunk, on_download_finish).map(AsyncTask::new)
+        DownloadTask::create(self, on_chunk, on_download_finish).map(AsyncTask::new)
     }
 
     #[napi(ts_return_type = "Promise<void>", ts_args_type = "buffer: ArrayBuffer")]
     pub fn install(&self, bytes: JsArrayBuffer) -> Result<AsyncTask<InstallTask>> {
         let bytes = bytes.into_value()?;
         let bytes = bytes.as_ref().to_vec();
-        InstallTask::create(&self, bytes).map(AsyncTask::new)
+        InstallTask::create(self, bytes).map(AsyncTask::new)
     }
 
     #[napi(
@@ -357,7 +357,7 @@ impl Update {
         on_chunk: TaskCallbackFunction<(u32, Option<u32>)>,
         on_download_finish: TaskCallbackFunction<()>,
     ) -> Result<AsyncTask<DownloadAndInstallTask>> {
-        let download_task = DownloadTask::create(&self, on_chunk, on_download_finish)?;
+        let download_task = DownloadTask::create(self, on_chunk, on_download_finish)?;
         Ok(AsyncTask::new(DownloadAndInstallTask::new(download_task)))
     }
 }
