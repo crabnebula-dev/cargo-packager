@@ -1,5 +1,5 @@
 ---
-"cargo-updater": patch
+"cargo-packager-updater": patch
 "@crabnebula/updater": patch
 ---
 
