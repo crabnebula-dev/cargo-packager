@@ -1,21 +1,21 @@
 [package]
 name = "cargo-packager-resource-resolver"
 description = "Cargo packager resource resolver"
-version = "0.0.0"
+version = "0.1.0"
 authors = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 
 [package.metadata.docs.rs]
-features = ["auto-detect-format"]
+features = [ "auto-detect-format" ]
 
 [dependencies]
 thiserror = { workspace = true }
-cargo-packager-utils = { version = "0.0.0", path = "../utils", default-features = false }
+cargo-packager-utils = { version = "0.1.0", path = "../utils", default-features = false }
 log = "0.4.20"
 heck = "0.4.1"
 
 [features]
-process-relaunch-dangerous-allow-symlink-macos = []
-auto-detect-format = []
+process-relaunch-dangerous-allow-symlink-macos = [ ]
+auto-detect-format = [ ]

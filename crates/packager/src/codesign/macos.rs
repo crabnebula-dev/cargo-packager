@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
+    cmp::Ordering,
     ffi::OsString,
     fs::File,
     io::prelude::*,
@@ -145,10 +146,27 @@ pub fn delete_keychain() {
         .output_ok();
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SignTarget {
     pub path: PathBuf,
     pub is_native_binary: bool,
+}
+
+impl Ord for SignTarget {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let self_count = self.path.components().count();
+        let other_count = other.path.components().count();
+
+        // Sort by path depth (note that we compare other to self, not self to other) so
+        // that longer paths have a smaller value!
+        other_count.cmp(&self_count)
+    }
+}
+
+impl PartialOrd for SignTarget {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[tracing::instrument(level = "trace")]

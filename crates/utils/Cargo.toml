@@ -1,6 +1,7 @@
 [package]
 name = "cargo-packager-utils"
-version = "0.0.0"
+description = "Utilities for cargo-packager crates"
+version = "0.1.0"
 authors = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
@@ -13,8 +14,8 @@ clap = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [features]
-default = ["cli"]
-cli = []
-schema = ["schemars"]
-clap = ["dep:clap"]
-serde = ["dep:serde"]
+default = [ "cli" ]
+cli = [ ]
+schema = [ "schemars" ]
+clap = [ "dep:clap" ]
+serde = [ "dep:serde" ]

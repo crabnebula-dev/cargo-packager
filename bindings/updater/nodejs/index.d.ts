@@ -75,7 +75,7 @@ export class Update {
   date?: string
   /** Request timeout */
   timeout?: number
-  download(onChunk?: (chunkLength: number, contentLength: number | null) => void, onDownloadFinished?: () => void): Promise<Array<number>>
-  install(bytes: Array<number>): Promise<void>
+  download(onChunk?: (chunkLength: number, contentLength: number | null) => void, onDownloadFinished?: () => void): Promise<ArrayBuffer>
+  install(buffer: ArrayBuffer): Promise<void>
   downloadAndInstall(onChunk?: (chunkLength: number, contentLength?: number) => void, onDownloadFinished?: () => void): Promise<void>
 }
