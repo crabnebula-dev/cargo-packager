@@ -41,4 +41,4 @@ cd ..
 # and so appimagelauncher doesn't inject itself and the binary runs directly
 dd if=/dev/zero bs=1 count=3 seek=8 conv=notrunc of="{{packager_tools_path}}/linuxdeploy-{{linuxdeploy_arch}}.AppImage"
 
-OUTPUT="{{appimage_path}}" "{{packager_tools_path}}/linuxdeploy-{{linuxdeploy_arch}}.AppImage" --appimage-extract-and-run --appdir "{{app_name}}.AppDir" {{linuxdeploy_plugins}} --output appimage
+OUTPUT="{{appimage_path}}" "{{packager_tools_path}}/linuxdeploy-{{linuxdeploy_arch}}.AppImage" --appimage-extract-and-run --appdir "{{app_name}}.AppDir" {{linuxdeploy_plugins}} {{excluded_libs}} --output appimage
