@@ -14,7 +14,7 @@ repository = { workspace = true }
 process-relaunch-dangerous-allow-symlink-macos = [ ]
 native-tls = [ "reqwest/native-tls" ]
 native-tls-vendored = [ "reqwest/native-tls-vendored" ]
-rustls-tls = [ "reqwest/rustls-tls" ]
+rustls-tls = [ "reqwest/rustls-tls-native-roots" ]
 
 [dependencies]
 cargo-packager-utils = { version = "0.1.0", path = "../utils" }
