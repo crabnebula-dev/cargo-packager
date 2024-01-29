@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.1.3]
+
+- [`0e00ca2`](https://www.github.com/crabnebula-dev/cargo-packager/commit/0e00ca25fc0e71cad4bb7085edda067a184e5ec7)([#146](https://www.github.com/crabnebula-dev/cargo-packager/pull/146)) Enable native certificates via `rustls-native-certs`.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.1.3`
+
 ## \[0.1.2]
 
 - [`005a55f`](https://www.github.com/crabnebula-dev/cargo-packager/commit/005a55fb27b92503b3d6f936cffb088ccf346c40)([#143](https://www.github.com/crabnebula-dev/cargo-packager/pull/143)) Fix the download callback parameters to be accurate to typescript definitions
