@@ -3,4 +3,4 @@
 "@crabnebula/packager": minor
 ---
 
-Added config feature to control excluded libs in build_appimage.sh
+Added config option to control excluded libs when packaging AppImage
