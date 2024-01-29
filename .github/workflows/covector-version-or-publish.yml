@@ -53,7 +53,7 @@ jobs:
         if: |
           steps.covector.outputs.successfulPublish == 'true' &&
           contains(steps.covector.outputs.packagesPublished, '@crabnebula/packager')
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v3
         with:
           event-type: publish-packager-nodejs
           client-payload: >-
@@ -63,7 +63,7 @@ jobs:
         if: |
           steps.covector.outputs.successfulPublish == 'true' &&
           contains(steps.covector.outputs.packagesPublished, '@crabnebula/updater')
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v3
         with:
           event-type: publish-updater-nodejs
           client-payload: >-
@@ -73,7 +73,7 @@ jobs:
         if: |
           steps.covector.outputs.successfulPublish == 'true' &&
           contains(steps.covector.outputs.packagesPublished, '@crabnebula/packager-resource-resolver')
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v3
         with:
           event-type: publish-packager-resource-resolver-nodejs
           client-payload: >-
