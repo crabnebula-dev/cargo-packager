@@ -758,7 +758,7 @@ impl Update {
     // └── ...
     #[cfg(windows)]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
-        use std::{io::Write, process::Command};
+        use std::{io::Write, os::windows::process::CommandExt, process::Command};
 
         let extension = match self.format {
             UpdateFormat::Nsis => ".exe",
@@ -776,6 +776,8 @@ impl Update {
             |_| "powershell.exe".to_string(),
             |p| format!("{p}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"),
         );
+
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
 
         // we support 2 type of files exe & msi for now
         // If it's an `exe` we expect an installer not a runtime.
@@ -810,7 +812,8 @@ impl Update {
 
                 // Run the installer
                 let mut cmd = Command::new(powershell_path);
-                cmd.args(["-NoProfile", "-WindowStyle", "Hidden"])
+                cmd.creation_flags(CREATE_NO_WINDOW)
+                    .args(["-NoProfile", "-WindowStyle", "Hidden"])
                     .args(["Start-Process"])
                     .arg(installer_path);
                 if !installer_args.is_empty() {
@@ -856,6 +859,7 @@ impl Update {
 
                     // run the installer and relaunch the application
                     let powershell_install_res = Command::new(powershell_path)
+                        .creation_flags(CREATE_NO_WINDOW)
                         .args(["-NoProfile", "-WindowStyle", "Hidden"])
                         .args([
                             "Start-Process",
