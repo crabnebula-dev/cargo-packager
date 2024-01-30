@@ -450,6 +450,10 @@ export interface AppImageConfig {
   linuxdeployPlugins?: {
     [k: string]: string;
   } | null;
+  /**
+   * List of globs of libraries to exclude from the final APpImage. For example, to exclude libnss3.so, you'd specify `libnss3*`
+   */
+  excludedLibs?: string[] | null;
 }
 /**
  * The Linux pacman configuration.

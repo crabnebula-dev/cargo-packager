@@ -136,6 +136,16 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .join(" ");
     sh_map.insert("linuxdeploy_plugins", to_json(linuxdeploy_plugins));
 
+    let excluded_libraries = config
+        .appimage()
+        .and_then(|a| a.excluded_libs.clone())
+        .unwrap_or_default()
+        .into_iter()
+        .map(|library| format!("--exclude-library {}", library))
+        .collect::<Vec<_>>()
+        .join(" ");
+    sh_map.insert("excluded_libs", to_json(excluded_libraries));
+
     let larger_icon = icons
         .iter()
         .filter(|i| i.width == i.height)
