@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.1.4]
+
+- [`3ee2290`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3ee2290df518103056b295dae426b38a65293048)([#147](https://www.github.com/crabnebula-dev/cargo-packager/pull/147)) Prevent powershell window from opening when the msi and nsis installer are executed.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.1.4`
+
 ## \[0.1.3]
 
 - [`0e00ca2`](https://www.github.com/crabnebula-dev/cargo-packager/commit/0e00ca25fc0e71cad4bb7085edda067a184e5ec7)([#146](https://www.github.com/crabnebula-dev/cargo-packager/pull/146)) Enable native certificates via `rustls-native-certs`.
