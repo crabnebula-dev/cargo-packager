@@ -812,7 +812,7 @@
           }
         },
         "excludedLibs": {
-          "description": "List of globs of libraries to exclude from the final APpImage. For example, to exclude libnss3.so, you'd specify `libnss3*`",
+          "description": "List of globs of libraries to exclude from the final AppImage. For example, to exclude libnss3.so, you'd specify `libnss3*`",
           "type": [
             "array",
             "null"

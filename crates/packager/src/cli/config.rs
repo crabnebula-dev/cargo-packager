@@ -108,7 +108,9 @@ pub fn load_configs_from_cargo_workspace(
     if let Some(manifest_path) = &manifest_path {
         metadata_cmd.manifest_path(manifest_path);
     }
-    let metadata = metadata_cmd.exec()?;
+    let Ok(metadata) = metadata_cmd.exec() else {
+        return Ok(Vec::new());
+    };
 
     let mut configs = Vec::new();
     for package in metadata.workspace_packages().iter() {
