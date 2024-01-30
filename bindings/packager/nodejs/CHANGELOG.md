@@ -1,9 +1,10 @@
 # Changelog
 
-## \[0.3.0]
+## \[0.6.0]
 
 - [`57b379a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/57b379ad1d9029e767848fda99d4eb6415afe51a)([#148](https://www.github.com/crabnebula-dev/cargo-packager/pull/148)) Added config option to control excluded libs when packaging AppImage
 - [`947e032`](https://www.github.com/crabnebula-dev/cargo-packager/commit/947e0328c89d6f043c3ef1b1db5d2252d4f072a5) Fix CLI failing with `Failed to read cargo metadata: cargo metadata` for non-rust projects.
+- Bumpt to `0.6.0` version directly to match the Rust crate version.
 
 ### Dependencies
 
