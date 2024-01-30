@@ -267,7 +267,7 @@ pub struct AppImageConfig {
     /// you'd specify `gtk` as the key and its url as the value.
     #[serde(alias = "linuxdeploy-plugins", alias = "linuxdeploy_plugins")]
     pub linuxdeploy_plugins: Option<HashMap<String, String>>,
-    /// List of globs of libraries to exclude from the final APpImage.
+    /// List of globs of libraries to exclude from the final AppImage.
     /// For example, to exclude libnss3.so, you'd specify `libnss3*`
     #[serde(alias = "excluded-libraries", alias = "excluded_libraries")]
     pub excluded_libs: Option<Vec<String>>,
