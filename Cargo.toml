@@ -29,7 +29,7 @@ time = "0.3"
 tar = "0.4"
 napi = { version = "2.15", default-features = false }
 napi-derive = "2.15"
-napi-build = "2.1.1"
+napi-build = "2.1.2"
 
 [profile.release-size-optimized]
 inherits = "release"
