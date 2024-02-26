@@ -32,7 +32,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^2.16.5
-        version: 2.16.5
+        version: 2.18.0
       '@types/fs-extra':
         specifier: ^11.0.3
         version: 11.0.4
@@ -53,7 +53,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^2.16.5
-        version: 2.16.5
+        version: 2.18.0
       '@types/node':
         specifier: ^20.8.10
         version: 20.9.1
@@ -68,7 +68,7 @@ importers:
         version: link:../../packager/nodejs
       '@napi-rs/cli':
         specifier: ^2.16.5
-        version: 2.16.5
+        version: 2.18.0
       '@tinyhttp/app':
         specifier: ^2.2.1
         version: 2.2.3
@@ -133,8 +133,8 @@ packages:
       - supports-color
     dev: true
 
-  /@napi-rs/cli@2.16.5:
-    resolution: {integrity: sha512-mFEzwrg4IOLngGd2/P6yeqIWgwQNn59Z08n1rndu6kLDq1gg954NH9cM1O9Da0RJuybt46p43lqgSsnAY2mxqA==}
+  /@napi-rs/cli@2.18.0:
+    resolution: {integrity: sha512-lfSRT7cs3iC4L+kv9suGYQEezn5Nii7Kpu+THsYVI0tA1Vh59LH45p4QADaD7hvIkmOz79eEGtoKQ9nAkAPkzA==}
     engines: {node: '>= 10'}
     hasBin: true
     dev: true
