@@ -28,7 +28,7 @@ tracing = "0.1"
 time = "0.3"
 tar = "0.4"
 napi = { version = "2.15", default-features = false }
-napi-derive = "2.15"
+napi-derive = "2.16"
 napi-build = "2.1.2"
 
 [profile.release-size-optimized]
