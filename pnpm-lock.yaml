@@ -41,7 +41,7 @@ importers:
         version: 20.11.21
       ava:
         specifier: ^6.0.0
-        version: 6.1.1
+        version: 6.1.2
       json-schema-to-typescript:
         specifier: ^13.1.1
         version: 13.1.2
@@ -59,7 +59,7 @@ importers:
         version: 20.11.21
       ava:
         specifier: ^6.0.0
-        version: 6.1.1
+        version: 6.1.2
 
   bindings/updater/nodejs:
     devDependencies:
@@ -77,7 +77,7 @@ importers:
         version: 20.11.21
       ava:
         specifier: ^6.0.0
-        version: 6.1.1
+        version: 6.1.2
       execa:
         specifier: ^8.0.1
         version: 8.0.1
@@ -501,8 +501,8 @@ packages:
     resolution: {integrity: sha512-tLRNUXati5MFePdAk8dw7Qt7DpxPB60ofAgn8WRhW6a2rcimZnYBP9oxHiv0OHy+Wz7kPMG+t4LGdt31+4EmGg==}
     dev: true
 
-  /ava@6.1.1:
-    resolution: {integrity: sha512-A+DG0Ag0e5zvt262Ze0pG5QH7EBmhn+DB9uK7WkUtJVAtGjZFeKTpUOKx339DMGn53+FB24pCJC5klX2WU4VOw==}
+  /ava@6.1.2:
+    resolution: {integrity: sha512-WcpxJ8yZ7mk9ABTinD0IAjcemovSeVGjuuwZx0JS9johREWFeLTl8UP6wd7l6nmnrWqkKZdwaD71a/ocH4qPKw==}
     engines: {node: ^18.18 || ^20.8 || ^21}
     hasBin: true
     peerDependencies:
