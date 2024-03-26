@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.6.1]
+
+- [`2f1029b`](https://www.github.com/crabnebula-dev/cargo-packager/commit/2f1029b2032ac44fd3f3df34307554feb17043b7)([#185](https://www.github.com/crabnebula-dev/cargo-packager/pull/185)) Fix bundling NSIS on Linux and macOS failing due to the verbose flag.
+
 ## \[0.6.0]
 
 - [`57b379a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/57b379ad1d9029e767848fda99d4eb6415afe51a)([#148](https://www.github.com/crabnebula-dev/cargo-packager/pull/148)) Added config option to control excluded libs when packaging AppImage
