@@ -978,7 +978,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-packager"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "ar",
  "base64 0.21.7",

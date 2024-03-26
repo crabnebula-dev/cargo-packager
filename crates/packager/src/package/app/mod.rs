@@ -151,7 +151,15 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         codesign::try_sign(sign_paths, identity, config)?;
 
         // notarization is required for distribution
-        match codesign::notarize_auth() {
+        match config
+            .macos()
+            .map(|m| {
+                m.notarization_credentials
+                    .clone()
+                    .ok_or_else(|| crate::Error::MissingNotarizeAuthVars)
+            })
+            .unwrap_or_else(|| codesign::notarize_auth())
+        {
             Ok(auth) => {
                 tracing::debug!("Notarizing {}", app_bundle_path.display());
                 codesign::notarize(app_bundle_path.clone(), auth, config)?;

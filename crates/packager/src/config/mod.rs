@@ -6,6 +6,7 @@
 
 use std::{
     collections::HashMap,
+    ffi::OsString,
     fmt::{self, Display},
     path::{Path, PathBuf},
 };
@@ -530,6 +531,29 @@ impl DmgConfig {
     }
 }
 
+/// Notarization authentication credentials.
+#[derive(Clone, Debug)]
+pub enum MacOsNotarizationCredentials {
+    /// Apple ID authentication.
+    AppleId {
+        /// Apple ID.
+        apple_id: OsString,
+        /// Password.
+        password: OsString,
+        /// Team ID.
+        team_id: OsString,
+    },
+    /// App Store Connect API key.
+    ApiKey {
+        /// API key issuer.
+        issuer: OsString,
+        /// API key ID.
+        key_id: OsString,
+        /// Path to the API key file.
+        key_path: PathBuf,
+    },
+}
+
 /// The macOS configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -559,6 +583,15 @@ pub struct MacOsConfig {
     /// Code signing identity.
     #[serde(alias = "signing-identity", alias = "signing_identity")]
     pub signing_identity: Option<String>,
+    /// Codesign certificate (base64 encoded of the p12 file).
+    #[serde(skip)]
+    pub signing_certificate: Option<OsString>,
+    /// Password of the codesign certificate.
+    #[serde(skip)]
+    pub signing_certificate_password: Option<OsString>,
+    /// Notarization authentication credentials.
+    #[serde(skip)]
+    pub notarization_credentials: Option<MacOsNotarizationCredentials>,
     /// Provider short name for notarization.
     #[serde(alias = "provider-short-name", alias = "provider_short_name")]
     pub provider_short_name: Option<String>,
