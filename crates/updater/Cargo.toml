@@ -27,7 +27,7 @@ dirs = { workspace = true }
 semver = { workspace = true }
 base64 = { workspace = true }
 time = { workspace = true, features = [ "parsing", "formatting" ] }
-http = "0.2"
+http = "1.1"
 url = { version = "2.5", features = [ "serde" ] }
 minisign-verify = "0.2"
 ctor = "0.2"
