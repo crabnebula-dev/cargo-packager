@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.6.1]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.6.1`
+
 ## \[0.6.0]
 
 - [`57b379a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/57b379ad1d9029e767848fda99d4eb6415afe51a)([#148](https://www.github.com/crabnebula-dev/cargo-packager/pull/148)) Added config option to control excluded libs when packaging AppImage
