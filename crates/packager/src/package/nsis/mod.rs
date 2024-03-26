@@ -538,10 +538,10 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     if let Some(level) = config.log_level {
         nsis_cmd.arg(match level {
-            LogLevel::Error => "/V1",
-            LogLevel::Warn | LogLevel::Info => "/V2",
-            LogLevel::Debug => "/V3",
-            _ => "/V4",
+            LogLevel::Error => "-V1",
+            LogLevel::Warn | LogLevel::Info => "-V2",
+            LogLevel::Debug => "-V3",
+            _ => "-V4",
         });
     }
 
