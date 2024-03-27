@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.7.0]
+
+- [`cd8898a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/cd8898a93b66a4aae050fa1006089c3c3b5646f9)([#187](https://www.github.com/crabnebula-dev/cargo-packager/pull/187)) Added codesign certificate and notarization credentials configuration options under the `macos` config (for programatic usage, taking precedence over environment variables).
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.7.0`
+
 ## \[0.6.1]
 
 ### Dependencies
