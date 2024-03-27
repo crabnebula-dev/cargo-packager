@@ -18,7 +18,7 @@ rustls-tls = [ "reqwest/rustls-tls-native-roots" ]
 
 [dependencies]
 cargo-packager-utils = { version = "0.1.0", path = "../utils" }
-reqwest = { version = "0.11", default-features = false, features = [ "json", "stream", "blocking" ] }
+reqwest = { version = "0.12", default-features = false, features = [ "json", "stream", "blocking" ] }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
