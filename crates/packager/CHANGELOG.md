@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.7.0]
+
+- [`cd8898a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/cd8898a93b66a4aae050fa1006089c3c3b5646f9)([#187](https://www.github.com/crabnebula-dev/cargo-packager/pull/187)) Added codesign certificate and notarization credentials configuration options under the `macos` config (for programatic usage, taking precedence over environment variables).
+
 ## \[0.6.1]
 
 - [`2f1029b`](https://www.github.com/crabnebula-dev/cargo-packager/commit/2f1029b2032ac44fd3f3df34307554feb17043b7)([#185](https://www.github.com/crabnebula-dev/cargo-packager/pull/185)) Fix bundling NSIS on Linux and macOS failing due to the verbose flag.
