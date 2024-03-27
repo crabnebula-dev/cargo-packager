@@ -14,7 +14,7 @@ use std::{
 
 use serde::Deserialize;
 
-use crate::{shell::CommandExt, Config, Error};
+use crate::{config::MacOsNotarizationCredentials, shell::CommandExt, Config, Error};
 
 const KEYCHAIN_ID: &str = "cargo-packager.keychain";
 const KEYCHAIN_PWD: &str = "cargo-packager";
@@ -171,10 +171,19 @@ impl PartialOrd for SignTarget {
 
 #[tracing::instrument(level = "trace")]
 pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> crate::Result<()> {
-    let packager_keychain = if let (Some(certificate_encoded), Some(certificate_password)) = (
-        std::env::var_os("APPLE_CERTIFICATE"),
-        std::env::var_os("APPLE_CERTIFICATE_PASSWORD"),
-    ) {
+    let certificate_encoded = config
+        .macos()
+        .map(|m| m.signing_certificate.clone())
+        .unwrap_or_else(|| std::env::var_os("APPLE_CERTIFICATE"));
+
+    let certificate_password = config
+        .macos()
+        .map(|m| m.signing_certificate_password.clone())
+        .unwrap_or_else(|| std::env::var_os("APPLE_CERTIFICATE_PASSWORD"));
+
+    let packager_keychain = if let (Some(certificate_encoded), Some(certificate_password)) =
+        (certificate_encoded, certificate_password)
+    {
         // setup keychain allow you to import your certificate
         // for CI build
         setup_keychain(certificate_encoded, certificate_password)?;
@@ -253,7 +262,7 @@ struct NotarytoolSubmitOutput {
 #[tracing::instrument(level = "trace")]
 pub fn notarize(
     app_bundle_path: PathBuf,
-    auth: NotarizeAuth,
+    auth: MacOsNotarizationCredentials,
     config: &Config,
 ) -> crate::Result<()> {
     let bundle_stem = app_bundle_path
@@ -361,28 +370,14 @@ fn staple_app(app_bundle_path: PathBuf) -> crate::Result<()> {
     Ok(())
 }
 
-#[derive(Debug)]
-pub enum NotarizeAuth {
-    AppleId {
-        apple_id: OsString,
-        password: OsString,
-        team_id: OsString,
-    },
-    ApiKey {
-        key: OsString,
-        key_path: PathBuf,
-        issuer: OsString,
-    },
-}
-
 pub trait NotarytoolCmdExt {
-    fn notarytool_args(&mut self, auth: &NotarizeAuth) -> &mut Self;
+    fn notarytool_args(&mut self, auth: &MacOsNotarizationCredentials) -> &mut Self;
 }
 
 impl NotarytoolCmdExt for Command {
-    fn notarytool_args(&mut self, auth: &NotarizeAuth) -> &mut Self {
+    fn notarytool_args(&mut self, auth: &MacOsNotarizationCredentials) -> &mut Self {
         match auth {
-            NotarizeAuth::AppleId {
+            MacOsNotarizationCredentials::AppleId {
                 apple_id,
                 password,
                 team_id,
@@ -396,13 +391,13 @@ impl NotarytoolCmdExt for Command {
 
                 self
             }
-            NotarizeAuth::ApiKey {
-                key,
+            MacOsNotarizationCredentials::ApiKey {
+                key_id,
                 key_path,
                 issuer,
             } => self
                 .arg("--key-id")
-                .arg(key)
+                .arg(key_id)
                 .arg("--key")
                 .arg(key_path)
                 .arg("--issuer")
@@ -412,31 +407,35 @@ impl NotarytoolCmdExt for Command {
 }
 
 #[tracing::instrument(level = "trace")]
-pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
+pub fn notarize_auth() -> crate::Result<MacOsNotarizationCredentials> {
     match (
         std::env::var_os("APPLE_ID"),
         std::env::var_os("APPLE_PASSWORD"),
         std::env::var_os("APPLE_TEAM_ID"),
     ) {
-        (Some(apple_id), Some(password), Some(team_id)) => Ok(NotarizeAuth::AppleId {
-            apple_id,
-            password,
-            team_id,
-        }),
+        (Some(apple_id), Some(password), Some(team_id)) => {
+            Ok(MacOsNotarizationCredentials::AppleId {
+                apple_id,
+                password,
+                team_id,
+            })
+        }
         _ => {
             match (
                 std::env::var_os("APPLE_API_KEY"),
                 std::env::var_os("APPLE_API_ISSUER"),
                 std::env::var("APPLE_API_KEY_PATH"),
             ) {
-                (Some(key), Some(issuer), Ok(key_path)) => Ok(NotarizeAuth::ApiKey {
-                    key,
-                    key_path: key_path.into(),
-                    issuer,
-                }),
-                (Some(key), Some(issuer), Err(_)) => {
+                (Some(key_id), Some(issuer), Ok(key_path)) => {
+                    Ok(MacOsNotarizationCredentials::ApiKey {
+                        key_id,
+                        key_path: key_path.into(),
+                        issuer,
+                    })
+                }
+                (Some(key_id), Some(issuer), Err(_)) => {
                     let mut api_key_file_name = OsString::from("AuthKey_");
-                    api_key_file_name.push(&key);
+                    api_key_file_name.push(&key_id);
                     api_key_file_name.push(".p8");
                     let mut key_path = None;
 
@@ -455,8 +454,8 @@ pub fn notarize_auth() -> crate::Result<NotarizeAuth> {
                     }
 
                     if let Some(key_path) = key_path {
-                        Ok(NotarizeAuth::ApiKey {
-                            key,
+                        Ok(MacOsNotarizationCredentials::ApiKey {
+                            key_id,
                             key_path,
                             issuer,
                         })
