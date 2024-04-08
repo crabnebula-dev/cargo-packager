@@ -119,14 +119,6 @@ pub enum Error {
     #[error("Wix language {0} not found. It must be one of {1}")]
     UnsupportedWixLanguage(String, String),
     /// Image crate errors.
-    #[cfg(any(
-        target_os = "macos",
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
     #[error(transparent)]
     ImageError(#[from] image::ImageError),
     /// walkdir crate errors.
@@ -140,11 +132,9 @@ pub enum Error {
     RelativeToError(#[from] relative_path::RelativeToError),
     /// Time error.
     #[error("`{0}`")]
-    #[cfg(target_os = "macos")]
     TimeError(#[from] time::error::Error),
     /// Plist error.
     #[error(transparent)]
-    #[cfg(target_os = "macos")]
     Plist(#[from] plist::Error),
     /// Framework not found.
     #[error("Framework {0} not found")]

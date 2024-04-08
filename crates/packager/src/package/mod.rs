@@ -8,7 +8,6 @@ use crate::{config, shell::CommandExt, util, Config, PackageFormat};
 
 use self::context::Context;
 
-#[cfg(target_os = "macos")]
 mod app;
 #[cfg(any(
     target_os = "linux",
@@ -93,7 +92,6 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
         )?;
 
         let paths = match format {
-            #[cfg(target_os = "macos")]
             PackageFormat::App => app::package(&ctx),
             #[cfg(target_os = "macos")]
             PackageFormat::Dmg => {
