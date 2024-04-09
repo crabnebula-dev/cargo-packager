@@ -99,7 +99,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
             }
         };
 
-        if !metadata.is_file() {
+        // ignore folders and files that do not include at least the header size
+        if !metadata.is_file() || metadata.len() < 4 {
             continue;
         }
 
