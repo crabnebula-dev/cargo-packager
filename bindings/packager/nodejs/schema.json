@@ -93,9 +93,17 @@
       }
     },
     "outDir": {
-      "description": "The directory where the [`Config::binaries`] exist and where the generated packages will be placed.",
+      "description": "The directory where the generated packages will be placed.\n\nIf [`Config::binaries_dir`] is not set, this is also where the [`Config::binaries`] exist.",
       "default": "",
       "type": "string"
+    },
+    "binariesDir": {
+      "description": "The directory where the [`Config::binaries`] exist.\n\nDefaults to [`Config::out_dir`].",
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "targetTriple": {
       "description": "The target triple we are packaging for. This mainly affects [`Config::external_binaries`].\n\nDefaults to the current OS target triple.",
