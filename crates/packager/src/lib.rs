@@ -126,7 +126,53 @@ pub fn init_tracing_subscriber(verbosity: u8) {
         .with_line_number(tracing)
         .with_file(tracing)
         .with_max_level(level)
+        .event_format(TracingFormatter {
+            formatter: tracing_subscriber::fmt::format().compact(),
+        })
         .init();
+}
+
+struct TracingFormatter {
+    formatter: tracing_subscriber::fmt::format::Format<tracing_subscriber::fmt::format::Compact>,
+}
+
+struct ShellFieldVisitor {
+    message: String,
+}
+
+impl tracing::field::Visit for ShellFieldVisitor {
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "message" {
+            self.message = value.to_string();
+        }
+    }
+
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.message = format!("{value:?}");
+        }
+    }
+}
+
+impl<S, N> tracing_subscriber::fmt::FormatEvent<S, N> for TracingFormatter
+where
+    S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    N: for<'a> tracing_subscriber::fmt::FormatFields<'a> + 'static,
+{
+    fn format_event(
+        &self,
+        ctx: &tracing_subscriber::fmt::FmtContext<'_, S, N>,
+        mut writer: tracing_subscriber::fmt::format::Writer<'_>,
+        event: &tracing::Event<'_>,
+    ) -> std::fmt::Result {
+        if event.fields().any(|f| f.name() == "shell") {
+            let mut visitor = ShellFieldVisitor { message: "".into() };
+            event.record(&mut visitor);
+            writeln!(writer, "{}", visitor.message)
+        } else {
+            self.formatter.format_event(ctx, writer, event)
+        }
+    }
 }
 
 /// Sign the specified packages and return the signatures paths.

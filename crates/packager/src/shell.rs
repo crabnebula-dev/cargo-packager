@@ -43,7 +43,11 @@ impl CommandExt for Command {
                 if let Ok(0) = stdout.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::debug!("{}", String::from_utf8_lossy(&buf[..buf.len() - 1]));
+                tracing::info!(
+                    shell = "stdout",
+                    "{}",
+                    String::from_utf8_lossy(&buf[..buf.len() - 1])
+                );
                 lines.extend(&buf);
             }
         });
@@ -59,7 +63,11 @@ impl CommandExt for Command {
                 if let Ok(0) = stderr.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::debug!("{}", String::from_utf8_lossy(&buf[..buf.len() - 1]));
+                tracing::info!(
+                    shell = "stderr",
+                    "{}",
+                    String::from_utf8_lossy(&buf[..buf.len() - 1])
+                );
                 lines.extend(&buf);
             }
         });
