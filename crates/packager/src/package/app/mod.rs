@@ -158,7 +158,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
                     .clone()
                     .ok_or_else(|| crate::Error::MissingNotarizeAuthVars)
             })
-            .unwrap_or_else(|| codesign::notarize_auth())
+            .unwrap_or_else(codesign::notarize_auth)
         {
             Ok(auth) => {
                 tracing::debug!("Notarizing {}", app_bundle_path.display());
