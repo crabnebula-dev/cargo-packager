@@ -95,7 +95,7 @@ pub use error::{Error, Result};
 use flate2::{write::GzEncoder, Compression};
 pub use sign::SigningConfig;
 
-pub use package::{package, PackageOuput};
+pub use package::{package, PackageOutput};
 use util::PathExt;
 
 fn parse_log_level(verbose: u8) -> tracing::Level {
@@ -136,7 +136,7 @@ pub fn init_tracing_subscriber(verbosity: u8) {
 #[tracing::instrument(level = "trace")]
 pub fn sign_outputs(
     config: &SigningConfig,
-    packages: &mut Vec<PackageOuput>,
+    packages: &mut Vec<PackageOutput>,
 ) -> crate::Result<Vec<PathBuf>> {
     let mut signatures = Vec::new();
     for package in packages {
@@ -171,7 +171,7 @@ pub fn sign_outputs(
 pub fn package_and_sign(
     config: &Config,
     signing_config: &SigningConfig,
-) -> crate::Result<(Vec<PackageOuput>, Vec<PathBuf>)> {
+) -> crate::Result<(Vec<PackageOutput>, Vec<PathBuf>)> {
     let mut packages = package(config)?;
     let signatures = sign_outputs(signing_config, &mut packages)?;
     Ok((packages, signatures))
