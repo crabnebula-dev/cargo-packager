@@ -43,11 +43,22 @@ mod context;
 
 /// Generated Package metadata.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct PackageOutput {
     /// The package type.
     pub format: PackageFormat,
     /// All paths for this package.
     pub paths: Vec<PathBuf>,
+}
+
+impl PackageOutput {
+    /// Creates a new package output.
+    ///
+    /// This is only useful if you need to sign the packages in a different process,
+    /// after packaging the app and storing its paths.
+    pub fn new(format: PackageFormat, paths: Vec<PathBuf>) -> Self {
+        Self { format, paths }
+    }
 }
 
 /// Package an app using the specified config.
