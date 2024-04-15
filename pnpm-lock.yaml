@@ -31,8 +31,8 @@ importers:
         version: 1.0.0
     devDependencies:
       '@napi-rs/cli':
-        specifier: ^2.16.5
-        version: 2.18.0
+        specifier: ^2.18.1
+        version: 2.18.1
       '@types/fs-extra':
         specifier: ^11.0.3
         version: 11.0.4
@@ -46,14 +46,14 @@ importers:
         specifier: ^13.1.1
         version: 13.1.2
       typescript:
-        specifier: ^5.2.2
-        version: 5.4.2
+        specifier: ^5.4.5
+        version: 5.4.5
 
   bindings/resource-resolver/nodejs:
     devDependencies:
       '@napi-rs/cli':
-        specifier: ^2.16.5
-        version: 2.18.0
+        specifier: ^2.18.1
+        version: 2.18.1
       '@types/node':
         specifier: ^20.8.10
         version: 20.11.26
@@ -67,8 +67,8 @@ importers:
         specifier: 'workspace:'
         version: link:../../packager/nodejs
       '@napi-rs/cli':
-        specifier: ^2.16.5
-        version: 2.18.0
+        specifier: ^2.18.1
+        version: 2.18.1
       '@tinyhttp/app':
         specifier: ^2.2.1
         version: 2.2.3
@@ -133,8 +133,8 @@ packages:
       - supports-color
     dev: true
 
-  /@napi-rs/cli@2.18.0:
-    resolution: {integrity: sha512-lfSRT7cs3iC4L+kv9suGYQEezn5Nii7Kpu+THsYVI0tA1Vh59LH45p4QADaD7hvIkmOz79eEGtoKQ9nAkAPkzA==}
+  /@napi-rs/cli@2.18.1:
+    resolution: {integrity: sha512-N4iTeip2VSk0RftgDGuk7IBrgOST/WPUSA3lYstILXsNifR3tHugcbLzo04+OtSrMc+ZUPsXo3Jd1t3dlswAlw==}
     engines: {node: '>= 10'}
     hasBin: true
     dev: true
@@ -2138,8 +2138,8 @@ packages:
     resolution: {integrity: sha512-dzlvlNlt6AXU7EBSfpAscydQ7gXB+pPGsPnfJnZpiNJBDj7IaJzQlBZYGdEi4R9HmPdBv2XmWJ6YUtoTa7lmCw==}
     dev: true
 
-  /typescript@5.4.2:
-    resolution: {integrity: sha512-+2/g0Fds1ERlP6JsakQQDXjZdZMM+rqpamFZJEKh4kwTIn3iDkgKtby0CeNd5ATNZ4Ry1ax15TMx0W2V+miizQ==}
+  /typescript@5.4.5:
+    resolution: {integrity: sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==}
     engines: {node: '>=14.17'}
     hasBin: true
     dev: true

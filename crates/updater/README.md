@@ -12,11 +12,11 @@ a [`Config`](https://docs.rs/cargo-packager-updater/latest/cargo_packager_update
 use cargo_packager_updater::{check_update, Config};
 
 let config = Config {
-  endpoints: vec!["http://myserver.com/updates"],
-  pubkey: "<pubkey here>",
+  endpoints: vec!["http://myserver.com/updates".parse().unwrap()],
+  pubkey: "<pubkey here>".into(),
   ..Default::default()
 };
-if let Some(update) = check_update("0.1.0", config).expect("failed while checking for update") {
+if let Some(update) = check_update("0.1.0".parse().unwrap(), config).expect("failed while checking for update") {
   update.download_and_install().expect("failed to download and install update");
 } else {
   // there is no updates
