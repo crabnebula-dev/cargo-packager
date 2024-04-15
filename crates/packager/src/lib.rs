@@ -127,13 +127,19 @@ pub fn init_tracing_subscriber(verbosity: u8) {
         .with_file(tracing)
         .with_max_level(level)
         .event_format(TracingFormatter {
-            formatter: tracing_subscriber::fmt::format().compact(),
+            formatter: tracing_subscriber::fmt::format()
+                .compact()
+                .with_target(debug)
+                .with_line_number(tracing)
+                .without_time()
+                .with_file(tracing),
         })
         .init();
 }
 
 struct TracingFormatter {
-    formatter: tracing_subscriber::fmt::format::Format<tracing_subscriber::fmt::format::Compact>,
+    formatter:
+        tracing_subscriber::fmt::format::Format<tracing_subscriber::fmt::format::Compact, ()>,
 }
 
 struct ShellFieldVisitor {
