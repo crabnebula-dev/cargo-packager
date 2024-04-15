@@ -43,7 +43,7 @@ impl CommandExt for Command {
                 if let Ok(0) = stdout.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::info!(
+                tracing::debug!(
                     shell = "stdout",
                     "{}",
                     String::from_utf8_lossy(&buf[..buf.len() - 1])
@@ -63,7 +63,7 @@ impl CommandExt for Command {
                 if let Ok(0) = stderr.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::info!(
+                tracing::error!(
                     shell = "stderr",
                     "{}",
                     String::from_utf8_lossy(&buf[..buf.len() - 1])
