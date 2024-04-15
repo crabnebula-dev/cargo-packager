@@ -135,7 +135,8 @@ fn run_cli(cli: Cli) -> Result<()> {
     };
 
     if configs.is_empty() {
-        return Err(crate::Error::NoConfig);
+        tracing::error!("Couldn't detect a valid configuration file or all configurations are disabled! Nothing to do here.");
+        std::process::exit(1);
     }
 
     let cli_out_dir = cli.out_dir.as_ref().map(dunce::canonicalize).transpose()?;

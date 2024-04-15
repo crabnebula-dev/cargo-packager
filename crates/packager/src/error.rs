@@ -32,9 +32,6 @@ pub enum Error {
     /// Target triple environment error
     #[error("Unable to determine target-environment")]
     Environment,
-    /// No config file found.
-    #[error("Couldn't detect a valid configuration file or all configurations are disabled.")]
-    NoConfig,
     /// I/O errors.
     #[error(transparent)]
     Io(#[from] std::io::Error),
