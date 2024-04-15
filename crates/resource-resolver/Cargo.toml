@@ -14,7 +14,7 @@ features = [ "auto-detect-format" ]
 thiserror = { workspace = true }
 cargo-packager-utils = { version = "0.1.0", path = "../utils", default-features = false }
 log = "0.4.21"
-heck = "0.4.1"
+heck = "0.5"
 
 [features]
 process-relaunch-dangerous-allow-symlink-macos = [ ]

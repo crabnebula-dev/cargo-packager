@@ -23,7 +23,7 @@ schemars = { version = "0.8", features = ["url", "preserve_order", "derive"] }
 clap = { version = "4.5", features = ["derive"] }
 dirs = "5.0"
 semver = "1"
-base64 = "0.21"
+base64 = "0.22"
 tracing = "0.1"
 time = "0.3"
 tar = "0.4"
