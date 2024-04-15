@@ -49,11 +49,11 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     create_info_plist(&contents_directory, bundle_icon_file, config)?;
 
     tracing::debug!("Copying frameworks");
-    let framework_paths = copy_frameworks_to_bundle(&contents_directory, config)?;
+    let _framework_paths = copy_frameworks_to_bundle(&contents_directory, config)?;
 
     #[cfg(target_os = "macos")]
     sign_paths.extend(
-        framework_paths
+        _framework_paths
             .into_iter()
             .filter(|p| {
                 let ext = p.extension();
