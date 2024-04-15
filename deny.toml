@@ -32,6 +32,7 @@ allow = [
     # Used by webpki-roots and option-ext which we are using without modifications in a larger work, therefore okay.
     "MPL-2.0",
     "BSD-3-Clause",
+    "BSD-2-Clause",
     "OpenSSL",
     "Zlib",
 ]
