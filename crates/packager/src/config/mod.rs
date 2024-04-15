@@ -1478,7 +1478,7 @@ pub struct Config {
     /// The directory where the [`Config::binaries`] exist.
     ///
     /// Defaults to [`Config::out_dir`].
-    #[serde(default, alias = "out-dir", alias = "out_dir")]
+    #[serde(default, alias = "binaries-dir", alias = "binaries_dir")]
     pub binaries_dir: Option<PathBuf>,
     /// The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
     ///
