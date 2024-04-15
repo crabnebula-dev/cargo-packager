@@ -63,8 +63,13 @@ pub(crate) struct Cli {
     /// Specify The directory where the packages will be placed.
     ///
     /// If [`Config::binaries_dir`] is not defined, it is also the path where the binaries are located if they use relative paths.
+    #[clap(short, long, alias = "out")]
     out_dir: Option<PathBuf>,
-
+    /// Specify The directory where the [`Config::binaries`] exist.
+    ///
+    /// Defaults to [`Config::out_dir`]
+    #[clap(long)]
+    binaries_dir: Option<PathBuf>,
     /// Package the release version of your app.
     /// Ignored when `--config` is used.
     #[clap(short, long, group = "cargo-profile")]
