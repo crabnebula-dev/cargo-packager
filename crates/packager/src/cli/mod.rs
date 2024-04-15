@@ -60,9 +60,16 @@ pub(crate) struct Cli {
     /// Specify which packages to use from the current workspace.
     #[clap(short, long, value_delimiter = ',')]
     packages: Option<Vec<String>>,
-    /// Specify The directory where the `binaries` exist and where the packages will be placed.
+    /// Specify The directory where the packages will be placed.
+    ///
+    /// If [`Config::binaries_dir`] is not defined, it is also the path where the binaries are located if they use relative paths.
+    #[clap(short, long, alias = "out")]
     out_dir: Option<PathBuf>,
-
+    /// Specify The directory where the [`Config::binaries`] exist.
+    ///
+    /// Defaults to [`Config::out_dir`]
+    #[clap(long)]
+    binaries_dir: Option<PathBuf>,
     /// Package the release version of your app.
     /// Ignored when `--config` is used.
     #[clap(short, long, group = "cargo-profile")]
@@ -135,11 +142,22 @@ fn run_cli(cli: Cli) -> Result<()> {
     };
 
     if configs.is_empty() {
-        tracing::debug!("Couldn't detect a valid configuration file or all configurations are disabled! Nothing to do here.");
-        return Ok(());
+        tracing::error!("Couldn't detect a valid configuration file or all configurations are disabled! Nothing to do here.");
+        std::process::exit(1);
     }
 
-    let cli_out_dir = cli.out_dir.as_ref().map(dunce::canonicalize).transpose()?;
+    let cli_out_dir = cli
+        .out_dir
+        .as_ref()
+        .map(|p| {
+            if p.exists() {
+                dunce::canonicalize(p)
+            } else {
+                std::fs::create_dir_all(p)?;
+                Ok(p.to_owned())
+            }
+        })
+        .transpose()?;
 
     for (_, config) in &mut configs {
         if let Some(dir) = &cli_out_dir {

@@ -138,13 +138,19 @@ pub fn load_configs_from_cargo_workspace(
                     .identifier
                     .replace(format!("com.{}.{}", author, package.name));
             }
-            if config.out_dir.as_os_str().is_empty() {
-                config.out_dir = metadata
-                    .target_directory
-                    .as_std_path()
-                    .to_path_buf()
-                    .join(profile);
+
+            let cargo_out_dir = metadata
+                .target_directory
+                .as_std_path()
+                .to_path_buf()
+                .join(profile);
+            if config.binaries_dir.is_none() {
+                config.binaries_dir.replace(cargo_out_dir.clone());
             }
+            if config.out_dir.as_os_str().is_empty() {
+                config.out_dir = cargo_out_dir;
+            }
+
             if config.description.is_none() {
                 config.description = package.description.clone();
             }

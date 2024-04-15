@@ -181,9 +181,17 @@ export interface Config {
    */
   formats?: PackageFormat[] | null;
   /**
-   * The directory where the [`Config::binaries`] exist and where the generated packages will be placed.
+   * The directory where the generated packages will be placed.
+   *
+   * If [`Config::binaries_dir`] is not set, this is also where the [`Config::binaries`] exist.
    */
   outDir?: string;
+  /**
+   * The directory where the [`Config::binaries`] exist.
+   *
+   * Defaults to [`Config::out_dir`].
+   */
+  binariesDir?: string | null;
   /**
    * The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
    *

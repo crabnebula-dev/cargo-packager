@@ -1470,9 +1470,16 @@ pub struct Config {
     pub log_level: Option<LogLevel>,
     /// The packaging formats to create, if not present, [`PackageFormat::platform_default`] is used.
     pub formats: Option<Vec<PackageFormat>>,
-    /// The directory where the [`Config::binaries`] exist and where the generated packages will be placed.
+    /// The directory where the generated packages will be placed.
+    ///
+    /// If [`Config::binaries_dir`] is not set, this is also where the [`Config::binaries`] exist.
     #[serde(default, alias = "out-dir", alias = "out_dir")]
     pub out_dir: PathBuf,
+    /// The directory where the [`Config::binaries`] exist.
+    ///
+    /// Defaults to [`Config::out_dir`].
+    #[serde(default, alias = "binaries-dir", alias = "binaries_dir")]
+    pub binaries_dir: Option<PathBuf>,
     /// The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
     ///
     /// Defaults to the current OS target triple.
@@ -1624,7 +1631,7 @@ impl Config {
         if binary.path.is_absolute() {
             binary.path.clone()
         } else {
-            self.out_dir().join(&binary.path)
+            self.binaries_dir().join(&binary.path)
         }
     }
 
@@ -1649,8 +1656,20 @@ impl Config {
     pub fn out_dir(&self) -> PathBuf {
         if self.out_dir.as_os_str().is_empty() {
             std::env::current_dir().expect("failed to resolve cwd")
-        } else {
+        } else if self.out_dir.exists() {
             dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
+        } else {
+            std::fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
+            self.out_dir.clone()
+        }
+    }
+
+    /// Returns the binaries dir. Defaults to [`Self::out_dir`] if [`Self::binaries_dir`] is not set.
+    pub fn binaries_dir(&self) -> PathBuf {
+        if let Some(path) = &self.binaries_dir {
+            dunce::canonicalize(path).unwrap_or_else(|_| path.clone())
+        } else {
+            self.out_dir()
         }
     }
 
