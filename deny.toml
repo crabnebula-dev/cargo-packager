@@ -1,4 +1,5 @@
 # Target triples to include when checking. This is essentially our supported target list.
+[graph]
 targets = [
     { triple = "x86_64-unknown-linux-gnu" },
     { triple = "aarch64-unknown-linux-gnu" },

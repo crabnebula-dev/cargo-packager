@@ -8,7 +8,6 @@ use crate::{config, shell::CommandExt, util, Config, PackageFormat};
 
 use self::context::Context;
 
-#[cfg(target_os = "macos")]
 mod app;
 #[cfg(any(
     target_os = "linux",
@@ -45,16 +44,26 @@ mod context;
 /// Generated Package metadata.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub struct PackageOuput {
+pub struct PackageOutput {
     /// The package type.
     pub format: PackageFormat,
     /// All paths for this package.
     pub paths: Vec<PathBuf>,
 }
 
+impl PackageOutput {
+    /// Creates a new package output.
+    ///
+    /// This is only useful if you need to sign the packages in a different process,
+    /// after packaging the app and storing its paths.
+    pub fn new(format: PackageFormat, paths: Vec<PathBuf>) -> Self {
+        Self { format, paths }
+    }
+}
+
 /// Package an app using the specified config.
 #[tracing::instrument(level = "trace")]
-pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
+pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
     let mut formats = config
         .formats
         .clone()
@@ -93,17 +102,16 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
         )?;
 
         let paths = match format {
-            #[cfg(target_os = "macos")]
             PackageFormat::App => app::package(&ctx),
             #[cfg(target_os = "macos")]
             PackageFormat::Dmg => {
                 // PackageFormat::App is required for the DMG bundle
                 if !packages
                     .iter()
-                    .any(|b: &PackageOuput| b.format == PackageFormat::App)
+                    .any(|b: &PackageOutput| b.format == PackageFormat::App)
                 {
                     let paths = app::package(&ctx)?;
-                    packages.push(PackageOuput {
+                    packages.push(PackageOutput {
                         format: PackageFormat::App,
                         paths,
                     });
@@ -144,7 +152,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOuput>> {
             }
         }?;
 
-        packages.push(PackageOuput {
+        packages.push(PackageOutput {
             format: *format,
             paths,
         });

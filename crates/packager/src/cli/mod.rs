@@ -137,8 +137,8 @@ fn run_cli(cli: Cli) -> Result<()> {
     };
 
     if configs.is_empty() {
-        tracing::debug!("Couldn't detect a valid configuration file or all configurations are disabled! Nothing to do here.");
-        return Ok(());
+        tracing::error!("Couldn't detect a valid configuration file or all configurations are disabled! Nothing to do here.");
+        std::process::exit(1);
     }
 
     let cli_out_dir = cli
