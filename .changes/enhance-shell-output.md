@@ -1,5 +1,6 @@
 ---
 "cargo-packager": patch
+"@crabnebula/packager": patch
 ---
 
-Always show command output and enhance formatting.
+Show shell commands output (ex: `beforePackageCommand`) if it fails.
