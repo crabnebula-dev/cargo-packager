@@ -69,7 +69,7 @@ native-tls = { version = "0.2", optional = true }
 cargo-packager-utils = { version = "0.1.0", path = "../utils", features = [ "serde" ] }
 icns = { package = "tauri-icns", version = "0.1" }
 time = { workspace = true, features = [ "formatting" ] }
-image = "0.24"
+image = "0.25"
 tempfile = "3"
 plist = "1"
 
@@ -87,7 +87,7 @@ regex = "1.10"
 ]
 
 [target."cfg(any(target_os = \"linux\", target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"netbsd\", target_os = \"openbsd\"))".dependencies]
-image = "0.24"
+image = "0.25"
 md5 = "0.7"
 heck = "0.4"
 ar = "0.9"
