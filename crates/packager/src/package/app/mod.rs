@@ -4,19 +4,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use std::{
-    collections::BinaryHeap,
-    ffi::OsStr,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::path::{Path, PathBuf};
 
 use super::Context;
+use crate::{config::Config, util};
+
+#[cfg(target_os = "macos")]
 use crate::{
     codesign::macos::{self as codesign, SignTarget},
-    config::Config,
     shell::CommandExt,
-    util,
 };
 
 #[tracing::instrument(level = "trace")]
@@ -44,7 +40,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let bin_dir = contents_directory.join("MacOS");
     std::fs::create_dir_all(&bin_dir)?;
 
-    let mut sign_paths = BinaryHeap::new();
+    #[cfg(target_os = "macos")]
+    let mut sign_paths = std::collections::BinaryHeap::new();
 
     let bundle_icon_file = util::create_icns_file(&resources_dir, config)?;
 
@@ -52,14 +49,15 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     create_info_plist(&contents_directory, bundle_icon_file, config)?;
 
     tracing::debug!("Copying frameworks");
-    let framework_paths = copy_frameworks_to_bundle(&contents_directory, config)?;
+    let _framework_paths = copy_frameworks_to_bundle(&contents_directory, config)?;
 
+    #[cfg(target_os = "macos")]
     sign_paths.extend(
-        framework_paths
+        _framework_paths
             .into_iter()
             .filter(|p| {
                 let ext = p.extension();
-                ext == Some(OsStr::new("framework"))
+                ext == Some(std::ffi::OsStr::new("framework"))
             })
             .map(|path| SignTarget {
                 path,
@@ -125,12 +123,14 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
             continue;
         }
 
+        #[cfg(target_os = "macos")]
         sign_paths.push(SignTarget {
             path: file,
             is_native_binary: true,
         });
     }
 
+    #[cfg(target_os = "macos")]
     if let Some(identity) = config
         .macos()
         .and_then(|macos| macos.signing_identity.as_ref())
@@ -329,7 +329,16 @@ fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
         let dest_path = to.join(rel_path);
         if entry.file_type().is_symlink() {
             let target = std::fs::read_link(entry.path())?;
+            #[cfg(unix)]
             std::os::unix::fs::symlink(&target, &dest_path)?;
+            #[cfg(windows)]
+            {
+                if entry.file_type().is_file() {
+                    std::os::windows::fs::symlink_file(&target, &dest_path)?;
+                } else {
+                    std::os::windows::fs::symlink_dir(&target, &dest_path)?;
+                }
+            }
         } else if entry.file_type().is_dir() {
             std::fs::create_dir(dest_path)?;
         } else {
@@ -416,8 +425,9 @@ fn copy_frameworks_to_bundle(
     Ok(paths)
 }
 
+#[cfg(target_os = "macos")]
 fn remove_extra_attr(app_bundle_path: &Path) -> crate::Result<()> {
-    Command::new("xattr")
+    std::process::Command::new("xattr")
         .arg("-cr")
         .arg(app_bundle_path)
         .output_ok()

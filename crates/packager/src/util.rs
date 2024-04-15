@@ -283,15 +283,7 @@ pub(crate) fn os_bitness() -> crate::Result<Bitness> {
 /// Returns true if the path has a filename indicating that it is a high-density
 /// "retina" icon.  Specifically, returns true the file stem ends with
 /// "@2x" (a convention specified by the [Apple developer docs](
-/// https://developer.apple.com/library/mac/documentation/GraphicsAnimation/Conceptual/HighResolutionOSX/Optimizing/Optimizing.html)).
-#[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd",
-    target_os = "macos",
-))]
+/// https://developer.apple.com/library/mac/documentation/GraphicsAnimation/Conceptual/HighResolutionOSX/Optimizing/Optimizing.html)).xw
 pub(crate) fn is_retina<P: AsRef<Path>>(path: P) -> bool {
     path.as_ref()
         .file_stem()
@@ -303,7 +295,6 @@ pub(crate) fn is_retina<P: AsRef<Path>>(path: P) -> bool {
 // Given a list of icon files, try to produce an ICNS file in the out_dir
 // and return the path to it.  Returns `Ok(None)` if no usable icons
 // were provided.
-#[cfg(target_os = "macos")]
 pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result<Option<PathBuf>> {
     use image::GenericImageView;
 
@@ -395,7 +386,6 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
 }
 
 // Converts an image::DynamicImage into an icns::Image.
-#[cfg(target_os = "macos")]
 fn make_icns_image(img: image::DynamicImage) -> std::io::Result<icns::Image> {
     let pixel_format = match img.color() {
         image::ColorType::Rgba8 => icns::PixelFormat::RGBA,
