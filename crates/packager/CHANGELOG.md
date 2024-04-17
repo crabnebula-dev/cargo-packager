@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.8.1]
+
+- [`1375380`](https://www.github.com/crabnebula-dev/cargo-packager/commit/1375380c7c9d2adf55ab18a2ce23917849967995)([#196](https://www.github.com/crabnebula-dev/cargo-packager/pull/196)) Always show shell commands output for `beforePackageCommand` and `beforeEachPackagingCommand` .
+
 ## \[0.8.0]
 
 - [`2164d02`](https://www.github.com/crabnebula-dev/cargo-packager/commit/2164d022f5705e59a189007aec7c99cce98136d8)([#198](https://www.github.com/crabnebula-dev/cargo-packager/pull/198)) Allow packaging the macOS app bundle on Linux and Windows hosts (without codesign support).
