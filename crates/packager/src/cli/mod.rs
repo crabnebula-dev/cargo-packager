@@ -285,6 +285,9 @@ where
 
     if !cli.quite {
         init_tracing_subscriber(cli.verbose);
+        if std::env::var_os("CARGO_TERM_COLOR").is_none() {
+            std::env::set_var("CARGO_TERM_COLOR", "always");
+        }
     }
 
     run_cli(cli)
