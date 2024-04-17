@@ -206,7 +206,7 @@ fn run_before_each_packaging_command_hook(
         let output = cmd
             .env("CARGO_PACKAGER_FORMATS", formats_comma_separated)
             .env("CARGO_PACKAGER_FORMAT", format)
-            .output_ok()
+            .output_ok_info()
             .map_err(|e| {
                 crate::Error::HookCommandFailure(
                     "beforeEachPackageCommand".into(),
@@ -249,7 +249,7 @@ fn run_before_packaging_command_hook(
         tracing::info!("Running beforePackageCommand `{script}`");
         let output = cmd
             .env("CARGO_PACKAGER_FORMATS", formats_comma_separated)
-            .output_ok()
+            .output_ok_info()
             .map_err(|e| {
                 crate::Error::HookCommandFailure("beforePackagingCommand".into(), script.into(), e)
             })?;

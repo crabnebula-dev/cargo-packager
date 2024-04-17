@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
+    borrow::Cow,
     io::{BufRead, BufReader},
     process::{Command, ExitStatus, Output, Stdio},
     sync::{Arc, Mutex},
@@ -14,6 +15,8 @@ pub trait CommandExt {
     // show the command output in the Node.js wrapper.
     fn piped(&mut self) -> std::io::Result<ExitStatus>;
     fn output_ok(&mut self) -> std::io::Result<Output>;
+    fn output_ok_info(&mut self) -> std::io::Result<Output>;
+    fn output_ok_inner(&mut self, level: tracing::Level) -> std::io::Result<Output>;
 }
 
 impl CommandExt for Command {
@@ -25,6 +28,14 @@ impl CommandExt for Command {
     }
 
     fn output_ok(&mut self) -> std::io::Result<Output> {
+        self.output_ok_inner(tracing::Level::DEBUG)
+    }
+
+    fn output_ok_info(&mut self) -> std::io::Result<Output> {
+        self.output_ok_inner(tracing::Level::INFO)
+    }
+
+    fn output_ok_inner(&mut self, level: tracing::Level) -> std::io::Result<Output> {
         tracing::debug!("Running Command `{self:?}`");
 
         self.stdout(Stdio::piped());
@@ -43,10 +54,10 @@ impl CommandExt for Command {
                 if let Ok(0) = stdout.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::debug!(
-                    shell = "stdout",
-                    "{}",
-                    String::from_utf8_lossy(&buf[..buf.len() - 1])
+                log(
+                    level,
+                    "stdout",
+                    String::from_utf8_lossy(&buf[..buf.len() - 1]),
                 );
                 lines.extend(&buf);
             }
@@ -63,10 +74,10 @@ impl CommandExt for Command {
                 if let Ok(0) = stderr.read_until(b'\n', &mut buf) {
                     break;
                 }
-                tracing::error!(
-                    shell = "stderr",
-                    "{}",
-                    String::from_utf8_lossy(&buf[..buf.len() - 1])
+                log(
+                    level,
+                    "stderr",
+                    String::from_utf8_lossy(&buf[..buf.len() - 1]),
                 );
                 lines.extend(&buf);
             }
@@ -84,5 +95,13 @@ impl CommandExt for Command {
         } else {
             Err(std::io::Error::last_os_error())
         }
+    }
+}
+
+#[inline]
+fn log(level: tracing::Level, shell: &str, msg: Cow<'_, str>) {
+    match level {
+        tracing::Level::INFO => tracing::info!(shell = shell, "{msg}"),
+        _ => tracing::debug!(shell = shell, "{msg}"),
     }
 }

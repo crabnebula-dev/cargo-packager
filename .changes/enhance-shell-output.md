@@ -3,4 +3,4 @@
 "@crabnebula/packager": patch
 ---
 
-Show shell commands output (ex: `beforePackageCommand`) if it fails.
+Always show shell commands output for `beforePackageCommand` and `beforeEachPackagingCommand` .
