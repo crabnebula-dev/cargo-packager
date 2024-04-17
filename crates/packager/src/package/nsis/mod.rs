@@ -169,7 +169,7 @@ fn write_ut16_le_with_bom<P: AsRef<Path> + Debug>(path: P, content: &str) -> cra
 }
 
 fn handlebars_or(
-    h: &handlebars::Helper<'_, '_>,
+    h: &handlebars::Helper<'_>,
     _: &Handlebars<'_>,
     _: &handlebars::Context,
     _: &mut handlebars::RenderContext<'_, '_>,
@@ -187,7 +187,7 @@ fn handlebars_or(
 }
 
 fn association_description(
-    h: &handlebars::Helper<'_, '_>,
+    h: &handlebars::Helper<'_>,
     _: &Handlebars<'_>,
     _: &handlebars::Context,
     _: &mut handlebars::RenderContext<'_, '_>,
@@ -205,7 +205,7 @@ fn association_description(
 }
 
 fn unescape_newlines(
-    h: &handlebars::Helper<'_, '_>,
+    h: &handlebars::Helper<'_>,
     _: &Handlebars<'_>,
     _: &handlebars::Context,
     _: &mut handlebars::RenderContext<'_, '_>,
@@ -217,7 +217,7 @@ fn unescape_newlines(
 }
 
 fn unescape_dollar_sign(
-    h: &handlebars::Helper<'_, '_>,
+    h: &handlebars::Helper<'_>,
     _: &Handlebars<'_>,
     _: &handlebars::Context,
     _: &mut handlebars::RenderContext<'_, '_>,

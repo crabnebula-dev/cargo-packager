@@ -8,7 +8,7 @@ use std::{
     collections::{BTreeSet, HashMap},
     ffi::OsStr,
     fs::File,
-    io::Write,
+    io::{BufReader, Write},
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
 };
@@ -58,7 +58,9 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
             }
             // Put file in scope so that it's closed when copying it
             let deb_icon = {
-                let decoder = PngDecoder::new(File::open(&icon_path)?)?;
+                let file = File::open(&icon_path)?;
+                let file = BufReader::new(file);
+                let decoder = PngDecoder::new(file)?;
                 let width = decoder.dimensions().0;
                 let height = decoder.dimensions().1;
                 let is_high_density = util::is_retina(&icon_path);

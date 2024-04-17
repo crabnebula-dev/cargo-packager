@@ -1,5 +1,17 @@
 # Changelog
 
+## \[0.8.0]
+
+- [`2164d02`](https://www.github.com/crabnebula-dev/cargo-packager/commit/2164d022f5705e59a189007aec7c99cce98136d8)([#198](https://www.github.com/crabnebula-dev/cargo-packager/pull/198)) Allow packaging the macOS app bundle on Linux and Windows hosts (without codesign support).
+- [`3057a4a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3057a4a8440bc4dc897f3038ac821ed181644d43)([#197](https://www.github.com/crabnebula-dev/cargo-packager/pull/197)) Added `Config::binaries_dir` and `--binaries-dir` so you can specify the location of the binaries without modifying the output directory.
+- [`4c4d919`](https://www.github.com/crabnebula-dev/cargo-packager/commit/4c4d9194fb0bd2a814f46336747e643b1e208b52)([#195](https://www.github.com/crabnebula-dev/cargo-packager/pull/195)) Error out if we cannot find a configuration file.
+- [`b04332c`](https://www.github.com/crabnebula-dev/cargo-packager/commit/b04332c8fc61427dc002a40d9d46bc5f930025c2)([#194](https://www.github.com/crabnebula-dev/cargo-packager/pull/194)) Fixes a crash when packaging `.app` if an empty file is included in the bundle.
+- [`3057a4a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3057a4a8440bc4dc897f3038ac821ed181644d43)([#197](https://www.github.com/crabnebula-dev/cargo-packager/pull/197)) Added `--out-dir/-o` flags and removed the positional argument to specify where to ouput packages, use the newly added flags instead.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.8.0`
+
 ## \[0.7.0]
 
 - [`cd8898a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/cd8898a93b66a4aae050fa1006089c3c3b5646f9)([#187](https://www.github.com/crabnebula-dev/cargo-packager/pull/187)) Added codesign certificate and notarization credentials configuration options under the `macos` config (for programatic usage, taking precedence over environment variables).
