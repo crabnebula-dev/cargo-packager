@@ -119,27 +119,36 @@ pub fn init_tracing_subscriber(verbosity: u8) {
     let debug = level == tracing::Level::DEBUG;
     let tracing = level == tracing::Level::TRACE;
 
-    tracing_subscriber::fmt()
+    let subscriber = tracing_subscriber::fmt()
         .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
-        .without_time()
         .with_target(debug)
         .with_line_number(tracing)
         .with_file(tracing)
-        .with_max_level(level)
-        .event_format(TracingFormatter {
-            formatter: tracing_subscriber::fmt::format()
-                .compact()
-                .with_target(debug)
-                .with_line_number(tracing)
-                .without_time()
-                .with_file(tracing),
-        })
-        .init();
+        .with_max_level(level);
+
+    let formatter = tracing_subscriber::fmt::format()
+        .compact()
+        .with_target(debug)
+        .with_line_number(tracing)
+        .with_file(tracing);
+
+    if tracing {
+        subscriber
+            .event_format(TracingFormatter::WithTime(formatter))
+            .init();
+    } else {
+        subscriber
+            .without_time()
+            .event_format(TracingFormatter::WithoutTime(formatter.without_time()))
+            .init();
+    }
 }
 
-struct TracingFormatter {
-    formatter:
+enum TracingFormatter {
+    WithoutTime(
         tracing_subscriber::fmt::format::Format<tracing_subscriber::fmt::format::Compact, ()>,
+    ),
+    WithTime(tracing_subscriber::fmt::format::Format<tracing_subscriber::fmt::format::Compact>),
 }
 
 struct ShellFieldVisitor {
@@ -176,7 +185,12 @@ where
             event.record(&mut visitor);
             writeln!(writer, "{}", visitor.message)
         } else {
-            self.formatter.format_event(ctx, writer, event)
+            match self {
+                TracingFormatter::WithoutTime(formatter) => {
+                    formatter.format_event(ctx, writer, event)
+                }
+                TracingFormatter::WithTime(formatter) => formatter.format_event(ctx, writer, event),
+            }
         }
     }
 }
