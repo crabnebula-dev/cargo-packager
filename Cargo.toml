@@ -27,7 +27,7 @@ base64 = "0.22"
 tracing = "0.1"
 time = "0.3"
 tar = "0.4"
-napi = { version = "2.16", default-features = false }
+napi = { version = "2.16.4", default-features = false }
 napi-derive = "2.16"
 napi-build = "2.1"
 
