@@ -32,7 +32,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^2.18.1
-        version: 2.18.2
+        version: 2.18.3
       '@types/fs-extra':
         specifier: ^11.0.3
         version: 11.0.4
@@ -53,7 +53,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^2.18.1
-        version: 2.18.2
+        version: 2.18.3
       '@types/node':
         specifier: ^20.8.10
         version: 20.12.7
@@ -68,7 +68,7 @@ importers:
         version: link:../../packager/nodejs
       '@napi-rs/cli':
         specifier: ^2.18.1
-        version: 2.18.2
+        version: 2.18.3
       '@tinyhttp/app':
         specifier: ^2.2.1
         version: 2.2.3
@@ -99,8 +99,8 @@ packages:
     resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
     hasBin: true
 
-  '@napi-rs/cli@2.18.2':
-    resolution: {integrity: sha512-IXQji3IF5eStxTHe/PxDSRjPrFymYAQ5FbIvqurxzxyWR8nJql9mtvmCP8y2g8tSoW5xhaToLQW0+mO3lUZq4w==}
+  '@napi-rs/cli@2.18.3':
+    resolution: {integrity: sha512-L0f4kP0dyG8W5Qtc7MtP73VvLLrOLyRcUEBzknIfu8Jk4Jfhrsx1ItMHgyalYqMSslWdY3ojEfAaU5sx1VyeQQ==}
     engines: {node: '>= 10'}
     hasBin: true
 
@@ -1342,7 +1342,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@napi-rs/cli@2.18.2': {}
+  '@napi-rs/cli@2.18.3': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
