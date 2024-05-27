@@ -38,7 +38,7 @@ pub(crate) struct Cli {
     #[clap(short, long, global = true, action = ArgAction::Count)]
     verbose: u8,
     /// Disables logging
-    #[clap(short, long)]
+    #[clap(short, long, global = true)]
     quite: bool,
 
     /// Specify the package fromats to build.

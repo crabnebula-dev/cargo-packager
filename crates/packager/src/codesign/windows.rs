@@ -142,15 +142,22 @@ pub fn sign_command_custom<P: AsRef<Path> + Debug>(
     path: P,
     command: &str,
 ) -> crate::Result<Command> {
-    let custom_command = command.replace("%1", &dunce::simplified(path.as_ref()).to_string_lossy());
+    let mut args = command.trim().split(' ');
 
-    let mut args = custom_command.split(' ');
     let bin = args
         .next()
         .expect("custom signing command doesn't contain a bin?");
 
     let mut cmd = Command::new(bin);
-    cmd.args(args);
+
+    for arg in args {
+        if arg == "%1" {
+            cmd.arg(path.as_ref());
+        } else {
+            cmd.arg(arg);
+        }
+    }
+
     Ok(cmd)
 }
 
