@@ -557,7 +557,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         data.insert("feature_group_refs", to_json(&wix.feature_group_refs));
         data.insert("feature_refs", to_json(&wix.feature_refs));
         data.insert("merge_refs", to_json(&wix.merge_refs));
-        custom_template_path = wix.template.clone();
+        custom_template_path.clone_from(&wix.template);
 
         fragment_paths = wix.fragment_paths.clone().unwrap_or_default();
         if let Some(ref inline_fragments) = wix.fragments {
