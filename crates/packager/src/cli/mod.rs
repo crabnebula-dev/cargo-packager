@@ -161,7 +161,7 @@ fn run_cli(cli: Cli) -> Result<()> {
 
     for (_, config) in &mut configs {
         if let Some(dir) = &cli_out_dir {
-            config.out_dir = dir.clone()
+            config.out_dir.clone_from(dir)
         }
 
         if let Some(formats) = &cli.formats {
