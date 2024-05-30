@@ -239,6 +239,10 @@ export interface Config {
    */
   fileAssociations?: FileAssociation[] | null;
   /**
+   * Deep-link protocols.
+   */
+  deepLinkProtocols?: DeepLinkProtocol[] | null;
+  /**
    * The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory or an object of `src` and `target` paths. In the case of using an object, the `src` could be either a glob pattern, path to a file, path to a directory, and the `target` is a path inside the final resources folder in the installed package.
    *
    * ## Format-specific:
@@ -324,6 +328,23 @@ export interface FileAssociation {
   name?: string | null;
   /**
    * The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS. Defaults to [`BundleTypeRole::Editor`]
+   */
+  role?: BundleTypeRole & string;
+}
+/**
+ * Deep link protocol
+ */
+export interface DeepLinkProtocol {
+  /**
+   * URL schemes to associate with this app without `://`. For example `my-app`
+   */
+  schemes: string[];
+  /**
+   * The protocol name. **macOS-only** and maps to `CFBundleTypeName`. Defaults to `<bundle-id>.<schemes[0]>`
+   */
+  name?: string | null;
+  /**
+   * The app's role for these schemes. **macOS-only** and maps to `CFBundleTypeRole`.
    */
   role?: BundleTypeRole & string;
 }

@@ -268,6 +268,44 @@ fn create_info_plist(
         );
     }
 
+    if let Some(protocols) = &config.deep_link_protocols {
+        plist.insert(
+            "CFBundleURLTypes".into(),
+            plist::Value::Array(
+                protocols
+                    .iter()
+                    .map(|protocol| {
+                        let mut dict = plist::Dictionary::new();
+                        dict.insert(
+                            "CFBundleURLSchemes".into(),
+                            plist::Value::Array(
+                                protocol
+                                    .schemes
+                                    .iter()
+                                    .map(|s| s.to_string().into())
+                                    .collect(),
+                            ),
+                        );
+                        dict.insert(
+                            "CFBundleURLName".into(),
+                            protocol
+                                .name
+                                .clone()
+                                .unwrap_or(format!(
+                                    "{} {}",
+                                    config.identifier(),
+                                    protocol.schemes[0]
+                                ))
+                                .into(),
+                        );
+                        dict.insert("CFBundleTypeRole".into(), protocol.role.to_string().into());
+                        plist::Value::Dictionary(dict)
+                    })
+                    .collect(),
+            ),
+        );
+    }
+
     plist.insert("LSRequiresCarbon".into(), true.into());
     plist.insert("NSHighResolutionCapable".into(), true.into());
     if let Some(copyright) = &config.copyright {

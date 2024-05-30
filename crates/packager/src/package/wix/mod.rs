@@ -520,7 +520,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
 
     data.insert("app_exe_source", to_json(&main_binary_path));
 
-    // copy icon from `settings.windows().icon_path` folder to resource folder near msi
+    // copy icon from configured `icons` to resource folder near msi
     if let Some(icon) = config.find_ico()? {
         let icon_path = dunce::canonicalize(icon)?;
         data.insert("icon_path", to_json(icon_path));
@@ -600,6 +600,14 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
 
     if let Some(file_associations) = &config.file_associations {
         data.insert("file_associations", to_json(file_associations));
+    }
+
+    if let Some(protocols) = &config.deep_link_protocols {
+        let schemes = protocols
+            .iter()
+            .flat_map(|p| &p.schemes)
+            .collect::<Vec<_>>();
+        data.insert("deep_link_protocols", to_json(schemes));
     }
 
     if let Some(path) = custom_template_path {

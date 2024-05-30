@@ -454,6 +454,14 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         data.insert("file_associations", to_json(file_associations));
     }
 
+    if let Some(protocols) = &config.deep_link_protocols {
+        let schemes = protocols
+            .iter()
+            .flat_map(|p| &p.schemes)
+            .collect::<Vec<_>>();
+        data.insert("deep_link_protocols", to_json(schemes));
+    }
+
     let out_file = "nsis-output.exe";
     data.insert("out_file", to_json(out_file));
 
