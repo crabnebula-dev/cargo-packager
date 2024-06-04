@@ -373,8 +373,8 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     let mut custom_template_path = None;
     let mut custom_language_files = None;
     if let Some(nsis) = config.nsis() {
-        custom_template_path = nsis.template.clone();
-        custom_language_files = nsis.custom_language_files.clone();
+        custom_template_path.clone_from(&nsis.template);
+        custom_language_files.clone_from(&nsis.custom_language_files);
         install_mode = nsis.install_mode;
         if let Some(langs) = &nsis.languages {
             languages.clear();
@@ -452,6 +452,14 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     if let Some(file_associations) = &config.file_associations {
         data.insert("file_associations", to_json(file_associations));
+    }
+
+    if let Some(protocols) = &config.deep_link_protocols {
+        let schemes = protocols
+            .iter()
+            .flat_map(|p| &p.schemes)
+            .collect::<Vec<_>>();
+        data.insert("deep_link_protocols", to_json(schemes));
     }
 
     let out_file = "nsis-output.exe";

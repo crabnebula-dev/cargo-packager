@@ -3,13 +3,9 @@
 use eframe::egui;
 
 fn main() -> Result<(), eframe::Error> {
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(320.0, 240.0)),
-        ..Default::default()
-    };
     eframe::run_native(
         "My egui App",
-        options,
+        eframe::NativeOptions::default(),
         Box::new(|_cc| Box::<MyApp>::default()),
     )
 }

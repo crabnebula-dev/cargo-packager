@@ -499,6 +499,14 @@ Section Install
     {{/each}}
   {{/each}}
 
+  ; Register deep links
+  {{#each deep_link_protocols as |protocol| ~}}
+    WriteRegStr SHCTX "Software\Classes\\{{protocol}}" "URL Protocol" ""
+    WriteRegStr SHCTX "Software\Classes\\{{protocol}}" "" "URL:${BUNDLEID} protocol"
+    WriteRegStr SHCTX "Software\Classes\\{{protocol}}\DefaultIcon" "" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\",0"
+    WriteRegStr SHCTX "Software\Classes\\{{protocol}}\shell\open\command" "" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\" $\"%1$\""
+  {{/each}}
+
   ; Create uninstaller
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
@@ -582,6 +590,21 @@ Section Uninstall
   ; Delete external binaries
   {{#each binaries}}
     Delete "$INSTDIR\\{{this}}"
+  {{/each}}
+
+  ; Delete app associations
+  {{#each file_associations as |association| ~}}
+    {{#each association.ext as |ext| ~}}
+      !insertmacro APP_UNASSOCIATE "{{ext}}" "{{or association.name ext}}"
+    {{/each}}
+  {{/each}}
+
+  ; Delete deep links
+  {{#each deep_link_protocols as |protocol| ~}}
+    ReadRegStr $R7 SHCTX "Software\Classes\\{{protocol}}\shell\open\command" ""
+    !if $R7 == "$\"$INSTDIR\${MAINBINARYNAME}.exe$\" $\"%1$\""
+      DeleteRegKey SHCTX "Software\Classes\\{{protocol}}"
+    !endif
   {{/each}}
 
   ; Delete uninstaller

@@ -81,7 +81,7 @@ pub struct FileAssociation {
 }
 
 impl FileAssociation {
-    /// Creates a new [`FileAssociation``] using provided extensions.
+    /// Creates a new [`FileAssociation`] using provided extensions.
     pub fn new<I, S>(extensions: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -116,6 +116,49 @@ impl FileAssociation {
     pub fn description<S: Into<String>>(mut self, description: S) -> Self {
         self.description.replace(description.into());
         self
+    }
+
+    /// Set he name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
+    pub fn name<S: Into<String>>(mut self, name: S) -> Self {
+        self.name.replace(name.into());
+        self
+    }
+
+    /// Set he app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    /// Defaults to [`BundleTypeRole::Editor`]
+    pub fn role(mut self, role: BundleTypeRole) -> Self {
+        self.role = role;
+        self
+    }
+}
+
+/// Deep link protocol
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct DeepLinkProtocol {
+    /// URL schemes to associate with this app without `://`. For example `my-app`
+    pub schemes: Vec<String>,
+    /// The protocol name. **macOS-only** and maps to `CFBundleTypeName`. Defaults to `<bundle-id>.<schemes[0]>`
+    pub name: Option<String>,
+    /// The app's role for these schemes. **macOS-only** and maps to `CFBundleTypeRole`.
+    #[serde(default)]
+    pub role: BundleTypeRole,
+}
+
+impl DeepLinkProtocol {
+    /// Creates a new [`DeepLinkProtocol``] using provided schemes.
+    pub fn new<I, S>(schemes: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            schemes: schemes.into_iter().map(Into::into).collect(),
+            name: None,
+            role: BundleTypeRole::default(),
+        }
     }
 
     /// Set he name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
@@ -1510,6 +1553,9 @@ pub struct Config {
     /// The file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,
+    /// Deep-link protocols.
+    #[serde(alias = "deep-link-protocols", alias = "deep_link_protocols")]
+    pub deep_link_protocols: Option<Vec<DeepLinkProtocol>>,
     /// The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory
     /// or an object of `src` and `target` paths. In the case of using an object,
     /// the `src` could be either a glob pattern, path to a file, path to a directory,

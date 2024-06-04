@@ -120,7 +120,7 @@ pub fn load_configs_from_cargo_workspace(
                 config.name.replace(package.name.clone());
             }
             if config.product_name.is_empty() {
-                config.product_name = package.name.clone();
+                config.product_name.clone_from(&package.name);
             }
             if config.version.is_empty() {
                 config.version = package.version.to_string();
@@ -152,7 +152,7 @@ pub fn load_configs_from_cargo_workspace(
             }
 
             if config.description.is_none() {
-                config.description = package.description.clone();
+                config.description.clone_from(&package.description);
             }
             if config.authors.is_none() {
                 config.authors = Some(package.authors.clone());
