@@ -33,7 +33,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
+          go-version: "stable"
       - uses: denoland/setup-deno@v1
       - uses: Swatinem/rust-cache@v2
       - run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
