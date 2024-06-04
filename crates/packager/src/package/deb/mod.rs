@@ -141,7 +141,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
         );
     }
 
-    let mime_type = (!mime_type.is_empty()).then_some(mime_type.join(";"));
+    let mime_type = (!mime_type.is_empty()).then(|| mime_type.join(";"));
 
     handlebars.render_to_write(
         "main.desktop",
