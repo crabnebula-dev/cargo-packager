@@ -158,6 +158,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
                 m.notarization_credentials
                     .clone()
                     .ok_or_else(|| crate::Error::MissingNotarizeAuthVars)
+                    .or_else(|_| codesign::notarize_auth())
             })
             .unwrap_or_else(codesign::notarize_auth)
         {
