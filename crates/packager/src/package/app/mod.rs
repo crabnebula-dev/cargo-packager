@@ -152,7 +152,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         codesign::try_sign(sign_paths, identity, config)?;
 
         // notarization is required for distribution
-         match config
+        match config
             .macos()
             .and_then(|m| m.notarization_credentials.clone())
             .ok_or(crate::Error::MissingNotarizeAuthVars)
