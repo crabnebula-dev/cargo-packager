@@ -154,12 +154,9 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         // notarization is required for distribution
         match config
             .macos()
-            .map(|m| {
-                m.notarization_credentials
-                    .clone()
-                    .ok_or_else(|| crate::Error::MissingNotarizeAuthVars)
-            })
-            .unwrap_or_else(codesign::notarize_auth)
+            .and_then(|m| m.notarization_credentials.clone())
+            .ok_or(crate::Error::MissingNotarizeAuthVars)
+            .or_else(|_| codesign::notarize_auth())
         {
             Ok(auth) => {
                 tracing::debug!("Notarizing {}", app_bundle_path.display());
