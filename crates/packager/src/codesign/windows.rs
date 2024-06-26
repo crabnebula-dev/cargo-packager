@@ -21,6 +21,7 @@ use crate::{config::Config, shell::CommandExt, util};
 use crate::util::Bitness;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SignParams {
     pub product_name: String,
     pub digest_algorithm: String,
@@ -30,27 +31,21 @@ pub struct SignParams {
     pub sign_command: Option<String>,
 }
 
-pub(crate) trait ConfigSignExt {
-    fn can_sign(&self) -> bool;
-    fn custom_sign_command(&self) -> bool;
-    fn sign_params(&self) -> SignParams;
-}
-
-impl ConfigSignExt for Config {
-    fn can_sign(&self) -> bool {
+impl Config {
+    pub(crate) fn can_sign(&self) -> bool {
         self.windows()
             .and_then(|w| w.certificate_thumbprint.as_ref())
             .is_some()
             || self.custom_sign_command()
     }
 
-    fn custom_sign_command(&self) -> bool {
+    pub(crate) fn custom_sign_command(&self) -> bool {
         self.windows()
             .and_then(|w| w.sign_command.as_ref())
             .is_some()
     }
 
-    fn sign_params(&self) -> SignParams {
+    pub(crate) fn sign_params(&self) -> SignParams {
         let windows = self.windows();
         SignParams {
             product_name: self.product_name.clone(),

@@ -14,7 +14,7 @@ use handlebars::{to_json, Handlebars};
 
 use super::Context;
 use crate::{
-    codesign::windows::{self as codesign, ConfigSignExt},
+    codesign::windows::{self as codesign},
     util::verify_file_hash,
 };
 use crate::{

@@ -4,8 +4,6 @@
 
 //! The cli entry point
 
-#![cfg(feature = "cli")]
-
 use std::{ffi::OsString, fmt::Write, path::PathBuf};
 
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
