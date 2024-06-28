@@ -92,8 +92,8 @@ fn generate_pkgbuild_file(
 
     let dependencies = config
         .pacman()
-        .and_then(|d| d.depends.clone())
-        .unwrap_or_default();
+        .and_then(|d| d.depends.as_ref())
+        .map_or_else(|| Ok(Vec::new()), |d| d.to_list())?;
     writeln!(file, "depends=({})", dependencies.join(" \n"))?;
 
     let provides = config

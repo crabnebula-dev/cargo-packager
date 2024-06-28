@@ -175,14 +175,14 @@ impl DeepLinkProtocol {
     }
 }
 
-/// The Linux debian configuration.
+/// The Linux Debian configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[non_exhaustive]
 pub struct DebianConfig {
-    /// The list of debian dependencies.
-    pub depends: Option<Vec<String>>,
+    /// The list of Debian dependencies.
+    pub depends: Option<Dependencies>,
     /// Path to a custom desktop file Handlebars template.
     ///
     /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
@@ -221,14 +221,25 @@ impl DebianConfig {
         Self::default()
     }
 
-    /// Set the list of debian dependencies.
+    /// Set the list of Debian dependencies directly using an iterator of strings.
     pub fn depends<I, S>(mut self, depends: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
         self.depends
-            .replace(depends.into_iter().map(Into::into).collect());
+            .replace(Dependencies::List(depends.into_iter().map(Into::into).collect()));
+        self
+    }
+
+    /// Set the list of Debian dependencies indirectly via a path to a file,
+    /// which must contain one dependency (a package name) per line.
+    pub fn depends_path<P>(mut self, path: P) -> Self
+    where
+        P: Into<PathBuf>
+    {
+        self.depends
+            .replace(Dependencies::Path(path.into()));
         self
     }
 
@@ -285,6 +296,49 @@ impl DebianConfig {
                 .collect(),
         );
         self
+    }
+}
+
+
+/// A list of dependencies specified as either a list of Strings
+/// or as a path to a file that lists the dependencies, one per line.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum Dependencies {
+    /// The list of dependencies provided directly as a vector of Strings.
+    List(Vec<String>),
+    /// A path to the file containing the list of dependences, formatted as one per line:
+    /// ```text
+    /// libc6
+    /// libxcursor1
+    /// libdbus-1-3
+    /// libasyncns0
+    /// ...
+    /// ```
+    Path(PathBuf),
+}
+impl Dependencies {
+    /// Returns the dependencies as a list of Strings.
+    pub fn to_list(&self) -> crate::Result<Vec<String>> {
+        match self {
+            Self::List(v) => Ok(v.clone()),
+            Self::Path(path) => {
+                let trimmed_lines = std::fs::read_to_string(path)?
+                    .lines()
+                    .filter_map(|line| {
+                        let trimmed = line.trim();
+                        if !trimmed.is_empty() {
+                            Some(trimmed.to_owned())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                Ok(trimmed_lines)
+            }
+        }
     }
 }
 
@@ -397,8 +451,8 @@ pub struct PacmanConfig {
     pub files: Option<HashMap<String, String>>,
     /// List of softwares that must be installed for the app to build and run.
     ///
-    /// See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
-    pub depends: Option<Vec<String>>,
+    /// See : <https://wiki.archlinux.org/title/PKGBUILD#depends>
+    pub depends: Option<Dependencies>,
     /// Additional packages that are provided by this app.
     ///
     /// See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
@@ -439,16 +493,29 @@ impl PacmanConfig {
         );
         self
     }
-    /// Set the list of pacman dependencies.
+
+    /// Set the list of pacman dependencies directly using an iterator of strings.
     pub fn depends<I, S>(mut self, depends: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
         self.depends
-            .replace(depends.into_iter().map(Into::into).collect());
+            .replace(Dependencies::List(depends.into_iter().map(Into::into).collect()));
         self
     }
+
+    /// Set the list of pacman dependencies indirectly via a path to a file,
+    /// which must contain one dependency (a package name) per line.
+    pub fn depends_path<P>(mut self, path: P) -> Self
+    where
+        P: Into<PathBuf>
+    {
+        self.depends
+            .replace(Dependencies::Path(path.into()));
+        self
+    }
+
     /// Set the list of additional packages that are provided by this app.
     pub fn provides<I, S>(mut self, provides: I) -> Self
     where
