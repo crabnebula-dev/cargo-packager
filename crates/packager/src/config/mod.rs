@@ -194,7 +194,7 @@ pub struct DebianConfig {
     /// {{#if comment}}
     /// Comment={{comment}}
     /// {{/if}}
-    /// Exec={{exec}}
+    /// Exec={{exec}} {{exec_arg}}
     /// Icon={{icon}}
     /// Name={{name}}
     /// Terminal=false
@@ -203,6 +203,21 @@ pub struct DebianConfig {
     /// MimeType={{mime_type}}
     /// {{/if}}
     /// ```
+    ///
+    /// The `exec_arg` will be set to:
+    /// * "%U", if at least one [Config::deep_link_protocols] was specified.
+    ///   * This means that your application can accommodate being invoked with multiple URLs.
+    /// * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given, or
+    ///   * This means that your application can accommodate being invoked with multiple file paths.
+    /// * An empty string "" (nothing) otherwise.
+    ///   * This means that your application will never be invoked with any URLs or file paths.
+    ///
+    /// To specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`:
+    /// ```text
+    /// Exec={{exec}} %u
+    /// ```
+    ///
+    /// See more here: <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>.
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
     /// Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
@@ -243,7 +258,7 @@ impl DebianConfig {
     /// {{#if comment}}
     /// Comment={{comment}}
     /// {{/if}}
-    /// Exec={{exec}}
+    /// Exec={{exec}} {{exec_arg}}
     /// Icon={{icon}}
     /// Name={{name}}
     /// Terminal=false

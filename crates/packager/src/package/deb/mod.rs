@@ -96,8 +96,8 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
         .join("usr/share/applications")
         .join(desktop_file_name);
 
-    // For more information about the format of this file, see
-    // https://developer.gnome.org/integration-guide/stable/desktop-files.html.en
+    // For more information about the format of this file, see:
+    // <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html>
     let file = &mut util::create_file(&desktop_file_path)?;
 
     let mut handlebars = Handlebars::new();
@@ -117,14 +117,22 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
         categories: &'a str,
         comment: Option<&'a str>,
         exec: &'a str,
+        exec_arg: Option<&'a str>,
         icon: &'a str,
         name: &'a str,
         mime_type: Option<String>,
     }
 
+    // Set the argument code at the end of the `Exec` key.
+    // See the docs for `DebianConfig::desktop_template` for more details.
+    let mut exec_arg = None;
+
     let mut mime_type: Vec<String> = Vec::new();
 
     if let Some(associations) = &config.file_associations {
+        if !associations.is_empty() {
+            exec_arg = Some("%F");
+        }
         mime_type.extend(
             associations
                 .iter()
@@ -133,6 +141,11 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
     }
 
     if let Some(protocols) = &config.deep_link_protocols {
+        if !protocols.is_empty() {
+            // Use "%U" even if file associations were already provided,
+            // as it can also accommodate file names in addition to URLs.
+            exec_arg = Some("%U");
+        }
         mime_type.extend(
             protocols
                 .iter()
@@ -152,6 +165,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
                 .unwrap_or(""),
             comment: config.description.as_deref(),
             exec: &bin_name,
+            exec_arg,
             icon: &bin_name,
             name: config.product_name.as_str(),
             mime_type,
