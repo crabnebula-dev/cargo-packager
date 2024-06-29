@@ -624,15 +624,23 @@ pub struct MacOsConfig {
     #[serde(alias = "exception-domain", alias = "exception_domain")]
     pub exception_domain: Option<String>,
     /// Code signing identity.
+    ///
+    /// This is typically of the form: `"Developer ID Application: TEAM_NAME (TEAM_ID)"`.
     #[serde(alias = "signing-identity", alias = "signing_identity")]
     pub signing_identity: Option<String>,
     /// Codesign certificate (base64 encoded of the p12 file).
+    ///
+    /// Note: this field cannot be specified via a config file or Cargo package metadata.
     #[serde(skip)]
     pub signing_certificate: Option<OsString>,
     /// Password of the codesign certificate.
+    ///
+    /// Note: this field cannot be specified via a config file or Cargo package metadata.
     #[serde(skip)]
     pub signing_certificate_password: Option<OsString>,
     /// Notarization authentication credentials.
+    ///
+    /// Note: this field cannot be specified via a config file or Cargo package metadata.
     #[serde(skip)]
     pub notarization_credentials: Option<MacOsNotarizationCredentials>,
     /// Provider short name for notarization.
