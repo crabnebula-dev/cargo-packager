@@ -4,7 +4,12 @@
   "pkgManagers": {
     "rust": {
       "version": true,
-      "getPublishedVersion": "cargo search ${ pkg.pkg } --limit 1 | sed -nE 's/^[^\"]*\"//; s/\".*//1p' -",
+      "getPublishedVersion": {
+        "use": "fetch:check",
+        "options": {
+          "url": "https://crates.io/api/v1/crates/${ pkg.pkg }/${ pkg.pkgFile.version }"
+        }
+      },
       "postversion": [
         {
           "command": "cargo generate-lockfile",
@@ -22,10 +27,6 @@
         }
       ],
       "publish": [
-        {
-          "command": "cargo package --no-verify",
-          "dryRunCommand": true
-        },
         {
           "command": "echo '<details>\n<summary><em><h4>Cargo Publish</h4></em></summary>\n\n```'",
           "dryRunCommand": true,
@@ -110,24 +111,12 @@
   "packages": {
     "cargo-packager-utils": {
       "path": "./crates/utils",
-      "manager": "rust",
-      "assets": [
-        {
-          "path": "${ pkg.path }/target/package/cargo-packager-utils-${ pkgFile.version }.crate",
-          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
-        }
-      ]
+      "manager": "rust"
     },
     "cargo-packager": {
       "path": "./crates/packager",
       "manager": "rust",
-      "dependencies": ["cargo-packager-utils"],
-      "assets": [
-        {
-          "path": "${ pkg.path }/target/package/cargo-packager-${ pkgFile.version }.crate",
-          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
-        }
-      ]
+      "dependencies": ["cargo-packager-utils"]
     },
     "@crabnebula/packager": {
       "path": "./bindings/packager/nodejs",
@@ -140,13 +129,7 @@
     "cargo-packager-updater": {
       "path": "./crates/updater",
       "dependencies": ["cargo-packager-utils"],
-      "manager": "rust",
-      "assets": [
-        {
-          "path": "${ pkg.path }/target/package/cargo-packager-updater-${ pkgFile.version }.crate",
-          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
-        }
-      ]
+      "manager": "rust"
     },
     "@crabnebula/updater": {
       "path": "./bindings/updater/nodejs",
@@ -159,13 +142,7 @@
     "cargo-packager-resource-resolver": {
       "path": "./crates/resource-resolver",
       "dependencies": ["cargo-packager-utils"],
-      "manager": "rust",
-      "assets": [
-        {
-          "path": "${ pkg.path }/target/package/cargo-packager-resource-resolver-${ pkgFile.version }.crate",
-          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
-        }
-      ]
+      "manager": "rust"
     },
     "@crabnebula/packager-resource-resolver": {
       "path": "./bindings/resource-resolver/nodejs",
