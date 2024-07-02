@@ -204,7 +204,7 @@ pub struct DebianConfig {
     /// {{/if}}
     /// ```
     ///
-    /// The `exec_arg` will be set to:
+    /// The `{{exec_arg}}` will be set to:
     /// * "%U", if at least one [Config::deep_link_protocols] was specified.
     ///   * This means that your application can accommodate being invoked with multiple URLs.
     /// * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given, or
