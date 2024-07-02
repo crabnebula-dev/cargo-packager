@@ -205,11 +205,13 @@ pub struct DebianConfig {
     /// ```
     ///
     /// The `{{exec_arg}}` will be set to:
+    /// * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given.
+    ///   * The "%F" arg means that your application can be invoked with multiple file paths.
     /// * "%U", if at least one [Config::deep_link_protocols] was specified.
-    ///   * This means that your application can accommodate being invoked with multiple URLs.
-    /// * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given, or
-    ///   * This means that your application can accommodate being invoked with multiple file paths.
-    /// * An empty string "" (nothing) otherwise.
+    ///   * The "%U" arg means that your application can be invoked with multiple URLs.
+    ///   * If both [Config::file_associations] and [Config::deep_link_protocols] were specified,
+    ///     the "%U" arg will be used, causing the file paths to be passed to your app as `file://` URLs.
+    /// * An empty string "" (nothing) if neither are given.
     ///   * This means that your application will never be invoked with any URLs or file paths.
     ///
     /// To specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`:
