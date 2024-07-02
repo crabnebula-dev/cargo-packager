@@ -1,5 +1,19 @@
 # Changelog
 
+## \[0.10.0]
+
+- [`c6207bb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c6207bba042a8a0184ddb7e12650a4cd8f415c23) ([#254](https://www.github.com/crabnebula-dev/cargo-packager/pull/254)) Allow Linux dependencies to be specified via a file path instead of just a direct String.
+  This enables the list of dependencies to by dynamically generated for both Debian `.deb` packages and pacman packages,
+  which can relieve the app developer from the burden of manually maintaining a fixed list of dependencies.
+- [`de4dcca`](https://www.github.com/crabnebula-dev/cargo-packager/commit/de4dccaca4ae758d3adde517cc415a002873e642) ([#256](https://www.github.com/crabnebula-dev/cargo-packager/pull/256)) Automatically add an Exec arg (field code) in the `.desktop` file.
+
+  This adds an `{exec_arg}` field to the default `main.desktop` template.
+  This field is populated with a sane default value, based on the
+  `deep_link_protocols` or `file_associations` in the `Config` struct.
+
+  This allows an installed Debian package to be invoked by other
+  applications with URLs or files as arguments, as expected.
+
 ## \[0.9.1]
 
 - [`44a19ea`](https://www.github.com/crabnebula-dev/cargo-packager/commit/44a19eae1f5f26b1bd10ba84dd6eb3d856609a67) ([#246](https://www.github.com/crabnebula-dev/cargo-packager/pull/246)) On macOS, fix notarization skipping needed environment variables when macos specific config has been specified in the config file.
