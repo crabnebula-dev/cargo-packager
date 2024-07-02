@@ -227,8 +227,9 @@ impl DebianConfig {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.depends
-            .replace(Dependencies::List(depends.into_iter().map(Into::into).collect()));
+        self.depends.replace(Dependencies::List(
+            depends.into_iter().map(Into::into).collect(),
+        ));
         self
     }
 
@@ -236,10 +237,9 @@ impl DebianConfig {
     /// which must contain one dependency (a package name) per line.
     pub fn depends_path<P>(mut self, path: P) -> Self
     where
-        P: Into<PathBuf>
+        P: Into<PathBuf>,
     {
-        self.depends
-            .replace(Dependencies::Path(path.into()));
+        self.depends.replace(Dependencies::Path(path.into()));
         self
     }
 
@@ -298,7 +298,6 @@ impl DebianConfig {
         self
     }
 }
-
 
 /// A list of dependencies specified as either a list of Strings
 /// or as a path to a file that lists the dependencies, one per line.
@@ -500,8 +499,9 @@ impl PacmanConfig {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.depends
-            .replace(Dependencies::List(depends.into_iter().map(Into::into).collect()));
+        self.depends.replace(Dependencies::List(
+            depends.into_iter().map(Into::into).collect(),
+        ));
         self
     }
 
@@ -509,10 +509,9 @@ impl PacmanConfig {
     /// which must contain one dependency (a package name) per line.
     pub fn depends_path<P>(mut self, path: P) -> Self
     where
-        P: Into<PathBuf>
+        P: Into<PathBuf>,
     {
-        self.depends
-            .replace(Dependencies::Path(path.into()));
+        self.depends.replace(Dependencies::Path(path.into()));
         self
     }
 

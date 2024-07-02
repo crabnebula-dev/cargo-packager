@@ -280,15 +280,12 @@ fn generate_control_file(
     if let Some(homepage) = &config.homepage {
         writeln!(file, "Homepage: {}", homepage)?;
     }
-    if let Some(depends) = config
-        .deb()
-        .and_then(|d| d.depends.as_ref())
-    {
+    if let Some(depends) = config.deb().and_then(|d| d.depends.as_ref()) {
         let dependencies = depends.to_list()?;
         if !dependencies.is_empty() {
             writeln!(file, "Depends: {}", dependencies.join(", "))?;
         }
-    } 
+    }
 
     writeln!(
         file,
