@@ -294,13 +294,11 @@ fn generate_control_file(
     if let Some(homepage) = &config.homepage {
         writeln!(file, "Homepage: {}", homepage)?;
     }
-    let dependencies = config
-        .deb()
-        .cloned()
-        .and_then(|d| d.depends)
-        .unwrap_or_default();
-    if !dependencies.is_empty() {
-        writeln!(file, "Depends: {}", dependencies.join(", "))?;
+    if let Some(depends) = config.deb().and_then(|d| d.depends.as_ref()) {
+        let dependencies = depends.to_list()?;
+        if !dependencies.is_empty() {
+            writeln!(file, "Depends: {}", dependencies.join(", "))?;
+        }
     }
 
     writeln!(
