@@ -1115,12 +1115,12 @@ pub struct NsisConfig {
     /// A custom `.nsi` template to use.
     ///
     /// See the default template here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     pub template: Option<PathBuf>,
     /// Logic of an NSIS section that will be ran before the install section.
     ///
     /// See the available libraries, dlls and global variables here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     ///
     /// ### Example
     /// ```toml
@@ -1212,7 +1212,7 @@ impl NsisConfig {
     /// Set a custom `.nsi` template to use.
     ///
     /// See the default template here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     pub fn template<P: Into<PathBuf>>(mut self, template: P) -> Self {
         self.template.replace(template.into());
         self
@@ -1221,7 +1221,7 @@ impl NsisConfig {
     /// Set the logic of an NSIS section that will be ran before the install section.
     ///
     /// See the available libraries, dlls and global variables here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     ///
     /// ### Example
     /// ```toml
