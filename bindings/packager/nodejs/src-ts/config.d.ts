@@ -96,6 +96,10 @@ export type Resource =
       [k: string]: unknown;
     };
 /**
+ * A list of dependencies specified as either a list of Strings or as a path to a file that lists the dependencies, one per line.
+ */
+export type Dependencies = string[] | string;
+/**
  * A wix language.
  */
 export type WixLanguage =
@@ -409,6 +413,8 @@ export interface MacOsConfig {
   exceptionDomain?: string | null;
   /**
    * Code signing identity.
+   *
+   * This is typically of the form: `"Developer ID Application: TEAM_NAME (TEAM_ID)"`.
    */
   signingIdentity?: string | null;
   /**
@@ -425,19 +431,25 @@ export interface MacOsConfig {
   infoPlistPath?: string | null;
 }
 /**
- * The Linux debian configuration.
+ * The Linux Debian configuration.
  */
 export interface DebianConfig {
   /**
-   * The list of debian dependencies.
+   * The list of Debian dependencies.
    */
-  depends?: string[] | null;
+  depends?: Dependencies | null;
   /**
    * Path to a custom desktop file Handlebars template.
    *
    * Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
    *
-   * Default file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```
+   * Default file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} {{exec_arg}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```
+   *
+   * The `{{exec_arg}}` will be set to: * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given. * The "%F" arg means that your application can be invoked with multiple file paths. * "%U", if at least one [Config::deep_link_protocols] was specified. * The "%U" arg means that your application can be invoked with multiple URLs. * If both [Config::file_associations] and [Config::deep_link_protocols] were specified, the "%U" arg will be used, causing the file paths to be passed to your app as `file://` URLs. * An empty string "" (nothing) if neither are given. * This means that your application will never be invoked with any URLs or file paths.
+   *
+   * To specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`: ```text Exec={{exec}} %u ```
+   *
+   * See more here: <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>.
    */
   desktopTemplate?: string | null;
   /**
@@ -497,9 +509,9 @@ export interface PacmanConfig {
   /**
    * List of softwares that must be installed for the app to build and run.
    *
-   * See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#depends>
    */
-  depends?: string[] | null;
+  depends?: Dependencies | null;
   /**
    * Additional packages that are provided by this app.
    *
