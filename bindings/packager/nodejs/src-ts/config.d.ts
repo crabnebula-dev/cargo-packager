@@ -603,13 +603,13 @@ export interface NsisConfig {
   /**
    * A custom `.nsi` template to use.
    *
-   * See the default template here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+   * See the default template here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
    */
   template?: string | null;
   /**
    * Logic of an NSIS section that will be ran before the install section.
    *
-   * See the available libraries, dlls and global variables here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+   * See the available libraries, dlls and global variables here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
    *
    * ### Example ```toml [package.metadata.packager.nsis] preinstall-section = """ ; Setup custom messages LangString webview2AbortError ${LANG_ENGLISH} "Failed to install WebView2! The app can't run without it. Try restarting the installer." LangString webview2DownloadError ${LANG_ARABIC} "خطأ: فشل تنزيل WebView2 - $0"
    *
