@@ -315,7 +315,7 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
                 );
                 std::fs::copy(&icon_path, &dest_path)?;
 
-                return Ok(Some(dest_path));
+                return Ok(Some(dunce::canonicalize(dest_path)?));
             }
         }
     }
@@ -379,7 +379,7 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
         dest_path.set_extension("icns");
         let icns_file = std::io::BufWriter::new(File::create(&dest_path)?);
         family.write(icns_file)?;
-        Ok(Some(dest_path))
+        Ok(Some(dunce::canonicalize(dest_path)?))
     } else {
         Err(crate::Error::InvalidIconList)
     }
