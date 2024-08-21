@@ -1792,13 +1792,13 @@ impl Config {
     /// Returns the out dir. Defaults to the current directory.
     pub fn out_dir(&self) -> PathBuf {
         if self.out_dir.as_os_str().is_empty() {
-            std::env::current_dir().expect("failed to resolve cwd")
-        } else if self.out_dir.exists() {
-            dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
-        } else {
-            std::fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
-            self.out_dir.clone()
+            return std::env::current_dir().expect("failed to resolve cwd");
         }
+
+        if !self.out_dir.exists() {
+            std::fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
+        }
+        dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
     }
 
     /// Returns the binaries dir. Defaults to [`Self::out_dir`] if [`Self::binaries_dir`] is not set.
