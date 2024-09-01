@@ -12,7 +12,7 @@ repository = { workspace = true }
 
 [features]
 default = [ "rustls-tls" ]
-process-relaunch-dangerous-allow-symlink-macos = [ ]
+process-relaunch-dangerous-allow-symlink-macos = [ "cargo-packager-utils/process-relaunch-dangerous-allow-symlink-macos" ]
 native-tls = [ "reqwest/native-tls" ]
 native-tls-vendored = [ "reqwest/native-tls-vendored" ]
 rustls-tls = [ "reqwest/rustls-tls-native-roots" ]
