@@ -340,6 +340,16 @@ pub fn notarize(
             tracing::info!("Notarizing {}", log_message);
             staple_app(app_bundle_path)?;
             Ok(())
+        } else if let Ok(output) = Command::new("xcrun")
+            .args(["notarytool", "log"])
+            .arg(&submit_output.id)
+            .notarytool_args(&auth)
+            .output_ok()
+        {
+            Err(Error::NotarizeRejected(format!(
+                "{log_message}\nLog:\n{}",
+                String::from_utf8_lossy(&output.stdout),
+            )))
         } else {
             Err(Error::NotarizeRejected(log_message))
         }
