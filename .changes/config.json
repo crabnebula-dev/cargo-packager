@@ -15,7 +15,7 @@
           "command": "cargo generate-lockfile",
           "dryRunCommand": true,
           "runFromRoot": true,
-          "pipe": true
+          "pipe": false
         }
       ],
       "prepublish": [
@@ -23,7 +23,7 @@
           "command": "cargo generate-lockfile",
           "dryRunCommand": true,
           "runFromRoot": true,
-          "pipe": true
+          "pipe": false
         }
       ],
       "publish": [
