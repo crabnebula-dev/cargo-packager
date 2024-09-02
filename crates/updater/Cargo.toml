@@ -1,6 +1,6 @@
 [package]
 name = "cargo-packager-updater"
-version = "0.2.0"
+version = "0.2.1"
 description = "Rust executable updater."
 authors = [
   "CrabNebula Ltd.",
@@ -18,7 +18,7 @@ native-tls-vendored = [ "reqwest/native-tls-vendored" ]
 rustls-tls = [ "reqwest/rustls-tls-native-roots" ]
 
 [dependencies]
-cargo-packager-utils = { version = "0.1.0", path = "../utils" }
+cargo-packager-utils = { version = "0.1.1", path = "../utils" }
 reqwest = { version = "0.12", default-features = false, features = [ "json", "stream", "blocking" ] }
 thiserror = { workspace = true }
 serde = { workspace = true }

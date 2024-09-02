@@ -1,6 +1,6 @@
 [package]
 name = "cargo-packager"
-version = "0.10.1"
+version = "0.10.2"
 description = "Executable packager and bundler distributed as a CLI and library."
 authors = [
   "CrabNebula Ltd.",
@@ -70,7 +70,7 @@ flate2 = "1.0"
 strsim = "0.11"
 schemars = { workspace = true, optional = true }
 native-tls = { version = "0.2", optional = true }
-cargo-packager-utils = { version = "0.1.0", path = "../utils", features = [ "serde" ] }
+cargo-packager-utils = { version = "0.1.1", path = "../utils", features = [ "serde" ] }
 icns = { package = "tauri-icns", version = "0.1" }
 time = { workspace = true, features = [ "formatting" ] }
 image = "0.25"

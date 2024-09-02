@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.2.1]
+
+- [`2b6dd55`](https://www.github.com/crabnebula-dev/cargo-packager/commit/2b6dd55eac6733715a4f717af54ff167e1fdcdf8) ([#266](https://www.github.com/crabnebula-dev/cargo-packager/pull/266)) Fix `process-relaunch-dangerous-allow-symlink-macos` feature usage.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-utils@0.1.1`
+
 ## \[0.2.0]
 
 - [`c16d17a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c16d17ae190f49be3f9e78c5441bee16c0f8fc69) Enable `rustls-tls` feature flag by default.
