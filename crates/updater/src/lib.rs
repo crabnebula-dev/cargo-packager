@@ -55,8 +55,8 @@
 //!
 //! 1. [`204 No Content`](https://datatracker.ietf.org/doc/html/rfc2616#section-10.2.5) in case there is no updates available.
 //! 2. [`200 OK`](https://datatracker.ietf.org/doc/html/rfc2616#section-10.2.1) and a JSON response that could be either a JSON representing all available platform updates
-//! or if using endpoints variables (see above) or a header to attach the current updater target,
-//! then it can just return information for the requested target.
+//!     or if using endpoints variables (see above) or a header to attach the current updater target,
+//!     then it can just return information for the requested target.
 //!
 //! The JSON response is expected to have these fields set:
 //!
