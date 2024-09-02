@@ -1,5 +1,14 @@
 # Changelog
 
+## \[0.10.2]
+
+- [`f836afa`](https://www.github.com/crabnebula-dev/cargo-packager/commit/f836afa699b2da8a55432ce9de1cbccbffb705fb) ([#267](https://www.github.com/crabnebula-dev/cargo-packager/pull/267)) Include notarytool log output on error message in case notarization fails.
+- [`21441f3`](https://www.github.com/crabnebula-dev/cargo-packager/commit/21441f30c5a258b73926ba7a7d8126d6bf47a662) ([#262](https://www.github.com/crabnebula-dev/cargo-packager/pull/262)) Fixed dmg failed to bundle the application when out-dir does not exist.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-utils@0.1.1`
+
 ## \[0.10.1]
 
 - [`522f23b`](https://www.github.com/crabnebula-dev/cargo-packager/commit/522f23bd867b037eeec81c43295aafd38ebe60ec) ([#258](https://www.github.com/crabnebula-dev/cargo-packager/pull/258)) Update NSIS installer template URL.

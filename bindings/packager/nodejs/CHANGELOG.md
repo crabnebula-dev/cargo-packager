@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.10.2]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.10.2`
+- Upgraded to `cargo-packager-utils@0.1.1`
+
 ## \[0.10.1]
 
 - [`522f23b`](https://www.github.com/crabnebula-dev/cargo-packager/commit/522f23bd867b037eeec81c43295aafd38ebe60ec) ([#258](https://www.github.com/crabnebula-dev/cargo-packager/pull/258)) Update NSIS installer template URL.

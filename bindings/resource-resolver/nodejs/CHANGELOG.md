@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.1.2]
+
+### Dependencies
+
+- Upgraded to `cargo-packager-resource-resolver@0.1.2`
+- Upgraded to `cargo-packager-utils@0.1.1`
+
 ## \[0.1.1]
 
 ### Dependencies

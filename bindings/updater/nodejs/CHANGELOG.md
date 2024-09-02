@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.2.1]
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.2.1`
+- Upgraded to `cargo-packager-utils@0.1.1`
+
 ## \[0.2.0]
 
 - [`c16d17a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c16d17ae190f49be3f9e78c5441bee16c0f8fc69) Enable `rustls-tls` feature flag by default.
