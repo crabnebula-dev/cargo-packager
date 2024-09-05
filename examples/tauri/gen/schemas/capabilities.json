@@ -1,1 +1,8 @@
-{"base":{"identifier":"base","description":"app base capabilities","local":true,"permissions":["core:default"]}}
+{
+  "base": {
+    "identifier": "base",
+    "description": "app base capabilities",
+    "local": true,
+    "permissions": ["core:default"]
+  }
+}
