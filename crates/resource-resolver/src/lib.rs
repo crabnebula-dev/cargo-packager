@@ -52,7 +52,7 @@ pub fn current_format() -> crate::Result<PackageFormat> {
     // maybe having a special crate for the Config struct,
     // that both packager and resource-resolver could be a
     // better alternative
-    match std::option_env!(CARGO_PACKAGER_FORMAT) {
+    match std::option_env!("CARGO_PACKAGER_FORMAT") {
         Some("app") => Ok(PackageFormat::App),
         Some("dmg") => Ok(PackageFormat::Dmg),
         Some("wix") => Ok(PackageFormat::Wix),
