@@ -60,7 +60,7 @@ pub fn current_format() -> crate::Result<PackageFormat> {
         Some("deb") => Ok(PackageFormat::Deb),
         Some("appimage") => Ok(PackageFormat::AppImage),
         Some("pacman") => Ok(PackageFormat::Pacman),
-        _ => Err(Error::UnkownPackageFormat)
+        _ => Err(Error::UnkownPackageFormat),
     }
 }
 
