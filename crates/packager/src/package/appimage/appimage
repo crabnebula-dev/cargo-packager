@@ -15,6 +15,7 @@ cp -r ../appimage_deb/data/* "{{app_name}}.AppDir"
 cd "{{app_name}}.AppDir"
 mkdir -p "usr/bin"
 mkdir -p "usr/lib"
+mkdir -p "usr/lib64"
 
 # Copy libs. Follow symlinks in case `/usr/lib64` is a symlink to `/usr/lib`
 {{#each libs}}
