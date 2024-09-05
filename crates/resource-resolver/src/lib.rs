@@ -52,22 +52,15 @@ pub fn current_format() -> crate::Result<PackageFormat> {
     // maybe having a special crate for the Config struct,
     // that both packager and resource-resolver could be a
     // better alternative
-    if cfg!(CARGO_PACKAGER_FORMAT = "app") {
-        Ok(PackageFormat::App)
-    } else if cfg!(CARGO_PACKAGER_FORMAT = "dmg") {
-        Ok(PackageFormat::Dmg)
-    } else if cfg!(CARGO_PACKAGER_FORMAT = "wix") {
-        Ok(PackageFormat::Wix)
-    } else if cfg!(CARGO_PACKAGER_FORMAT = "nsis") {
-        Ok(PackageFormat::Nsis)
-    } else if cfg!(CARGO_PACKAGER_FORMAT = "deb") {
-        Ok(PackageFormat::Deb)
-    } else if cfg!(CARGO_PACKAGER_FORMAT = "appimage") {
-        Ok(PackageFormat::AppImage)
-    } else if cfg!(CARGO_PACKAGER_FORMAT = "pacman") {
-        Ok(PackageFormat::Pacman)
-    } else {
-        Err(Error::UnkownPackageFormat)
+    match std::option_env!(CARGO_PACKAGER_FORMAT) {
+        Some("app") => Ok(PackageFormat::App),
+        Some("dmg") => Ok(PackageFormat::Dmg),
+        Some("wix") => Ok(PackageFormat::Wix),
+        Some("nsis") => Ok(PackageFormat::Nsis),
+        Some("deb") => Ok(PackageFormat::Deb),
+        Some("appimage") => Ok(PackageFormat::AppImage),
+        Some("pacman") => Ok(PackageFormat::Pacman),
+        _ => Err(Error::UnkownPackageFormat)
     }
 }
 
