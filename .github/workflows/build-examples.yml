@@ -29,7 +29,7 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y webkit2gtk-4.1 webkit2gtk-4.0 libayatana-appindicator3-dev
+          sudo apt-get install -y webkit2gtk-4.1 webkit2gtk-4.0 libayatana-appindicator3-dev libxdo-dev
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-go@v5
         with:
@@ -37,7 +37,7 @@ jobs:
       - uses: denoland/setup-deno@v1
       - uses: Swatinem/rust-cache@v2
       - run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-      - run: cargo install tauri-cli --version "2.0.0-alpha.10" --locked
+      - run: cargo install tauri-cli --version "2.0.0-rc.10" --locked
       - run: cargo install dioxus-cli --locked
       - run: cargo r --package cargo-packager -- signer generate --password '123' --path ./signing-key -vvv
       - run: cargo r --package cargo-packager -- --release --private-key ./signing-key --password '123' --formats all -vvv
