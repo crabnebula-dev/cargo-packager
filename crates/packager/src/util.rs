@@ -400,6 +400,111 @@ fn make_icns_image(img: image::DynamicImage) -> std::io::Result<icns::Image> {
     icns::Image::from_data(pixel_format, img.width(), img.height(), img.into_bytes())
 }
 
+pub fn create_asset_car_file(out_dir: &Path, config: &crate::Config) -> crate::Result<Option<PathBuf>> {
+    use image::GenericImageView;
+
+    if let Some(icons) = config.icons()? {
+        let icon = image::open(&icons[0])?;
+        let xcassets = out_dir.join("Images.xcassets");
+        let icon_set = xcassets.join("AppIcon.appiconset");
+        std::fs::create_dir_all(&icon_set)?;
+
+        let save_icon = |width: u32, height: u32, name: &str| -> crate::Result<()>  {
+            let icon = icon.resize_exact(
+                width,
+                height,
+                image::imageops::FilterType::Lanczos3,
+            );
+            icon. save_with_format(icon_set.join(name), image::ImageFormat::Png)?;
+            Ok(())
+        };
+
+        save_icon(40, 40, "AppIcon-20@2x.png")?;
+        save_icon(40, 40, "AppIcon-20@2x~ipad.png")?;
+        save_icon(60, 60, "AppIcon-20@3x.png")?;
+        save_icon(20, 20, "AppIcon-20~ipad.png")?;
+        save_icon(29, 29, "AppIcon-29.png")?;
+        save_icon(58, 58, "AppIcon-29@2x.png")?;
+        save_icon(58, 58, "AppIcon-29@2x~ipad.png")?;
+        save_icon(87, 87, "AppIcon-29@3x.png")?;
+        save_icon(29, 29, "AppIcon-29~ipad.png")?;
+        save_icon(80, 80, "AppIcon-40@2x.png")?;
+        save_icon(80, 80, "AppIcon-40@2x~ipad.png")?;
+        save_icon(120, 120, "AppIcon-40@3x.png")?;
+        save_icon(40, 40, "AppIcon-40~ipad.png")?;
+        save_icon(120, 120, "AppIcon-60@2x~car.png")?;
+        save_icon(180, 180, "AppIcon-60@3x~car.png")?;
+        save_icon(167, 167, "AppIcon-83.5@2x~ipad.png")?;
+        save_icon(120, 120, "AppIcon@2x.png")?;
+        save_icon(152, 152, "AppIcon@2x~ipad.png")?;
+        save_icon(180, 180, "AppIcon@3x.png")?;
+        save_icon(1024, 1024, "AppIcon~ios-marketing.png")?;
+        save_icon(76, 76, "AppIcon~ipad.png")?;
+
+        std::fs::write(icon_set.join("Contents.json"), r#"{
+          "images": [
+            { "filename": "AppIcon@2x.png",            "idiom": "iphone",        "scale": "2x", "size": "60x60" },
+            { "filename": "AppIcon@3x.png",            "idiom": "iphone",        "scale": "3x", "size": "60x60" },
+            { "filename": "AppIcon~ipad.png",          "idiom": "ipad",          "scale": "1x", "size": "76x76" },
+            { "filename": "AppIcon@2x~ipad.png",       "idiom": "ipad",          "scale": "2x", "size": "76x76" },
+            { "filename": "AppIcon-83.5@2x~ipad.png",  "idiom": "ipad",          "scale": "2x", "size": "83.5x83.5" },
+            { "filename": "AppIcon-40@2x.png",         "idiom": "iphone",        "scale": "2x", "size": "40x40" },
+            { "filename": "AppIcon-40@3x.png",         "idiom": "iphone",        "scale": "3x", "size": "40x40" },
+            { "filename": "AppIcon-40~ipad.png",       "idiom": "ipad",          "scale": "1x", "size": "40x40" },
+            { "filename": "AppIcon-40@2x~ipad.png",    "idiom": "ipad",          "scale": "2x", "size": "40x40" },
+            { "filename": "AppIcon-20@2x.png",         "idiom": "iphone",        "scale": "2x", "size": "20x20" },
+            { "filename": "AppIcon-20@3x.png",         "idiom": "iphone",        "scale": "3x", "size": "20x20" },
+            { "filename": "AppIcon-20~ipad.png",       "idiom": "ipad",          "scale": "1x", "size": "20x20" },
+            { "filename": "AppIcon-20@2x~ipad.png",    "idiom": "ipad",          "scale": "2x", "size": "20x20" },
+            { "filename": "AppIcon-29.png",            "idiom": "iphone",        "scale": "1x", "size": "29x29" },
+            { "filename": "AppIcon-29@2x.png",         "idiom": "iphone",        "scale": "2x", "size": "29x29" },
+            { "filename": "AppIcon-29@3x.png",         "idiom": "iphone",        "scale": "3x", "size": "29x29" },
+            { "filename": "AppIcon-29~ipad.png",       "idiom": "ipad",          "scale": "1x", "size": "29x29" },
+            { "filename": "AppIcon-29@2x~ipad.png",    "idiom": "ipad",          "scale": "2x", "size": "29x29" },
+            { "filename": "AppIcon-60@2x~car.png",     "idiom": "car",           "scale": "2x", "size": "60x60" },
+            { "filename": "AppIcon-60@3x~car.png",     "idiom": "car",           "scale": "3x", "size": "60x60" },
+            { "filename": "AppIcon~ios-marketing.png", "idiom": "ios-marketing", "scale": "1x", "size": "1024x1024" }
+          ],
+          "info": {
+            "author": "xcode",
+            "version": 1
+          }
+        }"#)?;
+
+        std::fs::write(xcassets.join("Contents.json"), r#"{
+          "info" : {
+            "version" : 1,
+            "author" : "xcode"
+          }
+        }"#)?;
+
+        let app_product_name = format!("{}.app", config.product_name);
+        let app_bundle_path = config.out_dir().join("Payload").join(&app_product_name);
+        let out_path = out_dir.join("AppIcon.plist");
+
+        let out = std::process::Command::new("actool")
+            .args([
+                xcassets.to_str().unwrap(),
+                "--compile",
+                app_bundle_path.to_str().unwrap(),
+                "--platform",
+                "iphoneos",
+                "--minimum-deployment-target",
+                "15",
+                "--app-icon",
+                "AppIcon",
+                "--output-partial-info-plist",
+                out_path.to_str().unwrap()
+            ]).output().unwrap();
+
+        assert!(out.status.success());
+
+        Ok(Some(out_path))
+    } else {
+        Ok(None)
+    }
+}
+
 /// Writes a tar file to the given writer containing the given directory.
 ///
 /// The generated tar contains the `src_dir` as a whole and not just its files,

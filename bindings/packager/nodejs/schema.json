@@ -470,6 +470,13 @@
           "enum": [
             "pacman"
           ]
+        },
+        {
+          "description": "iOS application bundle",
+          "type": "string",
+          "enum": [
+            "ios"
+          ]
         }
       ]
     },

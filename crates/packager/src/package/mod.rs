@@ -27,6 +27,8 @@ mod appimage;
 mod deb;
 #[cfg(target_os = "macos")]
 mod dmg;
+#[cfg(target_os = "macos")]
+mod ios;
 mod nsis;
 #[cfg(any(
     target_os = "linux",
@@ -103,6 +105,8 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
 
         let paths = match format {
             PackageFormat::App => app::package(&ctx),
+            #[cfg(target_os = "macos")]
+            PackageFormat::Ios => ios::package(&ctx),
             #[cfg(target_os = "macos")]
             PackageFormat::Dmg => {
                 // PackageFormat::App is required for the DMG bundle
