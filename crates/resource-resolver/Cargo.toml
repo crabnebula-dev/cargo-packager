@@ -13,7 +13,7 @@ features = [ "auto-detect-format" ]
 [dependencies]
 thiserror = { workspace = true }
 cargo-packager-utils = { version = "0.1.1", path = "../utils", default-features = false }
-log = "0.4.21"
+log = "0.4.22"
 heck = "0.5"
 
 [features]

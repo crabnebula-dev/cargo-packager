@@ -1,0 +1,7 @@
+{
+  "identifier": "base",
+  "description": "app base capabilities",
+  "permissions": [
+    "core:default"
+  ]
+}
