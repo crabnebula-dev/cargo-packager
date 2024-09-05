@@ -13,6 +13,7 @@ use thiserror::Error;
 pub enum Error {
     /// Clap error.
     #[error(transparent)]
+    #[cfg(feature = "cli")]
     Clap(#[from] clap::error::Error),
     /// Error while reading cargo metadata.
     #[error("Failed to read cargo metadata: {0}")]
