@@ -5,8 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-dioxus = "0.4"
-dioxus-desktop = "0.4"
+dioxus = { version = "0.5", features = ["desktop"] }
 
 [package.metadata.packager]
 before-packaging-command = "dx build --platform desktop --release"
