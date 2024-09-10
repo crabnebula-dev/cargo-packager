@@ -443,7 +443,8 @@ fn create_entitlements(contents_directory: &Path, config: &Config) -> crate::Res
     );
 
     plist::Value::Dictionary(plist).to_file_xml(contents_directory.join("entitlements.xcent"))?;
-    todo!()
+
+    Ok(())
 }
 
 #[tracing::instrument(level = "trace")]
