@@ -72,7 +72,10 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     tracing::debug!("Copying other files");
     std::fs::write(app_bundle_path.join("PkgInfo"), include_bytes!("PkgInfo"))?;
-    std::fs::write(config.out_dir().join("LaunchScreen.storyboard"), include_bytes!("LaunchScreen.storyboard"))?;
+    std::fs::write(
+        config.out_dir().join("LaunchScreen.storyboard"),
+        include_bytes!("LaunchScreen.storyboard"),
+    )?;
     // cp -rf {{ProjectDir}}/_deployment/ios/PrivacyInfo.xcprivacy {{AppBundle}}/PrivacyInfo.xcprivacy
 
     // All dylib files and native executables should be signed manually
@@ -164,6 +167,9 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         }
     }
 
+    // # Generate entitlements
+    create_entitlements(&app_bundle_path, config)?;
+
     let out = std::process::Command::new("ibtool")
         .args([
             "--errors",
@@ -180,8 +186,13 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
             "--output-format",
             "human-readable-text",
             "--auto-activate-custom-fonts",
-            "--compilation-directory", config.out_dir().to_str().unwrap(),
-            config.out_dir().join("LaunchScreen.storyboard").to_str().unwrap(),
+            "--compilation-directory",
+            config.out_dir().to_str().unwrap(),
+            config
+                .out_dir()
+                .join("LaunchScreen.storyboard")
+                .to_str()
+                .unwrap(),
         ])
         .output()
         .unwrap();
@@ -204,7 +215,11 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
             "human-readable-text",
             "--link",
             app_bundle_path.to_str().unwrap(),
-            config.out_dir().join("LaunchScreen.storyboardc").to_str().unwrap(),
+            config
+                .out_dir()
+                .join("LaunchScreen.storyboardc")
+                .to_str()
+                .unwrap(),
         ])
         .output()
         .unwrap();
@@ -213,7 +228,11 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let out = std::process::Command::new("zip")
         .args([
             "-r",
-            config.out_dir().join(format!("{}.ipa", config.product_name)).to_str().unwrap(),
+            config
+                .out_dir()
+                .join(format!("{}.ipa", config.product_name))
+                .to_str()
+                .unwrap(),
             config.out_dir().join("Payload").to_str().unwrap(),
         ])
         .output()
@@ -222,12 +241,6 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     // build-and-package
     //      Generate entitlements
-    //          PlistBuddy -x -c "Add :application-identifier string {{TeamID}}.{{BundleIdentifier}}" {{AppBundle}}/../../entitlements.xcent
-    //          PlistBuddy -x -c "Add :com.apple.developer.team-identifier string {{TeamID}}" {{AppBundle}}/../../entitlements.xcent
-    //          PlistBuddy -x -c "Add :com.apple.developer.kernel.increased-memory-limit bool true" {{AppBundle}}/../../entitlements.xcent
-    //          PlistBuddy -x -c "Add :get-task-allow bool false" {{AppBundle}}/../../entitlements.xcent
-    //          PlistBuddy -x -c "Add :keychain-access-groups array" {{AppBundle}}/../../entitlements.xcent
-    //          PlistBuddy -x -c "Add :keychain-access-groups:0 string {{TeamID}}.{{BundleIdentifier}}" {{AppBundle}}/../../entitlements.xcent
 
     //      compile launchscreen
 
@@ -264,7 +277,10 @@ fn create_info_plist(
 
     if has_icon {
         let mut bundle_primary_icon = plist::Dictionary::new();
-        bundle_primary_icon.insert("CFBundleIconFiles".to_string(), plist::Value::Array(vec!["AppIcon60x60".into(), "AppIcon76x76".into()]));
+        bundle_primary_icon.insert(
+            "CFBundleIconFiles".to_string(),
+            plist::Value::Array(vec!["AppIcon60x60".into(), "AppIcon76x76".into()]),
+        );
         bundle_primary_icon.insert("CFBundleIconName".into(), "AppIcon".into());
 
         let mut bundle_icons = plist::Dictionary::new();
@@ -407,6 +423,27 @@ fn create_info_plist(
     plist::Value::Dictionary(plist).to_file_xml(contents_directory.join("Info.plist"))?;
 
     Ok(())
+}
+
+// Creates the Info.plist file.
+#[tracing::instrument(level = "trace")]
+fn create_entitlements(contents_directory: &Path, config: &Config) -> crate::Result<()> {
+    let mut plist = plist::Dictionary::new();
+    plist.insert(
+        "application-identifier".into(),
+        format!("RR3ZC2L4DF.{}", config.identifier()).into(),
+    );
+    plist.insert(
+        "com.apple.developer.team-identifier".into(),
+        "RR3ZC2L4DF".into(),
+    );
+    plist.insert(
+        "keychain-access-groups".into(),
+        plist::Value::Array(vec![format!("RR3ZC2L4DF.{}", config.identifier()).into()]),
+    );
+
+    plist::Value::Dictionary(plist).to_file_xml(contents_directory.join("entitlements.xcent"))?;
+    todo!()
 }
 
 #[tracing::instrument(level = "trace")]
