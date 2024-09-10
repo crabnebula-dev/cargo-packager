@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use cargo_packager_updater::{Config, Update, UpdaterBuilder};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -70,7 +70,7 @@ fn download_update<R: Runtime>(app: AppHandle<R>) -> Result<(), ()> {
             .download_extended(
                 move |chunk_len, content_len| {
                     app_1
-                        .emit_all(
+                        .emit(
                             "update_progress",
                             ProgressPayload {
                                 chunk_len,

@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.10.3]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.10.3`
+
 ## \[0.10.2]
 
 ### Dependencies

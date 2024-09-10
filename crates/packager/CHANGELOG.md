@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.10.3]
+
+- [`3ee764d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3ee764d9193ae22331aa5894a1821453e9542992) ([#270](https://www.github.com/crabnebula-dev/cargo-packager/pull/270)) Fixes AppImage bundling failing due to missing `/usr/lib64` directory.
+- [`ab41e6d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ab41e6d94af89ec721a0047636597682bd6d90f6) ([#269](https://www.github.com/crabnebula-dev/cargo-packager/pull/269)) Fix using the crate as a library without `cli` feature flag
+
 ## \[0.10.2]
 
 - [`f836afa`](https://www.github.com/crabnebula-dev/cargo-packager/commit/f836afa699b2da8a55432ce9de1cbccbffb705fb) ([#267](https://www.github.com/crabnebula-dev/cargo-packager/pull/267)) Include notarytool log output on error message in case notarization fails.

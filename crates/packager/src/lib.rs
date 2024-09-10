@@ -98,6 +98,7 @@ pub use sign::SigningConfig;
 pub use package::{package, PackageOutput};
 use util::PathExt;
 
+#[cfg(feature = "cli")]
 fn parse_log_level(verbose: u8) -> tracing::Level {
     match verbose {
         0 => tracing_subscriber::EnvFilter::builder()
@@ -144,6 +145,7 @@ pub fn init_tracing_subscriber(verbosity: u8) {
     }
 }
 
+#[cfg(feature = "cli")]
 enum TracingFormatter {
     WithoutTime(
         tracing_subscriber::fmt::format::Format<tracing_subscriber::fmt::format::Compact, ()>,
@@ -151,10 +153,12 @@ enum TracingFormatter {
     WithTime(tracing_subscriber::fmt::format::Format<tracing_subscriber::fmt::format::Compact>),
 }
 
+#[cfg(feature = "cli")]
 struct ShellFieldVisitor {
     message: String,
 }
 
+#[cfg(feature = "cli")]
 impl tracing::field::Visit for ShellFieldVisitor {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         if field.name() == "message" {
@@ -169,6 +173,7 @@ impl tracing::field::Visit for ShellFieldVisitor {
     }
 }
 
+#[cfg(feature = "cli")]
 impl<S, N> tracing_subscriber::fmt::FormatEvent<S, N> for TracingFormatter
 where
     S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
