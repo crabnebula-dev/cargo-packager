@@ -1,6 +1,6 @@
 # cargo-packager
 
-<img src=".github/splash.png" alt="cargo-packager splash" />
+<img src="https://raw.githubusercontent.com/crabnebula-dev/cargo-packager/main/.github/splash.png" alt="cargo-packager splash" />
 
 Executable packager, bundler and updater. A cli tool and library to generate installers or app bundles for your executables.
 It also has a compatible updater through [cargo-packager-updater](./crates/updater/).
