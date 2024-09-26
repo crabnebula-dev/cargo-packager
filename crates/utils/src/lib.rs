@@ -45,6 +45,8 @@ pub enum PackageFormat {
     AppImage,
     /// The Linux Pacman package (.tar.gz and PKGBUILD)
     Pacman,
+    /// iOS application bundle
+    Ios,
 }
 
 impl Display for PackageFormat {
@@ -60,6 +62,7 @@ impl PackageFormat {
         // Other types we may eventually want to support: apk.
         match name {
             "app" => Some(PackageFormat::App),
+            "ios" => Some(PackageFormat::Ios),
             "dmg" => Some(PackageFormat::Dmg),
             "wix" => Some(PackageFormat::Wix),
             "nsis" => Some(PackageFormat::Nsis),
@@ -77,6 +80,7 @@ impl PackageFormat {
             #[cfg(feature = "cli")]
             PackageFormat::Default => "default",
             PackageFormat::App => "app",
+            PackageFormat::Ios => "ios",
             PackageFormat::Dmg => "dmg",
             PackageFormat::Wix => "wix",
             PackageFormat::Nsis => "nsis",
@@ -181,6 +185,7 @@ impl PackageFormat {
             #[cfg(feature = "cli")]
             PackageFormat::Default => 0,
             PackageFormat::App => 0,
+            PackageFormat::Ios => 0,
             PackageFormat::Wix => 0,
             PackageFormat::Nsis => 0,
             PackageFormat::Deb => 0,
