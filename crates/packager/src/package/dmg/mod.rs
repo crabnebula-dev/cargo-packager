@@ -83,7 +83,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     tracing::debug!("Writing eula-resources-template.xml");
     let eula_template = support_directory_path.join("eula-resources-template.xml");
-    fs::write(eula_template, include_str!("eula-resources-template.xml"))
+    fs::write(&eula_template, include_str!("eula-resources-template.xml"))
         .map_err(|e| Error::IoWithPath(eula_template, e))?;
 
     let dmg = config.dmg();
