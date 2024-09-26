@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.11.0]
+
+- [`41b05d0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/41b05d08a635d593df4cf4eefbe921b92ace77b7) ([#277](https://www.github.com/crabnebula-dev/cargo-packager/pull/277)) Add `--target` flag to specify target triple to package.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.0`
+
 ## \[0.10.3]
 
 ### Dependencies

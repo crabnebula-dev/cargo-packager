@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.11.0]
+
+- [`41b05d0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/41b05d08a635d593df4cf4eefbe921b92ace77b7) ([#277](https://www.github.com/crabnebula-dev/cargo-packager/pull/277)) Respect `target-triple` config option when packaging rust binaries.
+- [`41b05d0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/41b05d08a635d593df4cf4eefbe921b92ace77b7) ([#277](https://www.github.com/crabnebula-dev/cargo-packager/pull/277)) Add `--target` flag to specify target triple to package.
+
 ## \[0.10.3]
 
 - [`3ee764d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3ee764d9193ae22331aa5894a1821453e9542992) ([#270](https://www.github.com/crabnebula-dev/cargo-packager/pull/270)) Fixes AppImage bundling failing due to missing `/usr/lib64` directory.
