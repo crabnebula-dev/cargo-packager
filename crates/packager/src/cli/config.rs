@@ -91,25 +91,26 @@ pub fn find_config_files() -> crate::Result<Vec<PathBuf>> {
 }
 
 #[tracing::instrument(level = "trace")]
-pub fn load_configs_from_cargo_workspace(
-    release: bool,
-    profile: Option<String>,
-    manifest_path: Option<PathBuf>,
-) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
-    let profile = if release {
+fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<PathBuf>, Config)>> {
+    let profile = if cli.release {
         "release"
-    } else if let Some(profile) = &profile {
+    } else if let Some(profile) = &cli.profile {
         profile.as_str()
     } else {
         "debug"
     };
 
     let mut metadata_cmd = cargo_metadata::MetadataCommand::new();
-    if let Some(manifest_path) = &manifest_path {
+    if let Some(manifest_path) = &cli.manifest_path {
         metadata_cmd.manifest_path(manifest_path);
     }
-    let Ok(metadata) = metadata_cmd.exec() else {
-        return Ok(Vec::new());
+
+    let metadata = match metadata_cmd.exec() {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::debug!("cargo metadata failed: {e}");
+            return Ok(Vec::new());
+        }
     };
 
     let mut configs = Vec::new();
@@ -139,11 +140,12 @@ pub fn load_configs_from_cargo_workspace(
                     .replace(format!("com.{}.{}", author, package.name));
             }
 
-            let cargo_out_dir = metadata
-                .target_directory
-                .as_std_path()
-                .to_path_buf()
-                .join(profile);
+            let mut cargo_out_dir = metadata.target_directory.as_std_path().to_path_buf();
+            if let Some(target_triple) = cli.target.as_ref().or(config.target_triple.as_ref()) {
+                cargo_out_dir.push(target_triple);
+            }
+            cargo_out_dir.push(profile);
+
             if config.binaries_dir.is_none() {
                 config.binaries_dir.replace(cargo_out_dir.clone());
             }
