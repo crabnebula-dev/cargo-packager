@@ -2,20 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use super::{
-    deb::{copy_custom_files, generate_data, tar_and_gzip_dir},
-    Context,
-};
-use crate::{config::Config, util};
+use super::deb;
+use crate::{config::Config, package::Context, util, Error};
 use heck::AsKebabCase;
 use sha2::{Digest, Sha512};
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
 };
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -42,17 +39,18 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     tracing::info!("Packaging {} ({})", package_name, pkg_path.display());
 
     tracing::debug!("Generating data");
-    let _ = generate_data(config, &pkg_dir)?;
+    let _ = deb::generate_data(config, &pkg_dir)?;
 
     tracing::debug!("Copying files specified in `pacman.files`");
     if let Some(files) = config.pacman().and_then(|d| d.files.as_ref()) {
-        copy_custom_files(files, &pkg_dir)?;
+        deb::copy_custom_files(files, &pkg_dir)?;
     }
 
     // Apply tar/gzip to create the final package file.
     tracing::debug!("Creating package archive using tar and gzip");
-    let data_tar_gz_path = tar_and_gzip_dir(pkg_dir)?;
-    std::fs::copy(data_tar_gz_path, &pkg_path)?;
+    let data_tar_gz_path = deb::tar_and_gzip_dir(pkg_dir)?;
+    fs::copy(&data_tar_gz_path, &pkg_path)
+        .map_err(|e| Error::CopyFile(data_tar_gz_path, pkg_path.clone(), e))?;
 
     tracing::info!("Generating PKGBUILD: {}", pkgbuild_path.display());
     generate_pkgbuild_file(config, arch, pkgbuild_path.as_path(), pkg_path.as_path())?;
@@ -127,7 +125,8 @@ fn generate_pkgbuild_file(
     }
 
     // Generate SHA512 sum of the package
-    let mut sha_file = File::open(package_path)?;
+    let mut sha_file =
+        File::open(package_path).map_err(|e| Error::IoWithPath(package_path.to_path_buf(), e))?;
     let mut sha512 = Sha512::new();
     io::copy(&mut sha_file, &mut sha512)?;
     let sha_hash = sha512.finalize();

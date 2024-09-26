@@ -10,12 +10,13 @@ use crate::{
     codesign::macos as codesign,
     shell::CommandExt,
     util::{self, download},
+    Error,
 };
 
 const CREATE_DMG_URL: &str =
     "https://raw.githubusercontent.com/create-dmg/create-dmg/28867ba3563ddef62f55dcf130677103b4296c42/create-dmg";
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -44,21 +45,23 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     tracing::info!("Packaging {} ({})", dmg_name, dmg_path.display());
 
     if dmg_path.exists() {
-        std::fs::remove_file(&dmg_path)?;
+        fs::remove_file(&dmg_path).map_err(|e| Error::IoWithPath(dmg_path.clone(), e))?;
     }
 
     let dmg_tools_path = tools_path.join("DMG");
 
     let script_dir = dmg_tools_path.join("script");
-    std::fs::create_dir_all(&script_dir)?;
+    fs::create_dir_all(&script_dir).map_err(|e| Error::IoWithPath(script_dir.clone(), e))?;
 
     let create_dmg_script_path = script_dir.join("create-dmg");
 
     let support_directory_path = dmg_tools_path.join("share/create-dmg/support");
-    std::fs::create_dir_all(&support_directory_path)?;
+    fs::create_dir_all(&support_directory_path)
+        .map_err(|e| Error::IoWithPath(support_directory_path.clone(), e))?;
 
     if !dmg_tools_path.exists() {
-        std::fs::create_dir_all(&dmg_tools_path)?;
+        fs::create_dir_all(&dmg_tools_path)
+            .map_err(|e| Error::IoWithPath(dmg_tools_path.clone(), e))?;
     }
     if !create_dmg_script_path.exists() {
         tracing::debug!("Downloading create-dmg script");
@@ -67,24 +70,21 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
             "Writing {} and setting its permissions to 764",
             create_dmg_script_path.display()
         );
-        std::fs::write(&create_dmg_script_path, data)?;
-        std::fs::set_permissions(
-            &create_dmg_script_path,
-            std::fs::Permissions::from_mode(0o764),
-        )?;
+        fs::write(&create_dmg_script_path, data)
+            .map_err(|e| Error::IoWithPath(create_dmg_script_path.clone(), e))?;
+        fs::set_permissions(&create_dmg_script_path, fs::Permissions::from_mode(0o764))
+            .map_err(|e| Error::IoWithPath(create_dmg_script_path.clone(), e))?;
     }
 
     tracing::debug!("Writing template.applescript");
-    std::fs::write(
-        support_directory_path.join("template.applescript"),
-        include_str!("template.applescript"),
-    )?;
+    let template_applescript = support_directory_path.join("template.applescript");
+    fs::write(&template_applescript, include_str!("template.applescript"))
+        .map_err(|e| Error::IoWithPath(template_applescript, e))?;
 
     tracing::debug!("Writing eula-resources-template.xml");
-    std::fs::write(
-        support_directory_path.join("eula-resources-template.xml"),
-        include_str!("eula-resources-template.xml"),
-    )?;
+    let eula_template = support_directory_path.join("eula-resources-template.xml");
+    fs::write(eula_template, include_str!("eula-resources-template.xml"))
+        .map_err(|e| Error::IoWithPath(eula_template, e))?;
 
     let dmg = config.dmg();
 
@@ -181,7 +181,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         }
     }
 
-    tracing::info!("Running create-dmg");
+    tracing::debug!("Running create-dmg");
 
     // execute the bundle script
     bundle_dmg_cmd

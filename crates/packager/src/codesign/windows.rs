@@ -228,7 +228,7 @@ pub fn sign_default<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> cra
     let path = path.as_ref();
 
     tracing::info!(
-        "Codesigning {} with identity \"{}\"",
+        "Codesigning {} with certificate \"{}\"",
         util::display_path(path),
         params.certificate_thumbprint
     );
@@ -239,7 +239,7 @@ pub fn sign_default<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> cra
     let output = cmd.output_ok().map_err(crate::Error::SignToolFailed)?;
 
     let stdout = String::from_utf8_lossy(output.stdout.as_slice());
-    tracing::info!("{:?}", stdout);
+    tracing::debug!("{:?}", stdout);
 
     Ok(())
 }
@@ -257,7 +257,7 @@ pub fn sign<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Resu
     }
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 pub fn try_sign(
     file_path: &std::path::PathBuf,
     config: &crate::config::Config,

@@ -6,6 +6,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     fmt::Debug,
+    fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -16,6 +17,7 @@ use super::Context;
 use crate::{
     codesign::windows::{self as codesign},
     util::verify_file_hash,
+    Error,
 };
 use crate::{
     config::{Config, LogLevel, NSISInstallerMode, NsisCompression},
@@ -64,7 +66,7 @@ const NSIS_REQUIRED_FILES_HASH: &[(&str, &str, &str, HashAlgorithm)] = &[(
 type DirectoriesSet = BTreeSet<PathBuf>;
 type ResourcesMap = BTreeMap<PathBuf, PathBuf>;
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, ResourcesMap)> {
     let mut directories = BTreeSet::new();
     let mut resources_map = BTreeMap::new();
@@ -86,7 +88,7 @@ fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, Res
 
 /// BTreeMap<OriginalPath, TargetFileName>
 type BinariesMap = BTreeMap<PathBuf, String>;
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
     let mut binaries = BinariesMap::new();
 
@@ -96,10 +98,12 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
         for src in external_binaries {
             let file_name = src
                 .file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
+                .ok_or_else(|| Error::FailedToExtractFilename(src.clone()))?
                 .to_string_lossy();
             let src = src.with_file_name(format!("{file_name}-{target_triple}.exe"));
-            let bin_path = dunce::canonicalize(cwd.join(src))?;
+            let bin_path = cwd.join(src);
+            let bin_path =
+                dunce::canonicalize(&bin_path).map_err(|e| Error::IoWithPath(bin_path, e))?;
             let dest_file_name = format!("{file_name}.exe");
             binaries.insert(bin_path, dest_file_name);
         }
@@ -110,7 +114,7 @@ fn generate_binaries_data(config: &Config) -> crate::Result<BinariesMap> {
             let bin_path = config.binary_path(bin).with_extension("exe");
             let dest_filename = bin_path
                 .file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(bin_path.clone()))?
+                .ok_or_else(|| Error::FailedToExtractFilename(bin_path.clone()))?
                 .to_string_lossy()
                 .to_string();
             binaries.insert(bin_path, dest_filename);
@@ -126,7 +130,9 @@ fn get_lang_data(
     custom_lang_files: Option<&HashMap<String, PathBuf>>,
 ) -> crate::Result<Option<(PathBuf, Option<&'static str>)>> {
     if let Some(path) = custom_lang_files.and_then(|h| h.get(lang)) {
-        return Ok(Some((dunce::canonicalize(path)?, None)));
+        let canonicalized =
+            dunce::canonicalize(path).map_err(|e| Error::IoWithPath(path.clone(), e))?;
+        return Ok(Some((canonicalized, None)));
     }
 
     let lang_path = PathBuf::from(format!("{lang}.nsh"));
@@ -159,7 +165,8 @@ fn write_ut16_le_with_bom<P: AsRef<Path> + Debug>(path: P, content: &str) -> cra
     use std::fs::File;
     use std::io::{BufWriter, Write};
 
-    let file = File::create(path)?;
+    let path = path.as_ref();
+    let file = File::create(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
     let mut output = BufWriter::new(file);
     output.write_all(&[0xFF, 0xFE])?; // the BOM part
     for utf16 in content.encode_utf16() {
@@ -238,7 +245,7 @@ fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
                 version.major, version.minor, version.patch, version.build
             ));
         } else {
-            return Err(crate::Error::NonNumericBuildMetadata(None));
+            return Err(Error::NonNumericBuildMetadata(None));
         }
     }
 
@@ -248,16 +255,22 @@ fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
     ))
 }
 
+fn file_len<P: AsRef<Path>>(p: P) -> crate::Result<u64> {
+    fs::metadata(&p)
+        .map(|m| m.len())
+        .map_err(|e| Error::IoWithPath(p.as_ref().to_path_buf(), e))
+}
+
 fn generate_estimated_size<I, P, P2>(main: P, other_files: I) -> crate::Result<String>
 where
     I: IntoIterator<Item = P2>,
     P: AsRef<Path>,
     P2: AsRef<Path>,
 {
-    let mut size = std::fs::metadata(main)?.len();
+    let mut size = file_len(main)?;
 
     for k in other_files {
-        size += std::fs::metadata(k)?.len();
+        size += file_len(k)?;
     }
 
     size /= 1000;
@@ -265,7 +278,7 @@ where
     Ok(format!("{size:#08x}"))
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 fn get_and_extract_nsis(
     #[allow(unused)] ctx: &Context,
     nsis_toolset_path: &Path,
@@ -273,23 +286,26 @@ fn get_and_extract_nsis(
     #[cfg(target_os = "windows")]
     {
         let data = download_and_verify("nsis-3.09.zip", NSIS_URL, NSIS_SHA1, HashAlgorithm::Sha1)?;
-        tracing::info!("Extracting nsis-3.09.zip");
+        tracing::debug!("Extracting nsis-3.09.zip");
         extract_zip(&data, &ctx.tools_path)?;
-        std::fs::rename(ctx.tools_path.join("nsis-3.09"), nsis_toolset_path)?;
+        let downloaded_nsis = ctx.tools_path.join("nsis-3.09");
+        fs::rename(&downloaded_nsis, nsis_toolset_path)
+            .map_err(|e| Error::RenameFile(downloaded_nsis, nsis_toolset_path.to_path_buf(), e))?;
     }
 
     let nsis_plugins = nsis_toolset_path.join("Plugins");
 
     let unicode_plugins = nsis_plugins.join("x86-unicode");
-    std::fs::create_dir_all(&unicode_plugins)?;
+    fs::create_dir_all(&unicode_plugins)
+        .map_err(|e| Error::IoWithPath(unicode_plugins.clone(), e))?;
 
     let data = download(NSIS_APPLICATIONID_URL)?;
-    tracing::info!("ExtractingNSIS ApplicationID plugin");
+    tracing::debug!("Extracting NSIS ApplicationID plugin");
     extract_zip(&data, &nsis_plugins)?;
-    std::fs::copy(
-        nsis_plugins.join("ReleaseUnicode/ApplicationID.dll"),
-        unicode_plugins.join("ApplicationID.dll"),
-    )?;
+
+    let src = nsis_plugins.join("ReleaseUnicode/ApplicationID.dll");
+    let dest = unicode_plugins.join("ApplicationID.dll");
+    fs::copy(&src, &dest).map_err(|e| Error::CopyFile(src, dest, e))?;
 
     let data = download_and_verify(
         "nsis_tauri_utils.dll",
@@ -297,12 +313,13 @@ fn get_and_extract_nsis(
         NSIS_TAURI_UTILS_SHA1,
         HashAlgorithm::Sha1,
     )?;
-    std::fs::write(unicode_plugins.join("nsis_tauri_utils.dll"), data)?;
+    let path = unicode_plugins.join("nsis_tauri_utils.dll");
+    fs::write(&path, data).map_err(|e| Error::IoWithPath(path, e))?;
 
     Ok(())
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -314,7 +331,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         "x86_64" => "x64",
         "x86" => "x86",
         "aarch64" => "arm64",
-        target => return Err(crate::Error::UnsupportedArch("nsis".into(), target.into())),
+        target => return Err(Error::UnsupportedArch("nsis".into(), target.into())),
     };
 
     let main_binary = config.main_binary()?;
@@ -365,7 +382,9 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     }
 
     if let Some(license) = &config.license_file {
-        data.insert("license", to_json(dunce::canonicalize(license)?));
+        let canonicalized =
+            dunce::canonicalize(license).map_err(|e| Error::IoWithPath(license.clone(), e))?;
+        data.insert("license", to_json(canonicalized));
     }
 
     let mut install_mode = NSISInstallerMode::CurrentUser;
@@ -385,19 +404,19 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
             to_json(nsis.display_language_selector && languages.len() > 1),
         );
         if let Some(installer_icon) = &nsis.installer_icon {
-            data.insert(
-                "installer_icon",
-                to_json(dunce::canonicalize(installer_icon)?),
-            );
+            let canonicalized = dunce::canonicalize(installer_icon)
+                .map_err(|e| Error::IoWithPath(installer_icon.clone(), e))?;
+            data.insert("installer_icon", to_json(canonicalized));
         }
         if let Some(header_image) = &nsis.header_image {
-            data.insert("header_image", to_json(dunce::canonicalize(header_image)?));
+            let canonicalized = dunce::canonicalize(header_image)
+                .map_err(|e| Error::IoWithPath(header_image.clone(), e))?;
+            data.insert("header_image", to_json(canonicalized));
         }
         if let Some(sidebar_image) = &nsis.sidebar_image {
-            data.insert(
-                "sidebar_image",
-                to_json(dunce::canonicalize(sidebar_image)?),
-            );
+            let canonicalized = dunce::canonicalize(sidebar_image)
+                .map_err(|e| Error::IoWithPath(sidebar_image.clone(), e))?;
+            data.insert("sidebar_image", to_json(canonicalized));
         }
         if let Some(preinstall_section) = &nsis.preinstall_section {
             data.insert("preinstall_section", to_json(preinstall_section));
@@ -498,7 +517,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     });
     if let Some(path) = custom_template_path {
         handlebars
-            .register_template_string("installer.nsi", std::fs::read_to_string(path)?)
+            .register_template_string("installer.nsi", fs::read_to_string(path)?)
             .map_err(Box::new)?;
     } else {
         handlebars
@@ -529,11 +548,12 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         "{}_{}_{}-setup.exe",
         main_binary_name, config.version, arch
     ));
-    std::fs::create_dir_all(
-        installer_path
-            .parent()
-            .ok_or_else(|| crate::Error::ParentDirNotFound(installer_path.clone()))?,
-    )?;
+
+    let installer_path_parent = installer_path
+        .parent()
+        .ok_or_else(|| Error::ParentDirNotFound(installer_path.clone()))?;
+    fs::create_dir_all(installer_path_parent)
+        .map_err(|e| Error::IoWithPath(installer_path_parent.to_path_buf(), e))?;
 
     tracing::info!(
         "Running makensis.exe to produce {}",
@@ -557,9 +577,10 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         .arg(installer_nsi_path)
         .current_dir(intermediates_path)
         .output_ok()
-        .map_err(crate::Error::NsisFailed)?;
+        .map_err(Error::NsisFailed)?;
 
-    std::fs::rename(nsis_output_path, &installer_path)?;
+    fs::rename(&nsis_output_path, &installer_path)
+        .map_err(|e| Error::RenameFile(nsis_output_path, installer_path.clone(), e))?;
 
     if config.can_sign() {
         tracing::debug!("Codesigning {}", installer_path.display());
@@ -572,7 +593,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     Ok(vec![installer_path])
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let nsis_toolset_path = ctx.tools_path.join("NSIS");
 
@@ -583,7 +604,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .any(|p| !nsis_toolset_path.join(p).exists())
     {
         tracing::warn!("NSIS directory is missing some files. Recreating it...");
-        std::fs::remove_dir_all(&nsis_toolset_path)?;
+        fs::remove_dir_all(&nsis_toolset_path)
+            .map_err(|e| Error::IoWithPath(nsis_toolset_path.clone(), e))?;
         get_and_extract_nsis(ctx, &nsis_toolset_path)?;
     } else {
         let mismatched = NSIS_REQUIRED_FILES_HASH
@@ -598,7 +620,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
             for (path, url, hash, hash_algorithim) in mismatched {
                 let path = nsis_toolset_path.join(path);
                 let data = download_and_verify(&path, url, hash, *hash_algorithim)?;
-                std::fs::write(path, data)?;
+                fs::write(&path, data).map_err(|e| Error::IoWithPath(path, e))?;
             }
         }
     }

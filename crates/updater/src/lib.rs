@@ -684,11 +684,10 @@ impl Update {
 
         impl<R: Read, C: Fn(usize, Option<u64>)> Read for DownloadProgress<R, C> {
             fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-                self.inner.read(buf).map(|n| {
+                self.inner.read(buf).inspect(|&n| {
                     if let Some(on_chunk) = &self.on_chunk {
                         (on_chunk)(n, self.content_length);
                     }
-                    n
                 })
             }
         }
@@ -914,6 +913,8 @@ impl Update {
         target_os = "openbsd"
     ))]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
+        use std::fs;
+
         match self.format {
             UpdateFormat::AppImage => {}
             _ => return Err(crate::Error::UnsupportedUpdateFormat),
@@ -938,7 +939,7 @@ impl Update {
                 if extract_path_metadata.dev() == tmp_dir_metadata.dev() {
                     let mut perms = tmp_dir_metadata.permissions();
                     perms.set_mode(0o700);
-                    std::fs::set_permissions(&tmp_dir, perms)?;
+                    fs::set_permissions(&tmp_dir, perms)?;
 
                     let tmp_app_image = tmp_dir.path().join("current_app.AppImage");
 
@@ -946,13 +947,13 @@ impl Update {
                     let metadata = self.extract_path.metadata()?;
 
                     // create a backup of our current app image
-                    std::fs::rename(&self.extract_path, &tmp_app_image)?;
+                    fs::rename(&self.extract_path, &tmp_app_image)?;
 
                     // if something went wrong during the extraction, we should restore previous app
-                    if let Err(err) = std::fs::write(&self.extract_path, bytes).and_then(|_| {
-                        std::fs::set_permissions(&self.extract_path, metadata.permissions())
+                    if let Err(err) = fs::write(&self.extract_path, bytes).and_then(|_| {
+                        fs::set_permissions(&self.extract_path, metadata.permissions())
                     }) {
-                        std::fs::rename(tmp_app_image, &self.extract_path)?;
+                        fs::rename(tmp_app_image, &self.extract_path)?;
                         return Err(err.into());
                     }
 
@@ -984,7 +985,7 @@ impl Update {
         let tmp_dir = tempfile::Builder::new().prefix("current_app").tempdir()?;
 
         // create backup of our current app
-        std::fs::rename(&self.extract_path, tmp_dir.path())?;
+        fs::rename(&self.extract_path, tmp_dir.path())?;
 
         let decoder = GzDecoder::new(cursor);
         let mut archive = tar::Archive::new(decoder);
@@ -993,7 +994,7 @@ impl Update {
             archive: &mut tar::Archive<R>,
             extract_path: &Path,
         ) -> Result<()> {
-            std::fs::create_dir(extract_path)?;
+            fs::create_dir(extract_path)?;
             for entry in archive.entries()? {
                 let mut entry = entry?;
                 let entry_path: PathBuf = entry.path()?.components().skip(1).collect();
@@ -1009,8 +1010,8 @@ impl Update {
 
         // if something went wrong during the extraction, we should restore previous app
         if let Err(e) = extract_archive(&mut archive, &self.extract_path) {
-            std::fs::remove_dir(&self.extract_path)?;
-            std::fs::rename(tmp_dir.path(), &self.extract_path)?;
+            fs::remove_dir(&self.extract_path)?;
+            fs::rename(tmp_dir.path(), &self.extract_path)?;
             return Err(e);
         }
 

@@ -62,7 +62,7 @@ impl PackageOutput {
 }
 
 /// Package an app using the specified config.
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
     let mut formats = config
         .formats
@@ -92,6 +92,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
     run_before_packaging_command_hook(config, &formats_comma_separated)?;
 
     let ctx = Context::new(config)?;
+    tracing::trace!(ctx = ?ctx);
 
     let mut packages = Vec::new();
     for format in &formats {
@@ -168,11 +169,11 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
                 .map(|i| packages.remove(i))
                 .map(|b| b.paths)
             {
-                for path in &app_bundle_paths {
-                    tracing::debug!("Cleaning {}", path.display());
-                    match path.is_dir() {
-                        true => std::fs::remove_dir_all(path)?,
-                        false => std::fs::remove_file(path)?,
+                for p in &app_bundle_paths {
+                    tracing::debug!("Cleaning {}", p.display());
+                    match p.is_dir() {
+                        true => fs::remove_dir_all(p).map_err(|e| Error::IoWithPath(p.clone()), e),
+                        false => fs::remove_file(p).map_err(|e| Error::IoWithPath(p.clone()), e),
                     };
                 }
             }

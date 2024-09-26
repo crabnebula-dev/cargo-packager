@@ -8,7 +8,8 @@ publish = false
 eframe = "0.27"
 
 [package.metadata.packager]
-before-packaging-command = "cargo build --release"
+before-packaging-command = "cargo build --release --target x86_64-pc-windows-msvc"
+target-triple = "x86_64-pc-windows-msvc"
 product-name = "Egui example"
 identifier = "com.egui.example"
 resources = ["Cargo.toml", "src", "32x32.png"]

@@ -7,9 +7,8 @@
 use std::{
     collections::{BTreeSet, HashMap},
     ffi::OsStr,
-    fs::File,
+    fs::{self, File},
     io::{BufReader, Write},
-    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
 };
 
@@ -26,6 +25,7 @@ use super::Context;
 use crate::{
     config::Config,
     util::{self, PathExt as UtilPathExt},
+    Error,
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -37,7 +37,7 @@ pub struct DebIcon {
 }
 
 /// Generate the icon files and store them under the `data_dir`.
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let hicolor_dir = data_dir.join("usr/share/icons/hicolor");
     let main_binary_name = config.main_binary_name()?;
@@ -58,7 +58,8 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
             }
             // Put file in scope so that it's closed when copying it
             let deb_icon = {
-                let file = File::open(&icon_path)?;
+                let file =
+                    File::open(&icon_path).map_err(|e| Error::IoWithPath(icon_path.clone(), e))?;
                 let file = BufReader::new(file);
                 let decoder = PngDecoder::new(file)?;
                 let width = decoder.dimensions().0;
@@ -73,13 +74,14 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
                 }
             };
             if !icons_set.contains(&deb_icon) {
-                std::fs::create_dir_all(
-                    deb_icon
-                        .path
-                        .parent()
-                        .ok_or_else(|| crate::Error::ParentDirNotFound(deb_icon.path.clone()))?,
-                )?;
-                std::fs::copy(&icon_path, &deb_icon.path)?;
+                let parent = deb_icon
+                    .path
+                    .parent()
+                    .ok_or_else(|| crate::Error::ParentDirNotFound(deb_icon.path.clone()))?;
+                fs::create_dir_all(parent)
+                    .map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
+                fs::copy(&icon_path, &deb_icon.path)
+                    .map_err(|e| Error::CopyFile(icon_path.clone(), deb_icon.path.clone(), e))?;
                 icons_set.insert(deb_icon);
             }
         }
@@ -88,7 +90,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
 }
 
 /// Generate the application desktop file and store it under the `data_dir`.
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> {
     let bin_name = config.main_binary_name()?;
     let desktop_file_name = format!("{}.desktop", bin_name);
@@ -104,7 +106,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
     handlebars.register_escape_fn(handlebars::no_escape);
     if let Some(template) = config.deb().and_then(|d| d.desktop_template.as_ref()) {
         handlebars
-            .register_template_string("main.desktop", std::fs::read_to_string(template)?)
+            .register_template_string("main.desktop", fs::read_to_string(template)?)
             .map_err(Box::new)?;
     } else {
         handlebars
@@ -176,15 +178,18 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
     Ok(())
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<DebIcon>> {
     let bin_dir = data_dir.join("usr/bin");
 
     tracing::debug!("Copying binaries");
-    std::fs::create_dir_all(&bin_dir)?;
+    fs::create_dir_all(&bin_dir).map_err(|e| Error::IoWithPath(bin_dir.clone(), e))?;
+
     for bin in config.binaries.iter() {
         let bin_path = config.binary_path(bin);
-        std::fs::copy(&bin_path, bin_dir.join(bin.path.file_name().unwrap()))?;
+        let bin_out_path = bin_dir.join(bin.path.file_name().unwrap());
+        fs::copy(&bin_path, &bin_out_path)
+            .map_err(|e| Error::CopyFile(bin_path.clone(), bin_out_path.clone(), e))?;
     }
 
     tracing::debug!("Copying resources");
@@ -208,16 +213,20 @@ pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
     let path = path.as_ref();
 
     if path.is_dir() {
-        for entry in std::fs::read_dir(path)? {
+        for entry in fs::read_dir(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))? {
             let path = entry?.path();
             if path.is_file() {
-                result += path.metadata()?.len();
+                let metadata = path.metadata().map_err(|e| Error::IoWithPath(path, e))?;
+                result += metadata.len();
             } else {
                 result += get_size(path)?;
             }
         }
     } else {
-        result = path.metadata()?.len();
+        let metadata = path
+            .metadata()
+            .map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
+        result += metadata.len();
     }
 
     Ok(result)
@@ -227,7 +236,10 @@ pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
 #[tracing::instrument(level = "trace")]
 pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> crate::Result<()> {
     for (src, target) in files.iter() {
-        let src = Path::new(src).canonicalize()?;
+        let src = Path::new(src);
+        let src = src
+            .canonicalize()
+            .map_err(|e| Error::IoWithPath(src.to_path_buf(), e))?;
         let target = Path::new(target);
         let target = if target.is_absolute() {
             target.strip_prefix("/").unwrap()
@@ -240,8 +252,8 @@ pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> cr
             let parent = dest
                 .parent()
                 .ok_or_else(|| crate::Error::ParentDirNotFound(dest.clone()))?;
-            std::fs::create_dir_all(parent)?;
-            std::fs::copy(src, dest)?;
+            fs::create_dir_all(parent).map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
+            fs::copy(&src, &dest).map_err(|e| Error::CopyFile(src, dest, e))?;
         } else if src.is_dir() {
             let dest_dir = data_dir.join(target);
 
@@ -251,8 +263,13 @@ pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> cr
                 if path.is_file() {
                     let relative = path.relative_to(&src)?.to_path("");
                     let dest = dest_dir.join(relative);
-                    std::fs::create_dir_all(dest.parent().unwrap())?;
-                    std::fs::copy(path, dest)?;
+                    let parent = dest
+                        .parent()
+                        .ok_or_else(|| crate::Error::ParentDirNotFound(dest.clone()))?;
+                    fs::create_dir_all(parent)
+                        .map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
+                    fs::copy(path, &dest)
+                        .map_err(|e| Error::CopyFile(src.clone(), dest.clone(), e))?;
                 }
             }
         }
@@ -262,7 +279,7 @@ pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> cr
 }
 
 /// Generates the debian control file and stores it under the `control_dir`.
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn generate_control_file(
     config: &Config,
     arch: &str,
@@ -335,7 +352,7 @@ fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
         if path.is_dir() {
             continue;
         }
-        let mut file = File::open(path)?;
+        let mut file = File::open(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
         let mut hash = md5::Context::new();
         std::io::copy(&mut file, &mut hash)?;
         for byte in hash.compute().iter() {
@@ -349,6 +366,34 @@ fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
         writeln!(md5sums_file, "  {}", path_str)?;
     }
     Ok(())
+}
+
+fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> crate::Result<W> {
+    use std::os::unix::fs::MetadataExt;
+
+    let src_dir = src_dir.as_ref();
+    let mut tar_builder = tar::Builder::new(dest_file);
+    for entry in walkdir::WalkDir::new(src_dir) {
+        let entry = entry?;
+        let src_path = entry.path();
+        if src_path == src_dir {
+            continue;
+        }
+        let dest_path = src_path.strip_prefix(src_dir)?;
+        let stat =
+            fs::metadata(src_path).map_err(|e| Error::IoWithPath(src_path.to_path_buf(), e))?;
+        let mut header = tar::Header::new_gnu();
+        header.set_metadata_in_mode(&stat, HeaderMode::Deterministic);
+        header.set_mtime(stat.mtime() as u64);
+        if entry.file_type().is_dir() {
+            tar_builder.append_data(&mut header, dest_path, &mut std::io::empty())?;
+        } else {
+            let mut src_file =
+                File::open(src_path).map_err(|e| Error::IoWithPath(src_path.to_path_buf(), e))?;
+            tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
+        }
+    }
+    tar_builder.into_inner().map_err(Into::into)
 }
 
 /// Creates a `.tar.gz` file from the given directory (placing the new file
@@ -376,7 +421,7 @@ fn create_archive(srcs: Vec<PathBuf>, dest: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -440,28 +485,4 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         &deb_path,
     )?;
     Ok(vec![deb_path])
-}
-
-fn create_tar_from_dir<P: AsRef<Path>, W: Write>(src_dir: P, dest_file: W) -> crate::Result<W> {
-    let src_dir = src_dir.as_ref();
-    let mut tar_builder = tar::Builder::new(dest_file);
-    for entry in walkdir::WalkDir::new(src_dir) {
-        let entry = entry?;
-        let src_path = entry.path();
-        if src_path == src_dir {
-            continue;
-        }
-        let dest_path = src_path.strip_prefix(src_dir)?;
-        let stat = std::fs::metadata(src_path)?;
-        let mut header = tar::Header::new_gnu();
-        header.set_metadata_in_mode(&stat, HeaderMode::Deterministic);
-        header.set_mtime(stat.mtime() as u64);
-        if entry.file_type().is_dir() {
-            tar_builder.append_data(&mut header, dest_path, &mut std::io::empty())?;
-        } else {
-            let mut src_file = std::fs::File::open(src_path)?;
-            tar_builder.append_data(&mut header, dest_path, &mut src_file)?;
-        }
-    }
-    tar_builder.into_inner().map_err(Into::into)
 }
