@@ -684,11 +684,10 @@ impl Update {
 
         impl<R: Read, C: Fn(usize, Option<u64>)> Read for DownloadProgress<R, C> {
             fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-                self.inner.read(buf).map(|n| {
+                self.inner.read(buf).inspect(|&n| {
                     if let Some(on_chunk) = &self.on_chunk {
                         (on_chunk)(n, self.content_length);
                     }
-                    n
                 })
             }
         }
