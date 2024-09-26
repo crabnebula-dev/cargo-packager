@@ -5,6 +5,7 @@
 
 use std::{
     collections::BTreeMap,
+    fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     process::Command,
@@ -12,10 +13,10 @@ use std::{
 
 use handlebars::{to_json, Handlebars};
 
-use super::Context;
-use crate::{shell::CommandExt, util};
+use super::{deb, Context};
+use crate::{shell::CommandExt, util, Error};
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 fn donwload_dependencies(
     ctx: &Context,
     appimage_tools_path: &Path,
@@ -53,15 +54,16 @@ fn donwload_dependencies(
                 "Writing {} and setting its permissions to 764",
                 path.display()
             );
-            std::fs::write(&path, data)?;
-            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o764))?;
+            fs::write(&path, data).map_err(|e| Error::IoWithPath(path.clone(), e))?;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o764))
+                .map_err(|e| Error::IoWithPath(path, e))?;
         }
     }
 
     Ok(())
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -78,7 +80,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     };
 
     let appimage_tools_path = tools_path.join("AppImage");
-    std::fs::create_dir_all(&appimage_tools_path)?;
+    fs::create_dir_all(&appimage_tools_path)
+        .map_err(|e| Error::IoWithPath(appimage_tools_path.clone(), e))?;
 
     donwload_dependencies(ctx, &appimage_tools_path, arch, linuxdeploy_arch)?;
 
@@ -87,12 +90,12 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     // generate deb_folder structure
     tracing::debug!("Generating data");
-    let icons = super::deb::generate_data(config, &appimage_deb_data_dir)?;
+    let icons = deb::generate_data(config, &appimage_deb_data_dir)?;
     tracing::debug!("Copying files specified in `appimage.files`");
     if let Some(files) = config.appimage().and_then(|d| d.files.as_ref()) {
-        super::deb::copy_custom_files(files, &appimage_deb_data_dir)?;
+        deb::copy_custom_files(files, &appimage_deb_data_dir)?;
     }
-    let icons: Vec<super::deb::DebIcon> = icons.into_iter().collect();
+    let icons: Vec<deb::DebIcon> = icons.into_iter().collect();
 
     let main_binary_name = config.main_binary_name()?;
     let upcase_app_name = main_binary_name.to_uppercase();
@@ -100,7 +103,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let appimage_filename = format!("{}_{}_{}.AppImage", main_binary_name, config.version, arch);
     let appimage_path = config.out_dir().join(&appimage_filename);
 
-    std::fs::create_dir_all(app_dir_path)?;
+    fs::create_dir_all(&app_dir_path).map_err(|e| Error::IoWithPath(app_dir_path.clone(), e))?;
 
     // setup data to insert into shell script
     let mut sh_map = BTreeMap::new();
@@ -172,8 +175,9 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         "Writing {} and setting its permissions to 764",
         sh_file.display()
     );
-    std::fs::write(&sh_file, template)?;
-    std::fs::set_permissions(&sh_file, std::fs::Permissions::from_mode(0o764))?;
+    fs::write(&sh_file, template).map_err(|e| Error::IoWithPath(sh_file.clone(), e))?;
+    fs::set_permissions(&sh_file, fs::Permissions::from_mode(0o764))
+        .map_err(|e| Error::IoWithPath(sh_file.clone(), e))?;
 
     tracing::info!(
         "Packaging {} ({})",

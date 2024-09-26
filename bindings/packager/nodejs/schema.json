@@ -106,7 +106,7 @@
       ]
     },
     "targetTriple": {
-      "description": "The target triple we are packaging for. This mainly affects [`Config::external_binaries`].\n\nDefaults to the current OS target triple.",
+      "description": "The target triple we are packaging for.\n\nDefaults to the current OS target triple.",
       "type": [
         "string",
         "null"

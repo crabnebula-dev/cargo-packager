@@ -4,9 +4,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::Context;
+use crate::Error;
 use crate::{config::Config, util};
 
 #[cfg(target_os = "macos")]
@@ -15,7 +17,7 @@ use crate::{
     shell::CommandExt,
 };
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context { config, .. } = ctx;
     // we should use the bundle name (App name) as a MacOS standard.
@@ -24,7 +26,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let app_bundle_path = config.out_dir().join(&app_product_name);
 
     if app_bundle_path.exists() {
-        std::fs::remove_dir_all(&app_bundle_path)?;
+        fs::remove_dir_all(&app_bundle_path)
+            .map_err(|e| Error::IoWithPath(app_bundle_path.clone(), e))?;
     }
 
     tracing::info!(
@@ -34,11 +37,12 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     );
 
     let contents_directory = app_bundle_path.join("Contents");
-    std::fs::create_dir_all(&contents_directory)?;
+    fs::create_dir_all(&contents_directory)
+        .map_err(|e| Error::IoWithPath(contents_directory.clone(), e))?;
 
     let resources_dir = contents_directory.join("Resources");
     let bin_dir = contents_directory.join("MacOS");
-    std::fs::create_dir_all(&bin_dir)?;
+    fs::create_dir_all(&bin_dir).map_err(|e| Error::IoWithPath(bin_dir.clone(), e))?;
 
     #[cfg(target_os = "macos")]
     let mut sign_paths = std::collections::BinaryHeap::new();
@@ -74,7 +78,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     for bin in &config.binaries {
         let bin_path = config.binary_path(bin);
         let dest_path = bin_dir.join(bin.path.file_name().unwrap());
-        std::fs::copy(&bin_path, &dest_path)?;
+        fs::copy(&bin_path, &dest_path)
+            .map_err(|e| Error::CopyFile(bin_path.clone(), dest_path.clone(), e))?;
     }
 
     // All dylib files and native executables should be signed manually
@@ -89,7 +94,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     // Filter all files for Mach-O headers. This will target all .dylib and native executable files
     for file in files {
-        let metadata = match std::fs::metadata(&file) {
+        let metadata = match fs::metadata(&file) {
             Ok(f) => f,
             Err(err) => {
                 tracing::warn!("Failed to get metadata for {}: {err}, this file will not be scanned for Mach-O header!", file.display());
@@ -102,7 +107,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
             continue;
         }
 
-        let mut open_file = match std::fs::File::open(&file) {
+        let mut open_file = match fs::File::open(&file) {
             Ok(f) => f,
             Err(err) => {
                 tracing::warn!("Failed to open {} for reading: {err}, this file will not be scanned for Mach-O header!", file.display());
@@ -172,7 +177,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 }
 
 // Creates the Info.plist file.
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn create_info_plist(
     contents_directory: &Path,
     bundle_icon_file: Option<PathBuf>,
@@ -356,28 +361,35 @@ fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
     let parent = to
         .parent()
         .ok_or_else(|| crate::Error::ParentDirNotFound(to.to_path_buf()))?;
-    std::fs::create_dir_all(parent)?;
+    fs::create_dir_all(parent).map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
     for entry in walkdir::WalkDir::new(from) {
         let entry = entry?;
-        debug_assert!(entry.path().starts_with(from));
-        let rel_path = entry.path().strip_prefix(from)?;
-        let dest_path = to.join(rel_path);
+        let path = entry.path();
+        debug_assert!(path.starts_with(from));
+        let rel_path = path.strip_prefix(from)?;
+        let dest = to.join(rel_path);
         if entry.file_type().is_symlink() {
-            let target = std::fs::read_link(entry.path())?;
+            let target =
+                fs::read_link(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
+
             #[cfg(unix)]
-            std::os::unix::fs::symlink(&target, &dest_path)?;
+            std::os::unix::fs::symlink(&target, &dest)
+                .map_err(|e| Error::Symlink(target, dest, e))?;
+
             #[cfg(windows)]
             {
                 if entry.file_type().is_file() {
-                    std::os::windows::fs::symlink_file(&target, &dest_path)?;
+                    std::os::windows::fs::symlink_file(&target, &dest)
+                        .map_err(|e| Error::Symlink(target, dest, e))?;
                 } else {
-                    std::os::windows::fs::symlink_dir(&target, &dest_path)?;
+                    std::os::windows::fs::symlink_dir(&target, &dest)
+                        .map_err(|e| Error::Symlink(target, dest, e))?;
                 }
             }
         } else if entry.file_type().is_dir() {
-            std::fs::create_dir(dest_path)?;
+            fs::create_dir(&dest).map_err(|e| Error::IoWithPath(dest, e))?
         } else {
-            std::fs::copy(entry.path(), dest_path)?;
+            fs::copy(path, &dest).map_err(|e| Error::CopyFile(path.to_path_buf(), dest, e))?;
         }
     }
     Ok(())
@@ -397,7 +409,7 @@ fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crat
 }
 
 // Copies the macOS application bundle frameworks to the .app
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn copy_frameworks_to_bundle(
     contents_directory: &Path,
     config: &Config,
@@ -406,7 +418,7 @@ fn copy_frameworks_to_bundle(
 
     if let Some(frameworks) = config.macos().and_then(|m| m.frameworks.as_ref()) {
         let dest_dir = contents_directory.join("Frameworks");
-        std::fs::create_dir_all(contents_directory)?;
+        fs::create_dir_all(contents_directory)?;
 
         for framework in frameworks {
             if framework.ends_with(".framework") || framework.ends_with(".app") {
@@ -426,9 +438,10 @@ fn copy_frameworks_to_bundle(
                 let src_name = src_path
                     .file_name()
                     .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
-                std::fs::create_dir_all(&dest_dir)?;
+                fs::create_dir_all(&dest_dir)?;
                 let dest_path = dest_dir.join(src_name);
-                std::fs::copy(&src_path, &dest_path)?;
+                fs::copy(&src_path, &dest_path)
+                    .map_err(|e| Error::CopyFile(src_path.clone(), dest_path.clone(), e))?;
                 paths.push(dest_path);
                 continue;
             } else if framework.contains('/') {

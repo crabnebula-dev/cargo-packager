@@ -4,18 +4,20 @@
 
 //! The cli entry point
 
-use std::{ffi::OsString, fmt::Write, path::PathBuf};
+use std::{ffi::OsString, fmt::Write, fs, path::PathBuf};
 
 use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
-use self::config::{find_config_files, load_configs_from_cargo_workspace, parse_config_file};
 use crate::{
-    config::{Config, LogLevel, PackageFormat},
-    init_tracing_subscriber, package, parse_log_level, sign_outputs, util, Result, SigningConfig,
+    config::{LogLevel, PackageFormat},
+    init_tracing_subscriber, package, parse_log_level, sign_outputs, util, SigningConfig,
 };
 
 mod config;
+mod error;
 mod signer;
+
+use self::error::{Error, Result};
 
 #[derive(Debug, Clone, Subcommand)]
 enum Commands {
@@ -42,7 +44,7 @@ pub(crate) struct Cli {
     /// The package fromats to build.
     #[clap(short, long, value_enum, value_delimiter = ',')]
     formats: Option<Vec<PackageFormat>>,
-    /// Specify a configuration to read, which could be a JSON file,
+    /// A configuration to read, which could be a JSON file,
     /// TOML file, or a raw JSON string.
     ///
     /// By default, cargo-packager looks for `{p,P}ackager.{toml,json}` and
@@ -72,7 +74,7 @@ pub(crate) struct Cli {
     /// Ignored when `--config` is used.
     #[clap(short, long, group = "cargo-profile")]
     release: bool,
-    /// Specify the cargo profile to use for packaging your app.
+    /// Cargo profile to use for packaging your app.
     /// Ignored when `--config` is used.
     #[clap(long, group = "cargo-profile")]
     profile: Option<String>,
@@ -88,8 +90,10 @@ pub(crate) struct Cli {
     command: Option<Commands>,
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(cli))]
 fn run_cli(cli: Cli) -> Result<()> {
+    tracing::trace!(cli= ?cli);
+
     // run subcommand and exit if one was specified,
     // otherwise run the default packaging command
     if let Some(command) = cli.command {
@@ -99,47 +103,7 @@ fn run_cli(cli: Cli) -> Result<()> {
         return Ok(());
     }
 
-    let mut configs = match cli.config {
-        // if a raw json object
-        Some(c) if c.starts_with('{') => vec![(None, serde_json::from_str::<Config>(&c)?)],
-        // if a raw json array
-        Some(c) if c.starts_with('[') => serde_json::from_str::<Vec<Config>>(&c)?
-            .into_iter()
-            .map(|c| (None, c))
-            .collect(),
-        // if a path to config file
-        Some(c) => parse_config_file(c)?,
-        // fallback to config files and cargo workspaces configs
-        _ => {
-            let config_files = find_config_files()?
-                .into_iter()
-                .filter_map(|c| parse_config_file(c).ok())
-                .collect::<Vec<_>>()
-                .concat();
-            let cargo_configs = load_configs_from_cargo_workspace(&cli)?;
-            [config_files, cargo_configs]
-                .concat()
-                .into_iter()
-                .filter(|(_, c)| {
-                    // skip if this config is not enabled
-                    //    or if this package was in the explicit
-                    //    packages list specified on the CLI,
-                    // otherwise build all if no packages were specified on the CLI
-                    c.enabled
-                        && (cli
-                            .packages
-                            .as_ref()
-                            .map(|cli_packages| {
-                                c.name
-                                    .as_ref()
-                                    .map(|name| cli_packages.contains(name))
-                                    .unwrap_or(false)
-                            })
-                            .unwrap_or(true))
-                })
-                .collect()
-        }
-    };
+    let configs = config::detect_configs(&cli)?;
 
     if configs.is_empty() {
         tracing::error!("Couldn't detect a valid configuration file or all configurations are disabled! Nothing to do here.");
@@ -151,21 +115,41 @@ fn run_cli(cli: Cli) -> Result<()> {
         .as_ref()
         .map(|p| {
             if p.exists() {
-                dunce::canonicalize(p)
+                dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e))
             } else {
-                std::fs::create_dir_all(p)?;
+                fs::create_dir_all(p).map_err(|e| Error::IoWithPath(p.clone(), e))?;
                 Ok(p.to_owned())
             }
         })
         .transpose()?;
 
-    for (_, config) in &mut configs {
+    let private_key = match cli.private_key {
+        Some(path) if PathBuf::from(&path).exists() => Some(
+            fs::read_to_string(&path).map_err(|e| Error::IoWithPath(PathBuf::from(&path), e))?,
+        ),
+        k => k,
+    };
+
+    let signing_config = private_key.map(|k| SigningConfig {
+        private_key: k,
+        password: cli.password,
+    });
+
+    let mut outputs = Vec::new();
+    let mut signatures = Vec::new();
+    for (config_dir, mut config) in configs {
+        tracing::trace!(config = ?config);
+
         if let Some(dir) = &cli_out_dir {
             config.out_dir.clone_from(dir)
         }
 
         if let Some(formats) = &cli.formats {
             config.formats.replace(formats.clone());
+        }
+
+        if let Some(target_triple) = &cli.target {
+            config.target_triple.replace(target_triple.clone());
         }
 
         if config.log_level.is_none() && !cli.quite {
@@ -178,27 +162,15 @@ fn run_cli(cli: Cli) -> Result<()> {
             };
             config.log_level.replace(level);
         }
-    }
 
-    let private_key = match cli.private_key {
-        Some(path) if PathBuf::from(&path).exists() => std::fs::read_to_string(path).ok(),
-        k => k,
-    };
-    let signing_config = private_key.map(|k| SigningConfig {
-        private_key: k,
-        password: cli.password,
-    });
-
-    let mut outputs = Vec::new();
-    let mut signatures = Vec::new();
-    for (config_dir, config) in configs {
         if let Some(path) = config_dir {
             // change the directory to the config being built
             // so paths will be read relative to it
-            std::env::set_current_dir(
-                path.parent()
-                    .ok_or_else(|| crate::Error::ParentDirNotFound(path.clone()))?,
-            )?;
+            let parent = path
+                .parent()
+                .ok_or_else(|| crate::Error::ParentDirNotFound(path.clone()))?;
+            std::env::set_current_dir(parent)
+                .map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
         }
 
         // create the packages

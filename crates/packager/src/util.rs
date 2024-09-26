@@ -7,7 +7,7 @@
 use sha2::Digest;
 use std::{
     ffi::OsStr,
-    fs::File,
+    fs::{self, File},
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
     process::Command,
@@ -15,7 +15,7 @@ use std::{
 
 use zip::ZipArchive;
 
-use crate::shell::CommandExt;
+use crate::{shell::CommandExt, Error};
 
 #[inline]
 pub(crate) fn cross_command(script: &str) -> Command {
@@ -41,21 +41,21 @@ pub fn display_path<P: AsRef<Path>>(p: P) -> String {
 /// Recursively create a directory and all of its parent components if they
 /// are missing after Deleting the existing directory (if it exists).
 #[inline]
-pub fn create_clean_dir<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
+pub fn create_clean_dir<P: AsRef<Path>>(path: P) -> crate::Result<()> {
     let path = path.as_ref();
     if path.exists() {
-        std::fs::remove_dir_all(path)?;
+        fs::remove_dir_all(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
     }
-    std::fs::create_dir_all(path)
+    fs::create_dir_all(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))
 }
 
 /// Creates a new file at the given path, creating any parent directories as needed.
 #[inline]
 pub(crate) fn create_file(path: &Path) -> crate::Result<std::io::BufWriter<File>> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
+        fs::create_dir_all(parent).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
     }
-    let file = File::create(path)?;
+    let file = File::create(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
     Ok(std::io::BufWriter::new(file))
 }
 
@@ -140,7 +140,7 @@ pub fn target_triple() -> crate::Result<String> {
 }
 
 pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
-    tracing::info!("Downloading {}", url);
+    tracing::debug!("Downloading {}", url);
 
     // This is required because ureq does not bind native-tls as the default TLS implementation when rustls is not available.
     // See <https://github.com/crabnebula-dev/cargo-packager/issues/127>
@@ -175,7 +175,7 @@ pub(crate) fn download_and_verify<P: AsRef<Path>>(
     hash_algorithm: HashAlgorithm,
 ) -> crate::Result<Vec<u8>> {
     let data = download(url)?;
-    tracing::info!("Validating {} hash", path.as_ref().display());
+    tracing::debug!("Validating {} hash", path.as_ref().display());
     verify_hash(&data, hash, hash_algorithm)?;
     Ok(data)
 }
@@ -215,7 +215,7 @@ pub(crate) fn verify_file_hash<P: AsRef<Path>>(
     hash: &str,
     hash_algorithm: HashAlgorithm,
 ) -> crate::Result<()> {
-    let data = std::fs::read(path)?;
+    let data = fs::read(&path).map_err(|e| Error::IoWithPath(path.as_ref().to_path_buf(), e))?;
     verify_hash(&data, hash, hash_algorithm)
 }
 
@@ -231,7 +231,8 @@ pub(crate) fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
         if let Some(name) = file.enclosed_name() {
             let dest_path = path.join(name);
             if file.is_dir() {
-                std::fs::create_dir_all(&dest_path)?;
+                fs::create_dir_all(&dest_path)
+                    .map_err(|e| Error::IoWithPath(dest_path.clone(), e))?;
                 continue;
             }
 
@@ -240,7 +241,8 @@ pub(crate) fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
                 .ok_or_else(|| crate::Error::ParentDirNotFound(dest_path.clone()))?;
 
             if !parent.exists() {
-                std::fs::create_dir_all(parent)?;
+                fs::create_dir_all(parent)
+                    .map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?
             }
 
             let mut buff: Vec<u8> = Vec::new();
@@ -305,7 +307,7 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
 
     // If one of the icon files is already an ICNS file, just use that.
     if let Some(icons) = icons {
-        std::fs::create_dir_all(out_dir)?;
+        fs::create_dir_all(out_dir).map_err(|e| Error::IoWithPath(out_dir.to_path_buf(), e))?;
         for icon_path in icons {
             if icon_path.extension() == Some(std::ffi::OsStr::new("icns")) {
                 let dest_path = out_dir.join(
@@ -313,7 +315,8 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
                         .file_name()
                         .ok_or_else(|| crate::Error::FailedToExtractFilename(icon_path.clone()))?,
                 );
-                std::fs::copy(&icon_path, &dest_path)?;
+                fs::copy(&icon_path, &dest_path)
+                    .map_err(|e| Error::CopyFile(icon_path.clone(), dest_path.clone(), e))?;
 
                 return Ok(Some(dest_path));
             }
@@ -373,11 +376,13 @@ pub fn create_icns_file(out_dir: &Path, config: &crate::Config) -> crate::Result
     }
 
     if !family.is_empty() {
-        std::fs::create_dir_all(out_dir)?;
+        fs::create_dir_all(out_dir).map_err(|e| Error::IoWithPath(out_dir.to_path_buf(), e))?;
         let mut dest_path = out_dir.to_path_buf();
         dest_path.push(config.product_name.clone());
         dest_path.set_extension("icns");
-        let icns_file = std::io::BufWriter::new(File::create(&dest_path)?);
+        let file =
+            File::create(&dest_path).map_err(|e| Error::IoWithPath(out_dir.to_path_buf(), e))?;
+        let icns_file = std::io::BufWriter::new(file);
         family.write(icns_file)?;
         Ok(Some(dest_path))
     } else {

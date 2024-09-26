@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use clap::Parser;
+
+use crate::cli::{Error, Result};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Sign a file")]
@@ -20,9 +22,11 @@ pub struct Options {
     file: PathBuf,
 }
 
-pub fn command(options: Options) -> crate::Result<()> {
+pub fn command(options: Options) -> Result<()> {
     let private_key = match options.private_key {
-        Some(path) if PathBuf::from(&path).exists() => std::fs::read_to_string(path)?,
+        Some(path) if PathBuf::from(&path).exists() => {
+            fs::read_to_string(&path).map_err(|e| Error::IoWithPath(PathBuf::from(&path), e))?
+        }
         Some(key) => key,
         None => {
             tracing::error!("--private-key was not specified, aborting signign.");

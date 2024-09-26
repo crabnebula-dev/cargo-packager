@@ -141,14 +141,16 @@ impl StartingBinary {
         not(feature = "process-relaunch-dangerous-allow-symlink-macos")
     ))]
     fn has_symlink(path: &Path) -> Option<&Path> {
+        use std::fs;
+
         path.ancestors().find(|ancestor| {
             matches!(
                 ancestor
                     .symlink_metadata()
                     .as_ref()
-                    .map(std::fs::Metadata::file_type)
+                    .map(fs::Metadata::file_type)
                     .as_ref()
-                    .map(std::fs::FileType::is_symlink),
+                    .map(fs::FileType::is_symlink),
                 Ok(true)
             )
         })

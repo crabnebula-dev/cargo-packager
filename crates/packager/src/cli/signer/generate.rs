@@ -7,6 +7,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use crate::cli::Result;
+
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Generate a new signing key to sign files")]
 pub struct Options {
@@ -24,7 +26,7 @@ pub struct Options {
     ci: bool,
 }
 
-pub fn command(mut options: Options) -> crate::Result<()> {
+pub fn command(mut options: Options) -> Result<()> {
     options.ci = options.ci || std::env::var("CI").is_ok();
     if options.ci && options.password.is_none() {
         tracing::warn!("Generating a new private key without a password, for security reasons, we recommend setting a password instead.");

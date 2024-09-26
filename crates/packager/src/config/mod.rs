@@ -8,13 +8,14 @@ use std::{
     collections::HashMap,
     ffi::OsString,
     fmt::{self, Display},
+    fs,
     path::{Path, PathBuf},
 };
 
 use relative_path::PathExt;
 use serde::{Deserialize, Serialize};
 
-use crate::util;
+use crate::{util, Error};
 
 mod builder;
 mod category;
@@ -341,7 +342,8 @@ impl Dependencies {
         match self {
             Self::List(v) => Ok(v.clone()),
             Self::Path(path) => {
-                let trimmed_lines = std::fs::read_to_string(path)?
+                let trimmed_lines = fs::read_to_string(path)
+                    .map_err(|e| Error::IoWithPath(path.clone(), e))?
                     .lines()
                     .filter_map(|line| {
                         let trimmed = line.trim();
@@ -1614,7 +1616,7 @@ pub struct Config {
     /// Defaults to [`Config::out_dir`].
     #[serde(default, alias = "binaries-dir", alias = "binaries_dir")]
     pub binaries_dir: Option<PathBuf>,
-    /// The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
+    /// The target triple we are packaging for.
     ///
     /// Defaults to the current OS target triple.
     #[serde(alias = "target-triple", alias = "target_triple")]
@@ -1796,7 +1798,7 @@ impl Config {
         }
 
         if !self.out_dir.exists() {
-            std::fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
+            fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
         }
         dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
     }
@@ -1860,8 +1862,10 @@ impl Config {
             let path = entry.path();
             if path.is_file() {
                 let relative = path.relative_to(src_dir)?.to_path("");
+                let src = dunce::canonicalize(path)
+                    .map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
                 let resource = ResolvedResource {
-                    src: dunce::canonicalize(path)?,
+                    src,
                     target: target_dir.join(relative),
                 };
                 out.push(resource);
@@ -1874,7 +1878,8 @@ impl Config {
     pub(crate) fn resources_from_glob(glob: &str) -> crate::Result<Vec<ResolvedResource>> {
         let mut out = Vec::new();
         for src in glob::glob(glob)? {
-            let src = dunce::canonicalize(src?)?;
+            let src = src?;
+            let src = dunce::canonicalize(&src).map_err(|e| Error::IoWithPath(src, e))?;
             let target = PathBuf::from(src.file_name().unwrap_or_default());
             out.push(ResolvedResource { src, target })
         }
@@ -1901,8 +1906,10 @@ impl Config {
                         if src_path.is_dir() {
                             out.extend(Self::resources_from_dir(&src_path, &target_dir)?);
                         } else if src_path.is_file() {
+                            let src = dunce::canonicalize(&src_path)
+                                .map_err(|e| Error::IoWithPath(src_path, e))?;
                             out.push(ResolvedResource {
-                                src: dunce::canonicalize(src_path)?,
+                                src,
                                 target: sanitize_path(target),
                             });
                         } else {
@@ -1946,11 +1953,12 @@ impl Config {
     pub(crate) fn copy_resources(&self, path: &Path) -> crate::Result<()> {
         for resource in self.resources()? {
             let dest = path.join(resource.target);
-            std::fs::create_dir_all(
+            fs::create_dir_all(
                 dest.parent()
                     .ok_or_else(|| crate::Error::ParentDirNotFound(dest.to_path_buf()))?,
             )?;
-            std::fs::copy(resource.src, dest)?;
+            fs::copy(&resource.src, &dest)
+                .map_err(|e| Error::CopyFile(resource.src.clone(), dest.clone(), e))?;
         }
         Ok(())
     }
@@ -1974,7 +1982,7 @@ impl Config {
                 let dest = path.join(format!("{file_name}.exe"));
                 #[cfg(not(windows))]
                 let dest = path.join(&*file_name);
-                std::fs::copy(src, &dest)?;
+                fs::copy(&src, &dest).map_err(|e| Error::CopyFile(src.clone(), dest.clone(), e))?;
                 paths.push(dest);
             }
         }
