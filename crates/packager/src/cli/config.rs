@@ -91,7 +91,9 @@ pub fn find_config_files() -> crate::Result<Vec<PathBuf>> {
 }
 
 #[tracing::instrument(level = "trace")]
-fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<PathBuf>, Config)>> {
+pub fn load_configs_from_cargo_workspace(
+    cli: &super::Cli,
+) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
     let profile = if cli.release {
         "release"
     } else if let Some(profile) = &cli.profile {
