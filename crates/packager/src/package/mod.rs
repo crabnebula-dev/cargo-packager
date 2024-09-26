@@ -170,10 +170,13 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
                 .map(|b| b.paths)
             {
                 for p in &app_bundle_paths {
+                    use crate::Error;
+                    use std::fs;
+
                     tracing::debug!("Cleaning {}", p.display());
                     match p.is_dir() {
-                        true => fs::remove_dir_all(p).map_err(|e| Error::IoWithPath(p.clone()), e),
-                        false => fs::remove_file(p).map_err(|e| Error::IoWithPath(p.clone()), e),
+                        true => fs::remove_dir_all(p).map_err(|e| Error::IoWithPath(p.clone(), e)),
+                        false => fs::remove_file(p).map_err(|e| Error::IoWithPath(p.clone(), e)),
                     };
                 }
             }

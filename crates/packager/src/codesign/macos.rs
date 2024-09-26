@@ -62,7 +62,7 @@ pub fn setup_keychain(
     // https://github.com/marshallpierce/rust-base64/issues/105
     // we'll use builtin base64 command from the OS
     let mut tmp_cert =
-        File::create(&cert_path_tmp).map_err(|e| Error::IoWithPath(cert_path_tmp), e);
+        File::create(&cert_path_tmp).map_err(|e| Error::IoWithPath(cert_path_tmp, e))?;
     tmp_cert.write_all(certificate_encoded)?;
 
     Command::new("base64")
