@@ -197,7 +197,7 @@ export interface Config {
    */
   binariesDir?: string | null;
   /**
-   * The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
+   * The target triple we are packaging for.
    *
    * Defaults to the current OS target triple.
    */
