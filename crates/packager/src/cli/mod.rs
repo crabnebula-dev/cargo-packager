@@ -39,7 +39,7 @@ pub(crate) struct Cli {
     #[clap(short, long, global = true)]
     quite: bool,
 
-    /// Specify the package fromats to build.
+    /// The package fromats to build.
     #[clap(short, long, value_enum, value_delimiter = ',')]
     formats: Option<Vec<PackageFormat>>,
     /// Specify a configuration to read, which could be a JSON file,
@@ -55,15 +55,15 @@ pub(crate) struct Cli {
     /// The password for the signing private key.
     #[clap(long, env = "CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD")]
     password: Option<String>,
-    /// Specify which packages to use from the current workspace.
+    /// Which packages to use from the current workspace.
     #[clap(short, long, value_delimiter = ',')]
-    packages: Option<Vec<String>>,
-    /// Specify The directory where the packages will be placed.
+    pub(crate) packages: Option<Vec<String>>,
+    /// The directory where the packages will be placed.
     ///
     /// If [`Config::binaries_dir`] is not defined, it is also the path where the binaries are located if they use relative paths.
     #[clap(short, long, alias = "out")]
     out_dir: Option<PathBuf>,
-    /// Specify The directory where the [`Config::binaries`] exist.
+    /// The directory where the [`Config::binaries`] exist.
     ///
     /// Defaults to [`Config::out_dir`]
     #[clap(long)]
@@ -76,10 +76,13 @@ pub(crate) struct Cli {
     /// Ignored when `--config` is used.
     #[clap(long, group = "cargo-profile")]
     profile: Option<String>,
-    /// Specify the manifest path to use for reading the configuration.
+    /// Path to Cargo.toml manifest path to use for reading the configuration.
     /// Ignored when `--config` is used.
     #[clap(long)]
     manifest_path: Option<PathBuf>,
+    /// Target triple to use for detecting your app binaries.
+    #[clap(long)]
+    target: Option<String>,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -113,8 +116,7 @@ fn run_cli(cli: Cli) -> Result<()> {
                 .filter_map(|c| parse_config_file(c).ok())
                 .collect::<Vec<_>>()
                 .concat();
-            let cargo_configs =
-                load_configs_from_cargo_workspace(cli.release, cli.profile, cli.manifest_path)?;
+            let cargo_configs = load_configs_from_cargo_workspace(&cli)?;
             [config_files, cargo_configs]
                 .concat()
                 .into_iter()
