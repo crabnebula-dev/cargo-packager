@@ -977,6 +977,7 @@ impl Update {
     #[cfg(target_os = "macos")]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
         use flate2::read::GzDecoder;
+        use std::fs;
 
         let cursor = Cursor::new(bytes);
 
