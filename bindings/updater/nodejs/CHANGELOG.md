@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.2.2]
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.2.2`
+
 ## \[0.2.1]
 
 ### Dependencies
