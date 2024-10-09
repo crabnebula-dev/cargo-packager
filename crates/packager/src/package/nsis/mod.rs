@@ -66,6 +66,20 @@ const NSIS_REQUIRED_FILES_HASH: &[(&str, &str, &str, HashAlgorithm)] = &[(
 type DirectoriesSet = BTreeSet<PathBuf>;
 type ResourcesMap = BTreeMap<PathBuf, PathBuf>;
 
+#[cfg(windows)]
+fn normalize_resource_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().to_owned()
+}
+
+// We need to convert / to \ for nsis to move the files into the correct dirs
+fn normalize_resource_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref()
+        .display()
+        .to_string()
+        .replace('/', "\\")
+        .into()
+}
+
 #[tracing::instrument(level = "trace", skip(config))]
 fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, ResourcesMap)> {
     let mut directories = BTreeSet::new();
@@ -77,11 +91,11 @@ fn generate_resource_data(config: &Config) -> crate::Result<(DirectoriesSet, Res
         // since `INSTDIR` is already created.
         if let Some(parent) = r.target.parent() {
             if parent.as_os_str() != "" {
-                directories.insert(parent.to_path_buf());
+                directories.insert(normalize_resource_path(parent));
             }
         }
 
-        resources_map.insert(r.src, r.target);
+        resources_map.insert(r.src, normalize_resource_path(r.target));
     }
     Ok((directories, resources_map))
 }
@@ -485,6 +499,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     data.insert("out_file", to_json(out_file));
 
     let (resources_dirs, resources) = generate_resource_data(config)?;
+    println!("{:?} {:?}", resources_dirs, resources);
     data.insert("resources_dirs", to_json(resources_dirs));
     data.insert("resources", to_json(&resources));
 
