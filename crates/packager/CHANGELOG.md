@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.11.1]
+
+- [`4523722`](https://www.github.com/crabnebula-dev/cargo-packager/commit/4523722d0808faef4a91dbb227badd0354f4c71a) ([#283](https://www.github.com/crabnebula-dev/cargo-packager/pull/283)) Fixes resources paths on NSIS when cross compiling.
+
 ## \[0.11.0]
 
 - [`41b05d0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/41b05d08a635d593df4cf4eefbe921b92ace77b7) ([#277](https://www.github.com/crabnebula-dev/cargo-packager/pull/277)) Respect `target-triple` config option when packaging rust binaries.
