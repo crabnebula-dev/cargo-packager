@@ -72,6 +72,7 @@ fn normalize_resource_path<P: AsRef<Path>>(path: P) -> PathBuf {
 }
 
 // We need to convert / to \ for nsis to move the files into the correct dirs
+#[cfg(not(windows))]
 fn normalize_resource_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref()
         .display()
