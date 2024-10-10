@@ -500,7 +500,6 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
     data.insert("out_file", to_json(out_file));
 
     let (resources_dirs, resources) = generate_resource_data(config)?;
-    println!("{:?} {:?}", resources_dirs, resources);
     data.insert("resources_dirs", to_json(resources_dirs));
     data.insert("resources", to_json(&resources));
 
