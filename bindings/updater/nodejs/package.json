@@ -32,7 +32,7 @@
     "@tinyhttp/app": "^2.2.1",
     "@types/node": "^20.8.10",
     "ava": "^6.0.0",
-    "execa": "^8.0.1",
+    "execa": "^9.0.0",
     "@crabnebula/packager": "workspace:"
   },
   "ava": {
