@@ -35,3 +35,5 @@ Cargo.lock
 
 yarn.lock
 package-lock.json
+
+.idea

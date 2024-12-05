@@ -235,6 +235,14 @@ pub enum Error {
     #[error("Failed to remove extended attributes from app bundle: {0}")]
     #[cfg(target_os = "macos")]
     FailedToRemoveExtendedAttributes(std::io::Error),
+    /// Could not find the embedded.provisionprofile file.
+    #[error("Embedded provision profile file {0} not found")]
+    #[cfg(target_os = "macos")]
+    EmbeddedProvisionprofileFileNotFound(String),
+    /// Could not copy the embedded.provisionprofile file to the Contents directory.
+    #[error("Could not copy embedded provision profile file {0}")]
+    #[cfg(target_os = "macos")]
+    FailedToCopyEmbeddedProvisionprofile(String),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
