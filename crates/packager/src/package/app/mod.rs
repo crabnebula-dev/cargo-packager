@@ -496,12 +496,22 @@ fn copy_embedded_provisionprofile_file(
         .macos()
         .and_then(|m| m.embedded_provisionprofile_path.as_ref())
     {
-        fs::exists(embedded_provisionprofile_file).or_else(|_e| Err(crate::Error::EmbeddedProvisionprofileFileNotFound(embedded_provisionprofile_file.display().to_string())))?;
+        fs::exists(embedded_provisionprofile_file).or_else(|_e| {
+            Err(crate::Error::EmbeddedProvisionprofileFileNotFound(
+                embedded_provisionprofile_file.display().to_string(),
+            ))
+        })?;
 
         fs::copy(
             embedded_provisionprofile_file,
             contents_directory.join("embedded.provisionprofile"),
-        ).or_else(|e| Err(crate::Error::FailedToCopyEmbeddedProvisionprofile(embedded_provisionprofile_file.display().to_string(), e.to_string())))?;
+        )
+        .or_else(|e| {
+            Err(crate::Error::FailedToCopyEmbeddedProvisionprofile(
+                embedded_provisionprofile_file.display().to_string(),
+                e.to_string(),
+            ))
+        })?;
     }
     Ok(())
 }
