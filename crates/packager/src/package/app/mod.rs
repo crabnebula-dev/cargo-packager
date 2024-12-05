@@ -497,7 +497,7 @@ fn copy_embedded_provisionprofile_file(
         .and_then(|m| m.embedded_provisionprofile_path.as_ref())
     {
         if !embedded_provisionprofile_file.exists() {
-            return Err(Error::EmbeddedProvisionprofileFileNotFound(
+            return Err(crate::Error::EmbeddedProvisionprofileFileNotFound(
                 embedded_provisionprofile_file.to_path_buf(),
             ));
         }
@@ -507,7 +507,7 @@ fn copy_embedded_provisionprofile_file(
             contents_directory.join("embedded.provisionprofile"),
         )
         .map_err(|e| {
-            Error::FailedToCopyEmbeddedProvisionprofile(
+            crate::Error::FailedToCopyEmbeddedProvisionprofile(
                 embedded_provisionprofile_file.to_path_buf(),
                 e,
             )
