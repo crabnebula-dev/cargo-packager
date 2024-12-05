@@ -500,7 +500,7 @@ fn copy_embedded_provisionprofile_file(
 
         fs::copy(
             embedded_provisionprofile_file,
-            contents_directory.join("/embedded.provisionprofile"),
+            contents_directory.join("embedded.provisionprofile"),
         ).or_else(|e| Err(crate::Error::FailedToCopyEmbeddedProvisionprofile(embedded_provisionprofile_file.display().to_string(), e.to_string())))?;
     }
     Ok(())
