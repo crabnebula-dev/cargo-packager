@@ -238,11 +238,11 @@ pub enum Error {
     /// Could not find the embedded.provisionprofile file.
     #[error("Embedded provision profile file {0} not found")]
     #[cfg(target_os = "macos")]
-    EmbeddedProvisionprofileFileNotFound(String),
+    EmbeddedProvisionprofileFileNotFound(PathBuf),
     /// Could not copy the embedded.provisionprofile file to the Contents directory.
     #[error("Could not copy embedded provision profile file {0}: {1}")]
     #[cfg(target_os = "macos")]
-    FailedToCopyEmbeddedProvisionprofile(String, String),
+    FailedToCopyEmbeddedProvisionprofile(PathBuf, std::io::Error),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
