@@ -766,6 +766,13 @@
             "string",
             "null"
           ]
+        },
+        "embeddedProvisionprofilePath": {
+          "description": "Path to the embedded.provisionprofile file for the package.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false

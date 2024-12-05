@@ -162,7 +162,7 @@ impl DeepLinkProtocol {
         }
     }
 
-    /// Set he name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
+    /// Set the name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
     pub fn name<S: Into<String>>(mut self, name: S) -> Self {
         self.name.replace(name.into());
         self
@@ -736,6 +736,9 @@ pub struct MacOsConfig {
     /// Path to the Info.plist file for the package.
     #[serde(alias = "info-plist-path", alias = "info_plist_path")]
     pub info_plist_path: Option<PathBuf>,
+    /// Path to the embedded.provisionprofile file for the package.
+    #[serde(alias = "embedded-provisionprofile-path", alias = "embedded_provisionprofile_path")]
+    pub embedded_provisionprofile_path: Option<PathBuf>,
 }
 
 impl MacOsConfig {
@@ -801,6 +804,12 @@ impl MacOsConfig {
     /// Path to the Info.plist file for the package.
     pub fn info_plist_path<S: Into<PathBuf>>(mut self, info_plist_path: S) -> Self {
         self.info_plist_path.replace(info_plist_path.into());
+        self
+    }
+
+    /// Path to the embedded.provisionprofile file for the package.
+    pub fn embedded_provisionprofile_path<S: Into<PathBuf>>(mut self, embedded_provisionprofile_path: S) -> Self {
+        self.embedded_provisionprofile_path.replace(embedded_provisionprofile_path.into());
         self
     }
 }

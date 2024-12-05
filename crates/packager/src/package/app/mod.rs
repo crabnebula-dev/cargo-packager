@@ -72,6 +72,9 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     tracing::debug!("Copying resources");
     config.copy_resources(&resources_dir)?;
 
+    tracing::debug!("Copying embedded.provisionprofile");
+    copy_embedded_provisionprofile_file(&contents_directory, config)?;
+
     tracing::debug!("Copying external binaries");
     config.copy_external_binaries(&bin_dir)?;
     tracing::debug!("Copying binaries");
@@ -481,4 +484,24 @@ fn remove_extra_attr(app_bundle_path: &Path) -> crate::Result<()> {
         .output_ok()
         .map(|_| ())
         .map_err(crate::Error::FailedToRemoveExtendedAttributes)
+}
+
+// Copies the embedded.provisionprofile file to the Contents directory, if needed.
+#[tracing::instrument(level = "trace", skip(config))]
+fn copy_embedded_provisionprofile_file(
+    contents_directory: &Path,
+    config: &Config,
+) -> crate::Result<()> {
+    if let Some(embedded_provisionprofile_file) = config
+        .macos()
+        .and_then(|m| m.embedded_provisionprofile_path.as_ref())
+    {
+        fs::exists(embedded_provisionprofile_file).or_else(|_e| Err(crate::Error::EmbeddedProvisionprofileFileNotFound(embedded_provisionprofile_file.display().to_string())))?;
+
+        fs::copy(
+            embedded_provisionprofile_file,
+            contents_directory.join("/embedded.provisionprofile"),
+        ).or_else(|_e| Err(crate::Error::FailedToCopyEmbeddedProvisionprofile(embedded_provisionprofile_file.display().to_string())))?;
+    }
+    Ok(())
 }
