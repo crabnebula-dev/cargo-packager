@@ -240,9 +240,9 @@ pub enum Error {
     #[cfg(target_os = "macos")]
     EmbeddedProvisionprofileFileNotFound(String),
     /// Could not copy the embedded.provisionprofile file to the Contents directory.
-    #[error("Could not copy embedded provision profile file {0}")]
+    #[error("Could not copy embedded provision profile file {0}: {1}")]
     #[cfg(target_os = "macos")]
-    FailedToCopyEmbeddedProvisionprofile(String),
+    FailedToCopyEmbeddedProvisionprofile(String, String),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
