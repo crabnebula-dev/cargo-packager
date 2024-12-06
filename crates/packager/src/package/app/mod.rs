@@ -73,6 +73,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     config.copy_resources(&resources_dir)?;
 
     tracing::debug!("Copying embedded.provisionprofile");
+    #[cfg(target_os = "macos")]
     copy_embedded_provisionprofile_file(&contents_directory, config)?;
 
     tracing::debug!("Copying external binaries");
@@ -488,7 +489,7 @@ fn remove_extra_attr(app_bundle_path: &Path) -> crate::Result<()> {
 
 // Copies the embedded.provisionprofile file to the Contents directory, if needed.
 #[tracing::instrument(level = "trace", skip(config))]
-#[cfg(target_os = "macos")]f
+#[cfg(target_os = "macos")]
 fn copy_embedded_provisionprofile_file(
     contents_directory: &Path,
     config: &Config,
