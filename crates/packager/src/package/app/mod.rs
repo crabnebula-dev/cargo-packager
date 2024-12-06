@@ -488,6 +488,7 @@ fn remove_extra_attr(app_bundle_path: &Path) -> crate::Result<()> {
 
 // Copies the embedded.provisionprofile file to the Contents directory, if needed.
 #[tracing::instrument(level = "trace", skip(config))]
+#[cfg(target_os = "macos")]f
 fn copy_embedded_provisionprofile_file(
     contents_directory: &Path,
     config: &Config,
