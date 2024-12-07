@@ -20,7 +20,7 @@ use crate::{
 #[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context { config, .. } = ctx;
-    // we should use the bundle name (App name) as a MacOS standard.
+    // we should use the bundle name (App name) as a macOS standard.
     // version or platform shouldn't be included in the App name.
     let app_product_name = format!("{}.app", config.product_name);
     let app_bundle_path = config.out_dir().join(&app_product_name);
@@ -207,7 +207,7 @@ fn create_info_plist(
         plist.insert(
             "CFBundleIconFile".into(),
             path.file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(path.clone()))?
+                .ok_or_else(|| Error::FailedToExtractFilename(path.clone()))?
                 .to_string_lossy()
                 .into_owned()
                 .into(),
@@ -353,18 +353,18 @@ fn create_info_plist(
 #[tracing::instrument(level = "trace")]
 fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
     if !from.exists() {
-        return Err(crate::Error::DoesNotExist(from.to_path_buf()));
+        return Err(Error::DoesNotExist(from.to_path_buf()));
     }
     if !from.is_dir() {
-        return Err(crate::Error::IsNotDirectory(from.to_path_buf()));
+        return Err(Error::IsNotDirectory(from.to_path_buf()));
     }
     if to.exists() {
-        return Err(crate::Error::AlreadyExists(to.to_path_buf()));
+        return Err(Error::AlreadyExists(to.to_path_buf()));
     }
 
     let parent = to
         .parent()
-        .ok_or_else(|| crate::Error::ParentDirNotFound(to.to_path_buf()))?;
+        .ok_or_else(|| Error::ParentDirNotFound(to.to_path_buf()))?;
     fs::create_dir_all(parent).map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
     for entry in walkdir::WalkDir::new(from) {
         let entry = entry?;
@@ -429,7 +429,7 @@ fn copy_frameworks_to_bundle(
                 let src_path = PathBuf::from(framework);
                 let src_name = src_path
                     .file_name()
-                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
+                    .ok_or_else(|| Error::FailedToExtractFilename(src_path.clone()))?;
                 let dest_path = dest_dir.join(src_name);
                 copy_dir(&src_path, &dest_path)?;
                 paths.push(dest_path);
@@ -437,11 +437,11 @@ fn copy_frameworks_to_bundle(
             } else if framework.ends_with(".dylib") {
                 let src_path = PathBuf::from(&framework);
                 if !src_path.exists() {
-                    return Err(crate::Error::FrameworkNotFound(framework.to_string()));
+                    return Err(Error::FrameworkNotFound(framework.to_string()));
                 }
                 let src_name = src_path
                     .file_name()
-                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
+                    .ok_or_else(|| Error::FailedToExtractFilename(src_path.clone()))?;
                 fs::create_dir_all(&dest_dir)?;
                 let dest_path = dest_dir.join(src_name);
                 fs::copy(&src_path, &dest_path)
@@ -449,7 +449,7 @@ fn copy_frameworks_to_bundle(
                 paths.push(dest_path);
                 continue;
             } else if framework.contains('/') {
-                return Err(crate::Error::InvalidFramework {
+                return Err(Error::InvalidFramework {
                     framework: framework.to_string(),
                     reason: "framework extension should be either .framework, .dylib or .app",
                 });
@@ -470,7 +470,7 @@ fn copy_frameworks_to_bundle(
                 continue;
             }
 
-            return Err(crate::Error::FrameworkNotFound(framework.to_string()));
+            return Err(Error::FrameworkNotFound(framework.to_string()));
         }
     }
 

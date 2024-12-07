@@ -231,16 +231,18 @@ pub enum Error {
     /// Failed to extract external binary filename
     #[error("Failed to extract filename from {0}")]
     FailedToExtractFilename(PathBuf),
-    /// Could not find the embedded.provisionprofile file.
-    #[error("Embedded provision profile file {0} not found")]
-    EmbeddedProvisionprofileFileNotFound(PathBuf),
-    /// Could not copy the embedded.provisionprofile file to the Contents directory.
-    #[error("Could not copy embedded provision profile file {0}: {1}")]
-    FailedToCopyEmbeddedProvisionprofile(PathBuf, std::io::Error),
     /// Failed to remove extended attributes from app bundle
     #[error("Failed to remove extended attributes from app bundle: {0}")]
     #[cfg(target_os = "macos")]
     FailedToRemoveExtendedAttributes(std::io::Error),
+    /// Could not find the embedded.provisionprofile file.
+    #[error("Embedded provision profile file {0} not found")]
+    #[cfg(target_os = "macos")]
+    EmbeddedProvisionprofileFileNotFound(PathBuf),
+    /// Could not copy the embedded.provisionprofile file to the Contents directory.
+    #[error("Could not copy embedded provision profile file {0}: {1}")]
+    #[cfg(target_os = "macos")]
+    FailedToCopyEmbeddedProvisionprofile(PathBuf, std::io::Error),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
