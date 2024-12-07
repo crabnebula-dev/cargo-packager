@@ -100,7 +100,7 @@ pub enum Error {
     AppImageScriptFailed(std::io::Error),
     /// Failed to get parent directory of a path
     #[error("Failed to get parent directory of {0}")]
-    ParentDirNotFound(std::path::PathBuf),
+    ParentDirNotFound(PathBuf),
     /// A hook, for example `beforePackagaingCommand`, has failed.
     #[error("{0} `{1}` failed: {2}")]
     HookCommandFailure(String, String, std::io::Error),
