@@ -99,7 +99,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .into_iter()
         .flatten()
         .map(|dir| dir.into_path())
-        .filter(|path| !embedded_apps.iter().any(|x| x.starts_with(x)));
+        .filter(|path| !embedded_apps.iter().any(|x| path.starts_with(x)));
 
     // Filter all files for Mach-O headers. This will target all .dylib and native executable files
     for file in files {
