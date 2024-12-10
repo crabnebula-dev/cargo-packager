@@ -78,7 +78,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     tracing::debug!("Copying embedded apps");
     #[cfg(target_os = "macos")]
-    copy_embedded_apps(&contents_directory, config)?;
+    let embedded_apps = copy_embedded_apps(&contents_directory, config)?;
 
     tracing::debug!("Copying external binaries");
     config.copy_external_binaries(&bin_dir)?;
@@ -98,7 +98,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let files = walkdir::WalkDir::new(&app_bundle_path)
         .into_iter()
         .flatten()
-        .map(|dir| dir.into_path());
+        .map(|dir| dir.into_path())
+        .filter(|path| !embedded_apps.contains(path));
 
     // Filter all files for Mach-O headers. This will target all .dylib and native executable files
     for file in files {
@@ -523,7 +524,9 @@ fn copy_embedded_provisionprofile_file(
 
 // Copies app structures that may need to be embedded inside this app.
 #[cfg(target_os = "macos")]
-fn copy_embedded_apps(contents_directory: &Path, config: &Config) -> crate::Result<()> {
+fn copy_embedded_apps(contents_directory: &Path, config: &Config) -> crate::Result<Vec<PathBuf>> {
+    let mut paths = Vec::new();
+
     if let Some(embedded_apps) = config.macos().and_then(|m| m.embedded_apps.as_ref()) {
         let dest_dir = contents_directory.join("MacOS");
 
@@ -534,7 +537,10 @@ fn copy_embedded_apps(contents_directory: &Path, config: &Config) -> crate::Resu
                 .ok_or_else(|| Error::FailedToExtractFilename(src_path.clone()))?;
             let dest_path = dest_dir.join(src_name);
             copy_dir(&src_path, &dest_path)?;
+
+            tracing::debug!("Copied embedded app: {:?}", dest_path);
+            paths.push(dest_path);
         }
     }
-    Ok(())
+    Ok(paths)
 }
