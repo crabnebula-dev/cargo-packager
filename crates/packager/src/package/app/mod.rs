@@ -76,6 +76,10 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     #[cfg(target_os = "macos")]
     copy_embedded_provisionprofile_file(&contents_directory, config)?;
 
+    tracing::debug!("Copying embedded apps");
+    #[cfg(target_os = "macos")]
+    copy_embedded_apps(&contents_directory, config)?;
+
     tracing::debug!("Copying external binaries");
     config.copy_external_binaries(&bin_dir)?;
     tracing::debug!("Copying binaries");
@@ -513,6 +517,24 @@ fn copy_embedded_provisionprofile_file(
                 e,
             )
         })?;
+    }
+    Ok(())
+}
+
+// Copies app structures that may need to be embedded inside this app.
+#[cfg(target_os = "macos")]
+fn copy_embedded_apps(contents_directory: &Path, config: &Config) -> crate::Result<()> {
+    if let Some(embedded_apps) = config.macos().and_then(|m| m.embedded_apps.as_ref()) {
+        let dest_dir = contents_directory.join("MacOS");
+
+        for embedded_app in embedded_apps {
+            let src_path = PathBuf::from(embedded_app);
+            let src_name = src_path
+                .file_name()
+                .ok_or_else(|| Error::FailedToExtractFilename(src_path.clone()))?;
+            let dest_path = dest_dir.join(src_name);
+            copy_dir(&src_path, &dest_path)?;
+        }
     }
     Ok(())
 }

@@ -697,7 +697,7 @@ pub struct MacOsConfig {
     ///
     /// - arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)
     ///
-    /// - embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
+    /// - embedding the correct path in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
     pub frameworks: Option<Vec<String>>,
     /// A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`).
     /// If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.
@@ -742,6 +742,12 @@ pub struct MacOsConfig {
         alias = "embedded_provisionprofile_path"
     )]
     pub embedded_provisionprofile_path: Option<PathBuf>,
+    /// Apps that need to be packaged within the app.
+    #[serde(
+        alias = "embedded-apps",
+        alias = "embedded_apps"
+    )]
+    pub embedded_apps: Option<Vec<String>>,
 }
 
 impl MacOsConfig {
@@ -817,6 +823,17 @@ impl MacOsConfig {
     ) -> Self {
         self.embedded_provisionprofile_path
             .replace(embedded_provisionprofile_path.into());
+        self
+    }
+
+    /// Apps that need to be packaged within the app.
+    pub fn embedded_apps<I, S>(mut self, embedded_apps: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.embedded_apps
+            .replace(embedded_apps.into_iter().map(Into::into).collect());
         self
     }
 }
