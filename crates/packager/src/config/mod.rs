@@ -743,10 +743,7 @@ pub struct MacOsConfig {
     )]
     pub embedded_provisionprofile_path: Option<PathBuf>,
     /// Apps that need to be packaged within the app.
-    #[serde(
-        alias = "embedded-apps",
-        alias = "embedded_apps"
-    )]
+    #[serde(alias = "embedded-apps", alias = "embedded_apps")]
     pub embedded_apps: Option<Vec<String>>,
 }
 
