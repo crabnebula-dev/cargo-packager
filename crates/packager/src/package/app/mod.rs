@@ -522,7 +522,7 @@ fn copy_embedded_provisionprofile_file(
 }
 
 // Copies app structures that may need to be embedded inside this app.
-#[cfg(target_os = "macos")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn copy_embedded_apps(contents_directory: &Path, config: &Config) -> crate::Result<Vec<PathBuf>> {
     let mut paths = Vec::new();
 
