@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.11.3]
+
+- [`82e690d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/82e690dfce6109531391e683c8b486d0f39ea335) ([#300](https://www.github.com/crabnebula-dev/cargo-packager/pull/300)) Fix the `Exec` entry on the Linux .desktop file when the binary name contains spaces.
+
 ## \[0.11.2]
 
 - [`fea80d5`](https://www.github.com/crabnebula-dev/cargo-packager/commit/fea80d5760882e6cdc21c8ed2f82d323e0598926) ([#264](https://www.github.com/crabnebula-dev/cargo-packager/pull/264)) Fix `pacman` package failing to install when source directory contained whitespace.
