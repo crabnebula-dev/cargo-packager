@@ -697,7 +697,7 @@ pub struct MacOsConfig {
     ///
     /// - arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)
     ///
-    /// - embedding the correct path in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
+    /// - embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath "@executable_path/../Frameworks" path/to/binary` after compiling)
     pub frameworks: Option<Vec<String>>,
     /// A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`).
     /// If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.

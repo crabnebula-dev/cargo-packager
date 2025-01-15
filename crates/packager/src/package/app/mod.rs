@@ -73,7 +73,6 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     config.copy_resources(&resources_dir)?;
 
     tracing::debug!("Copying embedded.provisionprofile");
-    #[cfg(target_os = "macos")]
     copy_embedded_provisionprofile_file(&contents_directory, config)?;
 
     tracing::debug!("Copying embedded apps");
