@@ -158,6 +158,12 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
 
     let mime_type = (!mime_type.is_empty()).then(|| mime_type.join(";"));
 
+    let bin_name_exec = if bin_name.contains(' ') {
+        format!("\"{bin_name}\"")
+    } else {
+        bin_name.to_string()
+    };
+
     handlebars.render_to_write(
         "main.desktop",
         &DesktopTemplateParams {
@@ -166,7 +172,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
                 .map(|category| category.gnome_desktop_categories())
                 .unwrap_or(""),
             comment: config.description.as_deref(),
-            exec: &bin_name,
+            exec: &bin_name_exec,
             exec_arg,
             icon: &bin_name,
             name: config.product_name.as_str(),

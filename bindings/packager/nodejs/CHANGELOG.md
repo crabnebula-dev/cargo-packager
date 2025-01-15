@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.11.3]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.3`
+
 ## \[0.11.2]
 
 - [`fea80d5`](https://www.github.com/crabnebula-dev/cargo-packager/commit/fea80d5760882e6cdc21c8ed2f82d323e0598926) ([#264](https://www.github.com/crabnebula-dev/cargo-packager/pull/264)) Fix `pacman` package failing to install when source directory contained whitespace.
