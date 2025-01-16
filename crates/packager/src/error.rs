@@ -237,11 +237,9 @@ pub enum Error {
     FailedToRemoveExtendedAttributes(std::io::Error),
     /// Could not find the embedded.provisionprofile file.
     #[error("Embedded provision profile file {0} not found")]
-    #[cfg(target_os = "macos")]
     EmbeddedProvisionprofileFileNotFound(PathBuf),
     /// Could not copy the embedded.provisionprofile file to the Contents directory.
     #[error("Could not copy embedded provision profile file {0}: {1}")]
-    #[cfg(target_os = "macos")]
     FailedToCopyEmbeddedProvisionprofile(PathBuf, std::io::Error),
 }
 
