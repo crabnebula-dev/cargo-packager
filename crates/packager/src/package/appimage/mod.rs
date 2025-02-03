@@ -72,6 +72,20 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         ..
     } = ctx;
 
+    let mut config = config.clone();
+    let main_binary_name = config.main_binary_name()?;
+
+    // if binary file name contains spaces, we must change it to kebab-case
+    if main_binary_name.contains(' ') {
+        let main_binary = config.main_binary_mut()?;
+
+        let main_binary_name_kebab = heck::AsKebabCase(main_binary_name).to_string();
+        let new_path = intermediates_path.join(&main_binary_name_kebab);
+        fs::copy(&main_binary.path, &new_path)?;
+
+        main_binary.path = new_path;
+    }
+
     // generate the deb binary name
     let (arch, linuxdeploy_arch) = match config.target_arch()? {
         "x86" => ("i686", "i386"),
@@ -90,7 +104,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     // generate deb_folder structure
     tracing::debug!("Generating data");
-    let icons = deb::generate_data(config, &appimage_deb_data_dir)?;
+    let icons = deb::generate_data(&config, &appimage_deb_data_dir)?;
     tracing::debug!("Copying files specified in `appimage.files`");
     if let Some(files) = config.appimage().and_then(|d| d.files.as_ref()) {
         deb::copy_custom_files(files, &appimage_deb_data_dir)?;
