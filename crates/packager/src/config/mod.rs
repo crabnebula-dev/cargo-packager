@@ -1820,6 +1820,14 @@ impl Config {
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
     }
 
+    /// Returns a mutable reference to the main binary.
+    pub fn main_binary_mut(&mut self) -> crate::Result<&mut Binary> {
+        self.binaries
+            .iter_mut()
+            .find(|bin| bin.main)
+            .ok_or_else(|| crate::Error::MainBinaryNotFound)
+    }
+
     /// Returns the main binary name.
     pub fn main_binary_name(&self) -> crate::Result<String> {
         self.binaries
