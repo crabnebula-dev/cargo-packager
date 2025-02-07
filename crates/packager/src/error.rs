@@ -100,7 +100,7 @@ pub enum Error {
     AppImageScriptFailed(std::io::Error),
     /// Failed to get parent directory of a path
     #[error("Failed to get parent directory of {0}")]
-    ParentDirNotFound(std::path::PathBuf),
+    ParentDirNotFound(PathBuf),
     /// A hook, for example `beforePackagaingCommand`, has failed.
     #[error("{0} `{1}` failed: {2}")]
     HookCommandFailure(String, String, std::io::Error),
@@ -235,6 +235,12 @@ pub enum Error {
     #[error("Failed to remove extended attributes from app bundle: {0}")]
     #[cfg(target_os = "macos")]
     FailedToRemoveExtendedAttributes(std::io::Error),
+    /// Could not find the embedded.provisionprofile file.
+    #[error("Embedded provision profile file {0} not found")]
+    EmbeddedProvisionprofileFileNotFound(PathBuf),
+    /// Could not copy the embedded.provisionprofile file to the Contents directory.
+    #[error("Could not copy embedded provision profile file {0}: {1}")]
+    FailedToCopyEmbeddedProvisionprofile(PathBuf, std::io::Error),
 }
 
 /// Convenient type alias of Result type for cargo-packager.

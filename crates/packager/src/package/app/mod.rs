@@ -20,7 +20,7 @@ use crate::{
 #[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let Context { config, .. } = ctx;
-    // we should use the bundle name (App name) as a MacOS standard.
+    // we should use the bundle name (App name) as a macOS standard.
     // version or platform shouldn't be included in the App name.
     let app_product_name = format!("{}.app", config.product_name);
     let app_bundle_path = config.out_dir().join(&app_product_name);
@@ -72,6 +72,12 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     tracing::debug!("Copying resources");
     config.copy_resources(&resources_dir)?;
 
+    tracing::debug!("Copying embedded.provisionprofile");
+    copy_embedded_provisionprofile_file(&contents_directory, config)?;
+
+    tracing::debug!("Copying embedded apps");
+    let embedded_apps = copy_embedded_apps(&contents_directory, config)?;
+
     tracing::debug!("Copying external binaries");
     config.copy_external_binaries(&bin_dir)?;
     tracing::debug!("Copying binaries");
@@ -90,7 +96,8 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let files = walkdir::WalkDir::new(&app_bundle_path)
         .into_iter()
         .flatten()
-        .map(|dir| dir.into_path());
+        .map(|dir| dir.into_path())
+        .filter(|path| !embedded_apps.iter().any(|x| path.starts_with(x)));
 
     // Filter all files for Mach-O headers. This will target all .dylib and native executable files
     for file in files {
@@ -203,7 +210,7 @@ fn create_info_plist(
         plist.insert(
             "CFBundleIconFile".into(),
             path.file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(path.clone()))?
+                .ok_or_else(|| Error::FailedToExtractFilename(path.clone()))?
                 .to_string_lossy()
                 .into_owned()
                 .into(),
@@ -349,18 +356,18 @@ fn create_info_plist(
 #[tracing::instrument(level = "trace")]
 fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
     if !from.exists() {
-        return Err(crate::Error::DoesNotExist(from.to_path_buf()));
+        return Err(Error::DoesNotExist(from.to_path_buf()));
     }
     if !from.is_dir() {
-        return Err(crate::Error::IsNotDirectory(from.to_path_buf()));
+        return Err(Error::IsNotDirectory(from.to_path_buf()));
     }
     if to.exists() {
-        return Err(crate::Error::AlreadyExists(to.to_path_buf()));
+        return Err(Error::AlreadyExists(to.to_path_buf()));
     }
 
     let parent = to
         .parent()
-        .ok_or_else(|| crate::Error::ParentDirNotFound(to.to_path_buf()))?;
+        .ok_or_else(|| Error::ParentDirNotFound(to.to_path_buf()))?;
     fs::create_dir_all(parent).map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
     for entry in walkdir::WalkDir::new(from) {
         let entry = entry?;
@@ -425,7 +432,7 @@ fn copy_frameworks_to_bundle(
                 let src_path = PathBuf::from(framework);
                 let src_name = src_path
                     .file_name()
-                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
+                    .ok_or_else(|| Error::FailedToExtractFilename(src_path.clone()))?;
                 let dest_path = dest_dir.join(src_name);
                 copy_dir(&src_path, &dest_path)?;
                 paths.push(dest_path);
@@ -433,11 +440,11 @@ fn copy_frameworks_to_bundle(
             } else if framework.ends_with(".dylib") {
                 let src_path = PathBuf::from(&framework);
                 if !src_path.exists() {
-                    return Err(crate::Error::FrameworkNotFound(framework.to_string()));
+                    return Err(Error::FrameworkNotFound(framework.to_string()));
                 }
                 let src_name = src_path
                     .file_name()
-                    .ok_or_else(|| crate::Error::FailedToExtractFilename(src_path.clone()))?;
+                    .ok_or_else(|| Error::FailedToExtractFilename(src_path.clone()))?;
                 fs::create_dir_all(&dest_dir)?;
                 let dest_path = dest_dir.join(src_name);
                 fs::copy(&src_path, &dest_path)
@@ -445,7 +452,7 @@ fn copy_frameworks_to_bundle(
                 paths.push(dest_path);
                 continue;
             } else if framework.contains('/') {
-                return Err(crate::Error::InvalidFramework {
+                return Err(Error::InvalidFramework {
                     framework: framework.to_string(),
                     reason: "framework extension should be either .framework, .dylib or .app",
                 });
@@ -466,7 +473,7 @@ fn copy_frameworks_to_bundle(
                 continue;
             }
 
-            return Err(crate::Error::FrameworkNotFound(framework.to_string()));
+            return Err(Error::FrameworkNotFound(framework.to_string()));
         }
     }
 
@@ -481,4 +488,56 @@ fn remove_extra_attr(app_bundle_path: &Path) -> crate::Result<()> {
         .output_ok()
         .map(|_| ())
         .map_err(crate::Error::FailedToRemoveExtendedAttributes)
+}
+
+// Copies the embedded.provisionprofile file to the Contents directory, if needed.
+fn copy_embedded_provisionprofile_file(
+    contents_directory: &Path,
+    config: &Config,
+) -> crate::Result<()> {
+    if let Some(embedded_provisionprofile_file) = config
+        .macos()
+        .and_then(|m| m.embedded_provisionprofile_path.as_ref())
+    {
+        if !embedded_provisionprofile_file.exists() {
+            return Err(crate::Error::EmbeddedProvisionprofileFileNotFound(
+                embedded_provisionprofile_file.to_path_buf(),
+            ));
+        }
+
+        fs::copy(
+            embedded_provisionprofile_file,
+            contents_directory.join("embedded.provisionprofile"),
+        )
+        .map_err(|e| {
+            crate::Error::FailedToCopyEmbeddedProvisionprofile(
+                embedded_provisionprofile_file.to_path_buf(),
+                e,
+            )
+        })?;
+    }
+    Ok(())
+}
+
+// Copies app structures that may need to be embedded inside this app.
+#[tracing::instrument(level = "trace", skip(config))]
+fn copy_embedded_apps(contents_directory: &Path, config: &Config) -> crate::Result<Vec<PathBuf>> {
+    let mut paths = Vec::new();
+
+    if let Some(embedded_apps) = config.macos().and_then(|m| m.embedded_apps.as_ref()) {
+        let dest_dir = contents_directory.join("MacOS");
+
+        for embedded_app in embedded_apps {
+            let src_path = PathBuf::from(embedded_app);
+            let src_name = src_path
+                .file_name()
+                .ok_or_else(|| Error::FailedToExtractFilename(src_path.clone()))?;
+            let dest_path = dest_dir.join(src_name);
+            copy_dir(&src_path, &dest_path)?;
+
+            tracing::debug!("Copied embedded app: {:?}", dest_path);
+            paths.push(dest_path);
+        }
+    }
+    Ok(paths)
 }
