@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.11.4]
+
+- [`29b60a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/29b60a97ec14ef87aee7537fa7fbd848f853ac32) ([#305](https://www.github.com/crabnebula-dev/cargo-packager/pull/305)) Fix AppImage bundle when main binary name has spaces.
+
 ## \[0.11.3]
 
 - [`82e690d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/82e690dfce6109531391e683c8b486d0f39ea335) ([#300](https://www.github.com/crabnebula-dev/cargo-packager/pull/300)) Fix the `Exec` entry on the Linux .desktop file when the binary name contains spaces.
