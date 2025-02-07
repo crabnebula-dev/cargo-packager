@@ -1,5 +1,14 @@
 # Changelog
 
+## \[0.11.5]
+
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to embedding additional apps in the macOS app bundle.
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to adding an `embedded.provisionprofile` file to the macOS bundle.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.5`
+
 ## \[0.11.4]
 
 ### Dependencies
