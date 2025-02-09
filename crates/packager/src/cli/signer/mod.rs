@@ -24,7 +24,7 @@ pub struct Options {
 
 pub fn command(options: Options) -> Result<()> {
     match options.command {
-        Commands::Sign(opts) => sign::command(opts).map_err(Into::into),
+        Commands::Sign(opts) => sign::command(opts),
         Commands::Generate(opts) => generate::command(opts),
     }
 }
