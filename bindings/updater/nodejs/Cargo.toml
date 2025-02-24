@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi = { workspace = true, features = ["napi4", "async"] }
 napi-derive = { workspace = true }
-cargo-packager-updater = { path = "../../../crates/updater/", default-features = false }
+cargo-packager-updater = { workspace = true }
 serde_json = { workspace = true }
 time = { workspace = true, features = ["formatting"] }
 
