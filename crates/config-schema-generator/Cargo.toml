@@ -8,6 +8,6 @@ license.workspace = true
 repository.workspace = true
 
 [build-dependencies]
-cargo-packager = { path = "../packager", features = ["schema"] }
+cargo-packager = { workspace = true, features = ["schema"] }
 serde_json = { workspace = true }
 schemars = { workspace = true }

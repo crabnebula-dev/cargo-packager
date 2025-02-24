@@ -17,12 +17,8 @@ native-tls-vendored = ["reqwest/native-tls-vendored"]
 rustls-tls = ["reqwest/rustls-tls-native-roots"]
 
 [dependencies]
-cargo-packager-utils = { version = "0.1.1", path = "../utils" }
-reqwest = { version = "0.12", default-features = false, features = [
-  "json",
-  "stream",
-  "blocking",
-] }
+cargo-packager-utils = { workspace = true }
+reqwest = { workspace = true, features = ["json", "stream", "blocking"] }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -31,15 +27,15 @@ dirs = { workspace = true }
 semver = { workspace = true }
 base64 = { workspace = true }
 time = { workspace = true, features = ["parsing", "formatting"] }
-http = "1"
-url = { version = "2", features = ["serde"] }
-minisign-verify = "0.2"
-ctor = "0.2"
-tempfile = "3.12"
+http = { workspace = true }
+url = { workspace = true, features = ["serde"] }
+minisign-verify = { workspace = true }
+ctor = { workspace = true }
+tempfile = { workspace = true }
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tar = { workspace = true }
 flate2 = "1.0"
 
 [dev-dependencies]
-tiny_http = "0.12"
+tiny_http = { workspace = true }

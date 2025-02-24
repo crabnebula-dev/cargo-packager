@@ -5,10 +5,10 @@ edition = "2021"
 publish = false
 
 [dependencies]
-slint = "1.7"
+slint = { workspace = true }
 
 [build-dependencies]
-slint-build = "1.7"
+slint-build = { workspace = true }
 
 [package.metadata.packager]
 before-packaging-command = "cargo build --release"

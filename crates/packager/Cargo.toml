@@ -56,35 +56,31 @@ semver = { workspace = true }
 base64 = { workspace = true }
 clap = { workspace = true, optional = true, features = ["env"] }
 tracing = { workspace = true }
-tracing-subscriber = { version = "0.3", optional = true, features = [
-    "env-filter",
-] }
-toml = "0.8"
-cargo_metadata = "0.18"
-ureq = { version = "2.10", default-features = false }
-hex = "0.4"
-sha1 = "0.10"
-sha2 = "0.10"
-zip = { version = "0.6", default-features = false, features = ["deflate"] }
-handlebars = "5.1"
-glob = "0.3"
-relative-path = "1.9"
-walkdir = "2"
-os_pipe = "1"
-minisign = "0.7"
+tracing-subscriber = { workspace = true, features = ["env-filter"], optional = true }
+toml = { workspace = true }
+cargo_metadata = { workspace = true }
+ureq = { workspace = true }
+hex = { workspace = true }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
+zip = { workspace = true, features = ["deflate"] }
+handlebars = { workspace = true }
+glob = { workspace = true }
+relative-path = { workspace = true }
+walkdir = { workspace = true }
+os_pipe = { workspace = true }
+minisign = { workspace = true }
 tar = { workspace = true }
-flate2 = "1.0"
-strsim = "0.11"
+flate2 = { workspace = true }
+strsim = { workspace = true }
 schemars = { workspace = true, optional = true }
-native-tls = { version = "0.2", optional = true }
-cargo-packager-utils = { version = "0.1.1", path = "../utils", features = [
-    "serde",
-] }
+native-tls = { workspace = true, optional = true }
+cargo-packager-utils = { workspace = true, features = ["serde"] }
 icns = { package = "tauri-icns", version = "0.1" }
 time = { workspace = true, features = ["formatting"] }
-image = "0.25"
-tempfile = "3"
-plist = "1"
+image = { workspace = true }
+tempfile = { workspace = true }
+plist = { workspace = true }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 winreg = "0.52"

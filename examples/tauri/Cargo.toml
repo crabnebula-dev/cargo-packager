@@ -6,15 +6,15 @@ edition = "2021"
 publish = false
 
 [build-dependencies]
-tauri-build = { version = "=2.0.0-rc.8", features = [] }
+tauri-build = { workspace = true, features = [] }
 
 [dependencies]
-tauri = { version = "=2.0.0-rc.9", features = ["devtools"] }
-tauri-utils = { version = "=2.0.0-rc.8", features = [] }
-tauri-macros = "=2.0.0-rc.7"
+tauri = { workspace = true, features = ["devtools"] }
+tauri-utils = { workspace = true, features = [] }
+tauri-macros = { workspace = true }
 serde.workspace = true
 serde_json.workspace = true
-cargo-packager-updater = { path = "../../crates/updater" }
+cargo-packager-updater = { workspace = true }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
