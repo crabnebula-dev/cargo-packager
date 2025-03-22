@@ -248,6 +248,17 @@
         }
       ]
     },
+    "linux": {
+      "description": "Linux-specific configuration",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/LinuxConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "deb": {
       "description": "Debian-specific configuration.",
       "anyOf": [
@@ -786,6 +797,19 @@
         }
       },
       "additionalProperties": false
+    },
+    "LinuxConfig": {
+      "description": "Linux configuration",
+      "type": "object",
+      "properties": {
+        "generate_desktop_entry": {
+          "description": "Flag to indicate if desktop entry should be generated.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
     },
     "DebianConfig": {
       "description": "The Linux Debian configuration.",
