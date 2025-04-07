@@ -429,6 +429,16 @@ export interface MacOsConfig {
    * Path to the Info.plist file for the package.
    */
   infoPlistPath?: string | null;
+
+  /**
+   * Path to the embedded.provisionprofile file for the package.
+   */
+  embeddedProvisionprofilePath?: string | null;
+
+  /**
+   * Apps that need to be packaged within the app.
+   */
+  embeddedApps?: string[] | null;
 }
 /**
  * The Linux Debian configuration.

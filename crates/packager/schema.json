@@ -766,6 +766,23 @@
             "string",
             "null"
           ]
+        },
+        "embeddedProvisionprofilePath": {
+          "description": "Path to the embedded.provisionprofile file for the package.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "embeddedApps": {
+          "description": "Apps that need to be packaged within the app.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
