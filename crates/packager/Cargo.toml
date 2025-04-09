@@ -82,7 +82,7 @@ cargo-packager-utils = { version = "0.1.1", path = "../utils", features = [
 ] }
 icns = { package = "tauri-icns", version = "0.1" }
 time = { workspace = true, features = ["formatting"] }
-image = "0.25"
+image = { version = "0.25", default-features = false, features = ["rayon", "bmp", "ico", "png", "jpeg"] }
 tempfile = "3"
 plist = "1"
 
@@ -97,7 +97,6 @@ version = "0.52"
 features = ["Win32_System_SystemInformation", "Win32_System_Diagnostics_Debug"]
 
 [target."cfg(any(target_os = \"linux\", target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"netbsd\", target_os = \"openbsd\"))".dependencies]
-image = "0.25"
 md5 = "0.7"
 heck = "0.5"
 ar = "0.9"
