@@ -317,13 +317,13 @@ fn create_info_plist(
 
     plist.insert("LSRequiresCarbon".into(), true.into());
     plist.insert("NSHighResolutionCapable".into(), true.into());
-    
+
     if let Some(macos_config) = config.macos() {
         if macos_config.background_app {
             plist.insert("LSUIElement".into(), true.into());
         }
     }
-    
+
     if let Some(copyright) = &config.copyright {
         plist.insert("NSHumanReadableCopyright".into(), copyright.clone().into());
     }
