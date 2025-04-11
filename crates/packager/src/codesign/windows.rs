@@ -83,10 +83,7 @@ static SIGN_TOOL: Lazy<crate::Result<PathBuf>> = Lazy::new(|| {
     let mut installed_kits: Vec<String> = installed_roots_key
         .enum_keys()
         /* Report and ignore errors, pass on values. */
-        .filter_map(|res| match res {
-            Ok(v) => Some(v),
-            Err(_) => None,
-        })
+        .filter_map(|res| res.ok())
         .collect();
 
     // Sort installed kits

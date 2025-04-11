@@ -794,6 +794,11 @@
           "items": {
             "type": "string"
           }
+        },
+        "backgroundApp": {
+          "description": "Whether this is a background application. If true, the app will not appear in the Dock.\n\nSets the `LSUIElement` flag in the macOS plist file.",
+          "default": false,
+          "type": "boolean"
         }
       },
       "additionalProperties": false
