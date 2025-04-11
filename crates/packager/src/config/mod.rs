@@ -840,6 +840,21 @@ impl MacOsConfig {
     }
 }
 
+/// Linux configuration
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct LinuxConfig {
+    /// Flag to indicate if desktop entry should be generated.
+    #[serde(
+        default = "default_true",
+        alias = "generate-desktop-entry",
+        alias = "generate_desktop_entry"
+    )]
+    pub generate_desktop_entry: bool,
+}
+
 /// A wix language.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1715,6 +1730,8 @@ pub struct Config {
     pub windows: Option<WindowsConfig>,
     /// MacOS-specific configuration.
     pub macos: Option<MacOsConfig>,
+    /// Linux-specific configuration
+    pub linux: Option<LinuxConfig>,
     /// Debian-specific configuration.
     pub deb: Option<DebianConfig>,
     /// AppImage configuration.
@@ -1743,6 +1760,11 @@ impl Config {
     /// Returns the [macos](Config::macos) specific configuration.
     pub fn macos(&self) -> Option<&MacOsConfig> {
         self.macos.as_ref()
+    }
+
+    /// Returns the [linux](Config::linux) specific configuration.
+    pub fn linux(&self) -> Option<&LinuxConfig> {
+        self.linux.as_ref()
     }
 
     /// Returns the [nsis](Config::nsis) specific configuration.

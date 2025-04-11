@@ -248,6 +248,17 @@
         }
       ]
     },
+    "linux": {
+      "description": "Linux-specific configuration",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/LinuxConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "deb": {
       "description": "Debian-specific configuration.",
       "anyOf": [
@@ -787,6 +798,18 @@
         "backgroundApp": {
           "description": "Whether this is a background application. If true, the app will not appear in the Dock.\n\nSets the `LSUIElement` flag in the macOS plist file.",
           "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LinuxConfig": {
+      "description": "Linux configuration",
+      "type": "object",
+      "properties": {
+        "generateDesktopEntry": {
+          "description": "Flag to indicate if desktop entry should be generated.",
+          "default": true,
           "type": "boolean"
         }
       },
