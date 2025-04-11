@@ -838,17 +838,16 @@ impl MacOsConfig {
 /// Linux configuration
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[non_exhaustive]
 pub struct LinuxConfig {
     /// Flag to indicate if desktop entry should be generated.
-    pub generate_desktop_entry: Option<bool>
-}
-
-impl LinuxConfig {
-    /// Should desktop entry be generated in linux packaging. Defaults to true.
-    pub fn generate_desktop_entry(&self) -> bool {
-        self.generate_desktop_entry.unwrap_or(true)
-    }
+    #[serde(
+        default = "default_true",
+        alias = "generate-desktop-entry",
+        alias = "generate_desktop_entry"
+    )]
+    pub generate_desktop_entry: bool,
 }
 
 /// A wix language.

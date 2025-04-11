@@ -208,14 +208,14 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
     tracing::debug!("Generating icons");
     let icons = generate_icon_files(config, data_dir)?;
 
-    if let Some(linux_conf) = config.linux() {
-        if !linux_conf.generate_desktop_entry() {
-            return Ok(icons);
-        }
-    }
+    let generate_desktop_entry = config
+        .linux()
+        .map_or(true, |linux| linux.generate_desktop_entry);
 
-    tracing::debug!("Generating desktop file");
-    generate_desktop_file(config, data_dir)?;
+    if generate_desktop_entry {
+        tracing::debug!("Generating desktop file");
+        generate_desktop_file(config, data_dir)?;
+    }
 
     Ok(icons)
 }

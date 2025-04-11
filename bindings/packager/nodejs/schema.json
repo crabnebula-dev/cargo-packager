@@ -802,14 +802,13 @@
       "description": "Linux configuration",
       "type": "object",
       "properties": {
-        "generate_desktop_entry": {
+        "generateDesktopEntry": {
           "description": "Flag to indicate if desktop entry should be generated.",
-          "type": [
-            "boolean",
-            "null"
-          ]
+          "default": true,
+          "type": "boolean"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "DebianConfig": {
       "description": "The Linux Debian configuration.",
