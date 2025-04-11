@@ -437,6 +437,12 @@ export interface MacOsConfig {
    * Apps that need to be packaged within the app.
    */
   embeddedApps?: string[] | null;
+  /**
+   * Whether this is a background application. If true, the app will not appear in the Dock.
+   * 
+   * Sets the `LSUIElement` flag in the macOS plist file.
+   */
+  backgroundApp?: boolean;
 }
 /**
  * The Linux Debian configuration.

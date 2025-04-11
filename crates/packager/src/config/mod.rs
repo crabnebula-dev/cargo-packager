@@ -745,6 +745,11 @@ pub struct MacOsConfig {
     /// Apps that need to be packaged within the app.
     #[serde(alias = "embedded-apps", alias = "embedded_apps")]
     pub embedded_apps: Option<Vec<String>>,
+    /// Whether this is a background application. If true, the app will not appear in the Dock.
+    ///
+    /// Sets the `LSUIElement` flag in the macOS plist file.
+    #[serde(default, alias = "background_app", alias = "background-app")]
+    pub background_app: bool,
 }
 
 impl MacOsConfig {
