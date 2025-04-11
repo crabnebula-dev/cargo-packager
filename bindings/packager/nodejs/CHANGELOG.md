@@ -1,5 +1,16 @@
 # Changelog
 
+## \[0.11.5]
+
+- [`17194a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17194a92aabd59c9e075105072ff939f5d55a107) ([#313](https://www.github.com/crabnebula-dev/cargo-packager/pull/313)) Added `linux > generateDesktopEntry` config to allow disabling generating a .desktop file on Linux bundles (defaults to true).
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to embedding additional apps in the macOS app bundle.
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to adding an `embedded.provisionprofile` file to the macOS bundle.
+- [`e010574`](https://www.github.com/crabnebula-dev/cargo-packager/commit/e010574c2efa4a1aa6b8e475a62bec46f24f2bc5) ([#318](https://www.github.com/crabnebula-dev/cargo-packager/pull/318)) Add `background-app` config setting for macOS to set `LSUIElement` to `true`.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.5`
+
 ## \[0.11.4]
 
 ### Dependencies
