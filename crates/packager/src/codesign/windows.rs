@@ -21,6 +21,7 @@ use crate::{config::Config, shell::CommandExt, util};
 use crate::util::Bitness;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SignParams {
     pub product_name: String,
     pub digest_algorithm: String,
@@ -30,27 +31,21 @@ pub struct SignParams {
     pub sign_command: Option<String>,
 }
 
-pub(crate) trait ConfigSignExt {
-    fn can_sign(&self) -> bool;
-    fn custom_sign_command(&self) -> bool;
-    fn sign_params(&self) -> SignParams;
-}
-
-impl ConfigSignExt for Config {
-    fn can_sign(&self) -> bool {
+impl Config {
+    pub(crate) fn can_sign(&self) -> bool {
         self.windows()
             .and_then(|w| w.certificate_thumbprint.as_ref())
             .is_some()
             || self.custom_sign_command()
     }
 
-    fn custom_sign_command(&self) -> bool {
+    pub(crate) fn custom_sign_command(&self) -> bool {
         self.windows()
             .and_then(|w| w.sign_command.as_ref())
             .is_some()
     }
 
-    fn sign_params(&self) -> SignParams {
+    pub(crate) fn sign_params(&self) -> SignParams {
         let windows = self.windows();
         SignParams {
             product_name: self.product_name.clone(),
@@ -88,10 +83,7 @@ static SIGN_TOOL: Lazy<crate::Result<PathBuf>> = Lazy::new(|| {
     let mut installed_kits: Vec<String> = installed_roots_key
         .enum_keys()
         /* Report and ignore errors, pass on values. */
-        .filter_map(|res| match res {
-            Ok(v) => Some(v),
-            Err(_) => None,
-        })
+        .filter_map(|res| res.ok())
         .collect();
 
     // Sort installed kits
@@ -142,15 +134,22 @@ pub fn sign_command_custom<P: AsRef<Path> + Debug>(
     path: P,
     command: &str,
 ) -> crate::Result<Command> {
-    let custom_command = command.replace("%1", &dunce::simplified(path.as_ref()).to_string_lossy());
+    let mut args = command.trim().split(' ');
 
-    let mut args = custom_command.split(' ');
     let bin = args
         .next()
         .expect("custom signing command doesn't contain a bin?");
 
     let mut cmd = Command::new(bin);
-    cmd.args(args);
+
+    for arg in args {
+        if arg == "%1" {
+            cmd.arg(path.as_ref());
+        } else {
+            cmd.arg(arg);
+        }
+    }
+
     Ok(cmd)
 }
 
@@ -226,7 +225,7 @@ pub fn sign_default<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> cra
     let path = path.as_ref();
 
     tracing::info!(
-        "Codesigning {} with identity \"{}\"",
+        "Codesigning {} with certificate \"{}\"",
         util::display_path(path),
         params.certificate_thumbprint
     );
@@ -237,7 +236,7 @@ pub fn sign_default<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> cra
     let output = cmd.output_ok().map_err(crate::Error::SignToolFailed)?;
 
     let stdout = String::from_utf8_lossy(output.stdout.as_slice());
-    tracing::info!("{:?}", stdout);
+    tracing::debug!("{:?}", stdout);
 
     Ok(())
 }
@@ -255,7 +254,7 @@ pub fn sign<P: AsRef<Path> + Debug>(path: P, params: &SignParams) -> crate::Resu
     }
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 pub fn try_sign(
     file_path: &std::path::PathBuf,
     config: &crate::config::Config,

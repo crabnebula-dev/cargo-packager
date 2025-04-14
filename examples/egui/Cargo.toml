@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-eframe = "0.22"
+eframe = "0.27"
 
 [package.metadata.packager]
 before-packaging-command = "cargo build --release"

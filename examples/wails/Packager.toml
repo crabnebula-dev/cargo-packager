@@ -1,5 +1,5 @@
 name = "wails-example"
-before-packaging-command = "wails build -noPackage"
+before-packaging-command = "wails build -nopackage"
 out-dir = "./build/bin"
 version = "0.0.0"
 product-name = "Wails example"

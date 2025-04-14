@@ -96,6 +96,10 @@ export type Resource =
       [k: string]: unknown;
     };
 /**
+ * A list of dependencies specified as either a list of Strings or as a path to a file that lists the dependencies, one per line.
+ */
+export type Dependencies = string[] | string;
+/**
  * A wix language.
  */
 export type WixLanguage =
@@ -193,7 +197,7 @@ export interface Config {
    */
   binariesDir?: string | null;
   /**
-   * The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
+   * The target triple we are packaging for.
    *
    * Defaults to the current OS target triple.
    */
@@ -238,6 +242,10 @@ export interface Config {
    * The file associations
    */
   fileAssociations?: FileAssociation[] | null;
+  /**
+   * Deep-link protocols.
+   */
+  deepLinkProtocols?: DeepLinkProtocol[] | null;
   /**
    * The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory or an object of `src` and `target` paths. In the case of using an object, the `src` could be either a glob pattern, path to a file, path to a directory, and the `target` is a path inside the final resources folder in the installed package.
    *
@@ -328,6 +336,23 @@ export interface FileAssociation {
   role?: BundleTypeRole & string;
 }
 /**
+ * Deep link protocol
+ */
+export interface DeepLinkProtocol {
+  /**
+   * URL schemes to associate with this app without `://`. For example `my-app`
+   */
+  schemes: string[];
+  /**
+   * The protocol name. **macOS-only** and maps to `CFBundleTypeName`. Defaults to `<bundle-id>.<schemes[0]>`
+   */
+  name?: string | null;
+  /**
+   * The app's role for these schemes. **macOS-only** and maps to `CFBundleTypeRole`.
+   */
+  role?: BundleTypeRole & string;
+}
+/**
  * The Windows configuration.
  */
 export interface WindowsConfig {
@@ -388,6 +413,8 @@ export interface MacOsConfig {
   exceptionDomain?: string | null;
   /**
    * Code signing identity.
+   *
+   * This is typically of the form: `"Developer ID Application: TEAM_NAME (TEAM_ID)"`.
    */
   signingIdentity?: string | null;
   /**
@@ -402,21 +429,41 @@ export interface MacOsConfig {
    * Path to the Info.plist file for the package.
    */
   infoPlistPath?: string | null;
+  /**
+   * Path to the embedded.provisionprofile file for the package.
+   */
+  embeddedProvisionprofilePath?: string | null;
+  /**
+   * Apps that need to be packaged within the app.
+   */
+  embeddedApps?: string[] | null;
+  /**
+   * Whether this is a background application. If true, the app will not appear in the Dock.
+   * 
+   * Sets the `LSUIElement` flag in the macOS plist file.
+   */
+  backgroundApp?: boolean;
 }
 /**
- * The Linux debian configuration.
+ * The Linux Debian configuration.
  */
 export interface DebianConfig {
   /**
-   * The list of debian dependencies.
+   * The list of Debian dependencies.
    */
-  depends?: string[] | null;
+  depends?: Dependencies | null;
   /**
    * Path to a custom desktop file Handlebars template.
    *
    * Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
    *
-   * Default file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```
+   * Default file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} {{exec_arg}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```
+   *
+   * The `{{exec_arg}}` will be set to: * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given. * The "%F" arg means that your application can be invoked with multiple file paths. * "%U", if at least one [Config::deep_link_protocols] was specified. * The "%U" arg means that your application can be invoked with multiple URLs. * If both [Config::file_associations] and [Config::deep_link_protocols] were specified, the "%U" arg will be used, causing the file paths to be passed to your app as `file://` URLs. * An empty string "" (nothing) if neither are given. * This means that your application will never be invoked with any URLs or file paths.
+   *
+   * To specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`: ```text Exec={{exec}} %u ```
+   *
+   * See more here: <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>.
    */
   desktopTemplate?: string | null;
   /**
@@ -476,9 +523,9 @@ export interface PacmanConfig {
   /**
    * List of softwares that must be installed for the app to build and run.
    *
-   * See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
+   * See : <https://wiki.archlinux.org/title/PKGBUILD#depends>
    */
-  depends?: string[] | null;
+  depends?: Dependencies | null;
   /**
    * Additional packages that are provided by this app.
    *
@@ -582,13 +629,13 @@ export interface NsisConfig {
   /**
    * A custom `.nsi` template to use.
    *
-   * See the default template here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+   * See the default template here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
    */
   template?: string | null;
   /**
    * Logic of an NSIS section that will be ran before the install section.
    *
-   * See the available libraries, dlls and global variables here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+   * See the available libraries, dlls and global variables here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
    *
    * ### Example ```toml [package.metadata.packager.nsis] preinstall-section = """ ; Setup custom messages LangString webview2AbortError ${LANG_ENGLISH} "Failed to install WebView2! The app can't run without it. Try restarting the installer." LangString webview2DownloadError ${LANG_ARABIC} "خطأ: فشل تنزيل WebView2 - $0"
    *

@@ -1,5 +1,21 @@
 # Changelog
 
+## \[0.2.2]
+
+- [`af990f8`](https://www.github.com/crabnebula-dev/cargo-packager/commit/af990f848b78fa07fe2aa8f4cc32599557af9bf7) ([#281](https://www.github.com/crabnebula-dev/cargo-packager/pull/281)) Relax `url` dependency version requirement from `2.5` to `2`.
+
+## \[0.2.1]
+
+- [`2b6dd55`](https://www.github.com/crabnebula-dev/cargo-packager/commit/2b6dd55eac6733715a4f717af54ff167e1fdcdf8) ([#266](https://www.github.com/crabnebula-dev/cargo-packager/pull/266)) Fix `process-relaunch-dangerous-allow-symlink-macos` feature usage.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-utils@0.1.1`
+
+## \[0.2.0]
+
+- [`c16d17a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c16d17ae190f49be3f9e78c5441bee16c0f8fc69) Enable `rustls-tls` feature flag by default.
+
 ## \[0.1.4]
 
 - [`3ee2290`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3ee2290df518103056b295dae426b38a65293048)([#147](https://www.github.com/crabnebula-dev/cargo-packager/pull/147)) Prevent powershell window from opening when the msi and nsis installer are executed.

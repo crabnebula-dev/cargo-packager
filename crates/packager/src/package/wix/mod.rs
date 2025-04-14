@@ -5,7 +5,7 @@
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
-    fs::File,
+    fs::{self, File},
     io::Write,
     path::{Path, PathBuf},
     process::Command,
@@ -22,6 +22,7 @@ use crate::{
     config::{Config, LogLevel, WixLanguage},
     shell::CommandExt,
     util::{self, download_and_verify, extract_zip, HashAlgorithm},
+    Error,
 };
 
 pub const WIX_URL: &str =
@@ -70,17 +71,17 @@ fn generate_package_guid(config: &Config) -> Uuid {
 pub fn convert_version(version_str: &str) -> crate::Result<String> {
     let version = semver::Version::parse(version_str)?;
     if version.major > 255 {
-        return Err(crate::Error::InvalidAppVersion(
+        return Err(Error::InvalidAppVersion(
             "major number cannot be greater than 255".into(),
         ));
     }
     if version.minor > 255 {
-        return Err(crate::Error::InvalidAppVersion(
+        return Err(Error::InvalidAppVersion(
             "minor number cannot be greater than 255".into(),
         ));
     }
     if version.patch > 65535 {
-        return Err(crate::Error::InvalidAppVersion(
+        return Err(Error::InvalidAppVersion(
             "patch number cannot be greater than 65535".into(),
         ));
     }
@@ -93,7 +94,7 @@ pub fn convert_version(version_str: &str) -> crate::Result<String> {
                 version.major, version.minor, version.patch, version.build
             ));
         } else {
-            return Err(crate::Error::NonNumericBuildMetadata(Some(
+            return Err(Error::NonNumericBuildMetadata(Some(
                 "and cannot be greater than 65535 for msi target".into(),
             )));
         }
@@ -107,7 +108,7 @@ pub fn convert_version(version_str: &str) -> crate::Result<String> {
                 version.major, version.minor, version.patch, version.pre
             ));
         } else {
-            return Err(crate::Error::NonNumericBuildMetadata(Some(
+            return Err(Error::NonNumericBuildMetadata(Some(
                 "and cannot be greater than 65535 for msi target".into(),
             )));
         }
@@ -130,7 +131,7 @@ struct Binary {
 }
 
 /// Generates the data required for the external binaries.
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
     let mut binaries = Vec::new();
     let tmp_dir = std::env::temp_dir();
@@ -142,14 +143,15 @@ fn generate_binaries_data(config: &Config) -> crate::Result<Vec<Binary>> {
         for src in external_binaries {
             let file_name = src
                 .file_name()
-                .ok_or_else(|| crate::Error::FailedToExtractFilename(src.clone()))?
+                .ok_or_else(|| Error::FailedToExtractFilename(src.clone()))?
                 .to_string_lossy();
             let src = src.with_file_name(format!("{file_name}-{target_triple}.exe"));
-            let bin_path = dunce::canonicalize(cwd.join(src))?;
+            let path = cwd.join(src);
+            let bin_path = dunce::canonicalize(&path).map_err(|e| Error::IoWithPath(path, e))?;
             let dest_file_name = format!("{file_name}.exe");
             let dest = tmp_dir.join(&*dest_file_name);
 
-            std::fs::copy(bin_path, &dest)?;
+            fs::copy(&bin_path, &dest).map_err(|e| Error::CopyFile(bin_path, dest.clone(), e))?;
 
             binaries.push(Binary {
                 guid: Uuid::new_v4().to_string(),
@@ -221,7 +223,7 @@ impl ResourceDirectory {
     }
 
     /// Generates the wix XML string to bundle this directory resources recursively
-    fn get_wix_data(self) -> crate::Result<(String, Vec<String>)> {
+    fn get_wix_data(self) -> (String, Vec<String>) {
         let mut files = String::from("");
         let mut file_ids = Vec::new();
         for file in self.files {
@@ -237,7 +239,7 @@ impl ResourceDirectory {
         }
         let mut directories = String::from("");
         for directory in self.directories {
-            let (wix_string, ids) = directory.get_wix_data()?;
+            let (wix_string, ids) = directory.get_wix_data();
             for id in ids {
                 file_ids.push(id)
             }
@@ -255,7 +257,7 @@ impl ResourceDirectory {
             )
         };
 
-        Ok((wix_string, file_ids))
+        (wix_string, file_ids)
     }
 }
 
@@ -263,7 +265,7 @@ impl ResourceDirectory {
 type ResourceMap = BTreeMap<String, ResourceDirectory>;
 
 /// Generates the data required for the resource on wix
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn generate_resource_data(config: &Config) -> crate::Result<ResourceMap> {
     let mut resources_map = ResourceMap::new();
     for resource in config.resources()? {
@@ -397,7 +399,7 @@ fn run_candle(
     cmd.args(&args)
         .current_dir(intermediates_path)
         .output_ok()
-        .map_err(|e| crate::Error::WixFailed("candle.exe".into(), e))?;
+        .map_err(|e| Error::WixFailed("candle.exe".into(), e))?;
 
     Ok(())
 }
@@ -434,7 +436,7 @@ fn run_light(
     cmd.args(&args)
         .current_dir(intermediates_path)
         .output_ok()
-        .map_err(|e| crate::Error::WixFailed("light.exe".into(), e))?;
+        .map_err(|e| Error::WixFailed("light.exe".into(), e))?;
 
     Ok(())
 }
@@ -447,11 +449,11 @@ fn get_and_extract_wix(path: &Path) -> crate::Result<()> {
         WIX_SHA256,
         HashAlgorithm::Sha256,
     )?;
-    tracing::info!("extracting WIX");
+    tracing::debug!("extracting WIX");
     extract_zip(&data, path)
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<PathBuf>> {
     let Context {
         config,
@@ -463,7 +465,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         "x86_64" => "x64",
         "x86" => "x86",
         "aarch64" => "arm64",
-        target => return Err(crate::Error::UnsupportedArch("wix".into(), target.into())),
+        target => return Err(Error::UnsupportedArch("wix".into(), target.into())),
     };
 
     let main_binary = config.main_binary()?;
@@ -509,7 +511,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let mut resources_wix_string = String::from("");
     let mut files_ids = Vec::new();
     for (_, dir) in resources {
-        let (wix_string, ids) = dir.get_wix_data()?;
+        let (wix_string, ids) = dir.get_wix_data();
         resources_wix_string.push_str(wix_string.as_str());
         for id in ids {
             files_ids.push(id);
@@ -520,9 +522,9 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
 
     data.insert("app_exe_source", to_json(&main_binary_path));
 
-    // copy icon from `settings.windows().icon_path` folder to resource folder near msi
+    // copy icon from configured `icons` to resource folder near msi
     if let Some(icon) = config.find_ico()? {
-        let icon_path = dunce::canonicalize(icon)?;
+        let icon_path = dunce::canonicalize(&icon).map_err(|e| Error::IoWithPath(icon, e))?;
         data.insert("icon_path", to_json(icon_path));
     }
 
@@ -530,7 +532,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         if license.ends_with(".rtf") {
             data.insert("license", to_json(license));
         } else {
-            let license_contents = std::fs::read_to_string(license)?;
+            let license_contents =
+                fs::read_to_string(license).map_err(|e| Error::IoWithPath(license.clone(), e))?;
             let license_rtf = format!(
                 r#"{{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{{\fonttbl{{\f0\fnil\fcharset0 Calibri;}}}}
 {{\*\generator Riched20 10.0.18362}}\viewkind4\uc1
@@ -541,7 +544,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             );
             let rtf_output_path = intermediates_path.join("LICENSE.rtf");
             tracing::debug!("Writing {}", util::display_path(&rtf_output_path));
-            std::fs::write(&rtf_output_path, license_rtf)?;
+            fs::write(&rtf_output_path, license_rtf)
+                .map_err(|e| Error::IoWithPath(rtf_output_path.clone(), e))?;
             data.insert("license", to_json(rtf_output_path));
         }
     }
@@ -557,7 +561,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         data.insert("feature_group_refs", to_json(&wix.feature_group_refs));
         data.insert("feature_refs", to_json(&wix.feature_refs));
         data.insert("merge_refs", to_json(&wix.merge_refs));
-        custom_template_path = wix.template.clone();
+        custom_template_path.clone_from(&wix.template);
 
         fragment_paths = wix.fragment_paths.clone().unwrap_or_default();
         if let Some(ref inline_fragments) = wix.fragments {
@@ -567,20 +571,21 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             );
             for (idx, fragment) in inline_fragments.iter().enumerate() {
                 let path = intermediates_path.join(format!("inline_fragment{idx}.wxs"));
-                std::fs::write(&path, fragment)?;
+                fs::write(&path, fragment).map_err(|e| Error::IoWithPath(path.clone(), e))?;
                 fragment_paths.push(path);
             }
         }
 
         if let Some(banner_path) = &wix.banner_path {
-            data.insert("banner_path", to_json(dunce::canonicalize(banner_path)?));
+            let canonicalized = dunce::canonicalize(banner_path)
+                .map_err(|e| Error::IoWithPath(banner_path.clone(), e))?;
+            data.insert("banner_path", to_json(canonicalized));
         }
 
         if let Some(dialog_image_path) = &wix.dialog_image_path {
-            data.insert(
-                "dialog_image_path",
-                to_json(dunce::canonicalize(dialog_image_path)?),
-            );
+            let canonicalized = dunce::canonicalize(dialog_image_path)
+                .map_err(|e| Error::IoWithPath(dialog_image_path.clone(), e))?;
+            data.insert("dialog_image_path", to_json(canonicalized));
         }
 
         if let Some(merge_modules) = &wix.merge_modules {
@@ -602,9 +607,17 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         data.insert("file_associations", to_json(file_associations));
     }
 
+    if let Some(protocols) = &config.deep_link_protocols {
+        let schemes = protocols
+            .iter()
+            .flat_map(|p| &p.schemes)
+            .collect::<Vec<_>>();
+        data.insert("deep_link_protocols", to_json(schemes));
+    }
+
     if let Some(path) = custom_template_path {
         handlebars
-            .register_template_string("main.wxs", std::fs::read_to_string(path)?)
+            .register_template_string("main.wxs", fs::read_to_string(path)?)
             .map_err(Box::new)?;
     } else {
         handlebars
@@ -614,7 +627,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
 
     let main_wxs_path = intermediates_path.join("main.wxs");
     tracing::debug!("Writing {}", util::display_path(&main_wxs_path));
-    std::fs::write(&main_wxs_path, handlebars.render("main.wxs", &data)?)?;
+    fs::write(&main_wxs_path, handlebars.render("main.wxs", &data)?)
+        .map_err(|e| Error::IoWithPath(main_wxs_path.clone(), e))?;
 
     let mut candle_inputs = vec![(main_wxs_path, Vec::new())];
 
@@ -622,7 +636,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let extension_regex = Regex::new("\"http://schemas.microsoft.com/wix/(\\w+)\"")?;
     for fragment_path in fragment_paths {
         let fragment_path = current_dir.join(fragment_path);
-        let fragment = std::fs::read_to_string(&fragment_path)?;
+        let fragment = fs::read_to_string(&fragment_path)
+            .map_err(|e| Error::IoWithPath(fragment_path.clone(), e))?;
         let mut extensions = Vec::new();
         for cap in extension_regex.captures_iter(&fragment) {
             extensions.push(wix_path.join(format!("Wix{}.dll", &cap[1])));
@@ -664,7 +679,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         };
 
         let language_metadata = language_map.get(&language).ok_or_else(|| {
-            crate::Error::UnsupportedWixLanguage(
+            Error::UnsupportedWixLanguage(
                 language.clone(),
                 language_map
                     .keys()
@@ -675,7 +690,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         })?;
 
         let locale_contents = match locale_path {
-            Some(p) => std::fs::read_to_string(p)?,
+            Some(p) => fs::read_to_string(&p).map_err(|e| Error::IoWithPath(p, e))?,
             None => format!(
                 r#"<WixLocalization Culture="{}" xmlns="http://schemas.microsoft.com/wix/2006/localization"></WixLocalization>"#,
                 language.to_lowercase(),
@@ -708,7 +723,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         let locale_path = intermediates_path.join("locale.wxl");
         {
             tracing::debug!("Writing {}", util::display_path(&locale_path));
-            let mut fileout = File::create(&locale_path)?;
+            let mut fileout = File::create(&locale_path)
+                .map_err(|e| Error::IoWithPath(locale_path.clone(), e))?;
             fileout.write_all(locale_contents.as_bytes())?;
         }
 
@@ -730,11 +746,11 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             "{}_{}_{}_{}.msi",
             main_binary_name, config.version, arch, language
         ));
-        std::fs::create_dir_all(
-            msi_path
-                .parent()
-                .ok_or_else(|| crate::Error::ParentDirNotFound(msi_path.clone()))?,
-        )?;
+        let msi_path_parent = msi_path
+            .parent()
+            .ok_or_else(|| Error::ParentDirNotFound(msi_path.clone()))?;
+        fs::create_dir_all(msi_path_parent)
+            .map_err(|e| Error::IoWithPath(msi_path_parent.to_path_buf(), e))?;
 
         tracing::info!(
             "Running light.exe to produce {}",
@@ -749,7 +765,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
             &(fragment_extensions.clone().into_iter().collect()),
             &msi_output_path,
         )?;
-        std::fs::rename(&msi_output_path, &msi_path)?;
+        fs::rename(&msi_output_path, &msi_path)
+            .map_err(|e| Error::RenameFile(msi_output_path, msi_path.clone(), e))?;
         tracing::debug!("Codesigning {}", msi_path.display());
         codesign::try_sign(&msi_path, config)?;
         output_paths.push(msi_path);
@@ -758,7 +775,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     Ok(output_paths)
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let wix_path = ctx.tools_path.join("WixTools");
     if !wix_path.exists() {
@@ -768,7 +785,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .any(|p| !wix_path.join(p).exists())
     {
         tracing::warn!("WixTools directory is missing some files. Recreating it.");
-        std::fs::remove_dir_all(&wix_path)?;
+        fs::remove_dir_all(&wix_path).map_err(|e| Error::IoWithPath(wix_path.clone(), e))?;
         get_and_extract_wix(&wix_path)?;
     }
 

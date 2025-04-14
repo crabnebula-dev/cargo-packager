@@ -1,5 +1,74 @@
 # Changelog
 
+## \[0.11.5]
+
+- [`17194a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17194a92aabd59c9e075105072ff939f5d55a107) ([#313](https://www.github.com/crabnebula-dev/cargo-packager/pull/313)) Added `linux > generateDesktopEntry` config to allow disabling generating a .desktop file on Linux bundles (defaults to true).
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to embedding additional apps in the macOS app bundle.
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to adding an `embedded.provisionprofile` file to the macOS bundle.
+- [`e010574`](https://www.github.com/crabnebula-dev/cargo-packager/commit/e010574c2efa4a1aa6b8e475a62bec46f24f2bc5) ([#318](https://www.github.com/crabnebula-dev/cargo-packager/pull/318)) Add `background-app` config setting for macOS to set `LSUIElement` to `true`.
+
+## \[0.11.4]
+
+- [`29b60a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/29b60a97ec14ef87aee7537fa7fbd848f853ac32) ([#305](https://www.github.com/crabnebula-dev/cargo-packager/pull/305)) Fix AppImage bundle when main binary name has spaces.
+
+## \[0.11.3]
+
+- [`82e690d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/82e690dfce6109531391e683c8b486d0f39ea335) ([#300](https://www.github.com/crabnebula-dev/cargo-packager/pull/300)) Fix the `Exec` entry on the Linux .desktop file when the binary name contains spaces.
+
+## \[0.11.2]
+
+- [`fea80d5`](https://www.github.com/crabnebula-dev/cargo-packager/commit/fea80d5760882e6cdc21c8ed2f82d323e0598926) ([#264](https://www.github.com/crabnebula-dev/cargo-packager/pull/264)) Fix `pacman` package failing to install when source directory contained whitespace.
+
+## \[0.11.1]
+
+- [`4523722`](https://www.github.com/crabnebula-dev/cargo-packager/commit/4523722d0808faef4a91dbb227badd0354f4c71a) ([#283](https://www.github.com/crabnebula-dev/cargo-packager/pull/283)) Fixes resources paths on NSIS when cross compiling.
+
+## \[0.11.0]
+
+- [`41b05d0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/41b05d08a635d593df4cf4eefbe921b92ace77b7) ([#277](https://www.github.com/crabnebula-dev/cargo-packager/pull/277)) Respect `target-triple` config option when packaging rust binaries.
+- [`41b05d0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/41b05d08a635d593df4cf4eefbe921b92ace77b7) ([#277](https://www.github.com/crabnebula-dev/cargo-packager/pull/277)) Add `--target` flag to specify target triple to package.
+
+## \[0.10.3]
+
+- [`3ee764d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3ee764d9193ae22331aa5894a1821453e9542992) ([#270](https://www.github.com/crabnebula-dev/cargo-packager/pull/270)) Fixes AppImage bundling failing due to missing `/usr/lib64` directory.
+- [`ab41e6d`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ab41e6d94af89ec721a0047636597682bd6d90f6) ([#269](https://www.github.com/crabnebula-dev/cargo-packager/pull/269)) Fix using the crate as a library without `cli` feature flag
+
+## \[0.10.2]
+
+- [`f836afa`](https://www.github.com/crabnebula-dev/cargo-packager/commit/f836afa699b2da8a55432ce9de1cbccbffb705fb) ([#267](https://www.github.com/crabnebula-dev/cargo-packager/pull/267)) Include notarytool log output on error message in case notarization fails.
+- [`21441f3`](https://www.github.com/crabnebula-dev/cargo-packager/commit/21441f30c5a258b73926ba7a7d8126d6bf47a662) ([#262](https://www.github.com/crabnebula-dev/cargo-packager/pull/262)) Fixed dmg failed to bundle the application when out-dir does not exist.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-utils@0.1.1`
+
+## \[0.10.1]
+
+- [`522f23b`](https://www.github.com/crabnebula-dev/cargo-packager/commit/522f23bd867b037eeec81c43295aafd38ebe60ec) ([#258](https://www.github.com/crabnebula-dev/cargo-packager/pull/258)) Update NSIS installer template URL.
+- [`bce99ae`](https://www.github.com/crabnebula-dev/cargo-packager/commit/bce99aecb4160291a026dcd4750055f9079099f8) ([#260](https://www.github.com/crabnebula-dev/cargo-packager/pull/260)) Fix NSIS uninstaller removing the uninstall directory even if it was not empty.
+
+## \[0.10.0]
+
+- [`c6207bb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c6207bba042a8a0184ddb7e12650a4cd8f415c23) ([#254](https://www.github.com/crabnebula-dev/cargo-packager/pull/254)) Allow Linux dependencies to be specified via a file path instead of just a direct String.
+  This enables the list of dependencies to by dynamically generated for both Debian `.deb` packages and pacman packages,
+  which can relieve the app developer from the burden of manually maintaining a fixed list of dependencies.
+- [`de4dcca`](https://www.github.com/crabnebula-dev/cargo-packager/commit/de4dccaca4ae758d3adde517cc415a002873e642) ([#256](https://www.github.com/crabnebula-dev/cargo-packager/pull/256)) Automatically add an Exec arg (field code) in the `.desktop` file.
+
+  This adds an `{exec_arg}` field to the default `main.desktop` template.
+  This field is populated with a sane default value, based on the
+  `deep_link_protocols` or `file_associations` in the `Config` struct.
+
+  This allows an installed Debian package to be invoked by other
+  applications with URLs or files as arguments, as expected.
+
+## \[0.9.1]
+
+- [`44a19ea`](https://www.github.com/crabnebula-dev/cargo-packager/commit/44a19eae1f5f26b1bd10ba84dd6eb3d856609a67) ([#246](https://www.github.com/crabnebula-dev/cargo-packager/pull/246)) On macOS, fix notarization skipping needed environment variables when macos specific config has been specified in the config file.
+
+## \[0.9.0]
+
+- [`ab53974`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ab53974b683ce282202e1a550c551eed951e9ca7) ([#235](https://www.github.com/crabnebula-dev/cargo-packager/pull/235)) Added deep link support.
+
 ## \[0.8.1]
 
 - [`1375380`](https://www.github.com/crabnebula-dev/cargo-packager/commit/1375380c7c9d2adf55ab18a2ce23917849967995)([#196](https://www.github.com/crabnebula-dev/cargo-packager/pull/196)) Always show shell commands output for `beforePackageCommand` and `beforeEachPackagingCommand` .

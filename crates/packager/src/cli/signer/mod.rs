@@ -4,6 +4,8 @@
 
 use clap::{Parser, Subcommand};
 
+use super::Result;
+
 mod generate;
 mod sign;
 
@@ -20,7 +22,7 @@ pub struct Options {
     command: Commands,
 }
 
-pub fn command(options: Options) -> crate::Result<()> {
+pub fn command(options: Options) -> Result<()> {
     match options.command {
         Commands::Sign(opts) => sign::command(opts),
         Commands::Generate(opts) => generate::command(opts),

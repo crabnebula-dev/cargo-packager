@@ -1,5 +1,26 @@
 # Changelog
 
+## \[0.2.2]
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.2.2`
+
+## \[0.2.1]
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.2.1`
+- Upgraded to `cargo-packager-utils@0.1.1`
+
+## \[0.2.0]
+
+- [`c16d17a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c16d17ae190f49be3f9e78c5441bee16c0f8fc69) Enable `rustls-tls` feature flag by default.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.2.0`
+
 ## \[0.1.4]
 
 - [`3ee2290`](https://www.github.com/crabnebula-dev/cargo-packager/commit/3ee2290df518103056b295dae426b38a65293048)([#147](https://www.github.com/crabnebula-dev/cargo-packager/pull/147)) Prevent powershell window from opening when the msi and nsis installer are executed.

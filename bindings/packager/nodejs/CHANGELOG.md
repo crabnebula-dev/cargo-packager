@@ -1,5 +1,108 @@
 # Changelog
 
+## \[0.11.5]
+
+- [`17194a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17194a92aabd59c9e075105072ff939f5d55a107) ([#313](https://www.github.com/crabnebula-dev/cargo-packager/pull/313)) Added `linux > generateDesktopEntry` config to allow disabling generating a .desktop file on Linux bundles (defaults to true).
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to embedding additional apps in the macOS app bundle.
+- [`17c52f0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17c52f057d78340983689af3c00b1f2aeff3c417) ([#289](https://www.github.com/crabnebula-dev/cargo-packager/pull/289)) Added support to adding an `embedded.provisionprofile` file to the macOS bundle.
+- [`e010574`](https://www.github.com/crabnebula-dev/cargo-packager/commit/e010574c2efa4a1aa6b8e475a62bec46f24f2bc5) ([#318](https://www.github.com/crabnebula-dev/cargo-packager/pull/318)) Add `background-app` config setting for macOS to set `LSUIElement` to `true`.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.5`
+
+## \[0.11.4]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.4`
+
+## \[0.11.3]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.3`
+
+## \[0.11.2]
+
+- [`fea80d5`](https://www.github.com/crabnebula-dev/cargo-packager/commit/fea80d5760882e6cdc21c8ed2f82d323e0598926) ([#264](https://www.github.com/crabnebula-dev/cargo-packager/pull/264)) Fix `pacman` package failing to install when source directory contained whitespace.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.2`
+
+## \[0.11.1]
+
+- [`4523722`](https://www.github.com/crabnebula-dev/cargo-packager/commit/4523722d0808faef4a91dbb227badd0354f4c71a) ([#283](https://www.github.com/crabnebula-dev/cargo-packager/pull/283)) Fixes resources paths on NSIS when cross compiling.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.1`
+
+## \[0.11.0]
+
+- [`41b05d0`](https://www.github.com/crabnebula-dev/cargo-packager/commit/41b05d08a635d593df4cf4eefbe921b92ace77b7) ([#277](https://www.github.com/crabnebula-dev/cargo-packager/pull/277)) Add `--target` flag to specify target triple to package.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.0`
+
+## \[0.10.3]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.10.3`
+
+## \[0.10.2]
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.10.2`
+- Upgraded to `cargo-packager-utils@0.1.1`
+
+## \[0.10.1]
+
+- [`522f23b`](https://www.github.com/crabnebula-dev/cargo-packager/commit/522f23bd867b037eeec81c43295aafd38ebe60ec) ([#258](https://www.github.com/crabnebula-dev/cargo-packager/pull/258)) Update NSIS installer template URL.
+- [`bce99ae`](https://www.github.com/crabnebula-dev/cargo-packager/commit/bce99aecb4160291a026dcd4750055f9079099f8) ([#260](https://www.github.com/crabnebula-dev/cargo-packager/pull/260)) Fix NSIS uninstaller removing the uninstall directory even if it was not empty.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.10.1`
+
+## \[0.10.0]
+
+- [`c6207bb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c6207bba042a8a0184ddb7e12650a4cd8f415c23) ([#254](https://www.github.com/crabnebula-dev/cargo-packager/pull/254)) Allow Linux dependencies to be specified via a file path instead of just a direct String.
+  This enables the list of dependencies to by dynamically generated for both Debian `.deb` packages and pacman packages,
+  which can relieve the app developer from the burden of manually maintaining a fixed list of dependencies.
+- [`de4dcca`](https://www.github.com/crabnebula-dev/cargo-packager/commit/de4dccaca4ae758d3adde517cc415a002873e642) ([#256](https://www.github.com/crabnebula-dev/cargo-packager/pull/256)) Automatically add an Exec arg (field code) in the `.desktop` file.
+
+  This adds an `{exec_arg}` field to the default `main.desktop` template.
+  This field is populated with a sane default value, based on the
+  `deep_link_protocols` or `file_associations` in the `Config` struct.
+
+  This allows an installed Debian package to be invoked by other
+  applications with URLs or files as arguments, as expected.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.10.0`
+
+## \[0.9.1]
+
+- [`44a19ea`](https://www.github.com/crabnebula-dev/cargo-packager/commit/44a19eae1f5f26b1bd10ba84dd6eb3d856609a67) ([#246](https://www.github.com/crabnebula-dev/cargo-packager/pull/246)) On macOS, fix notarization skipping needed environment variables when macos specific config has been specified in the config file.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.9.1`
+
+## \[0.9.0]
+
+- [`ab53974`](https://www.github.com/crabnebula-dev/cargo-packager/commit/ab53974b683ce282202e1a550c551eed951e9ca7) ([#235](https://www.github.com/crabnebula-dev/cargo-packager/pull/235)) Added deep link support.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.9.0`
+
 ## \[0.8.1]
 
 - [`1375380`](https://www.github.com/crabnebula-dev/cargo-packager/commit/1375380c7c9d2adf55ab18a2ce23917849967995)([#196](https://www.github.com/crabnebula-dev/cargo-packager/pull/196)) Always show shell commands output for `beforePackageCommand` and `beforeEachPackagingCommand` .

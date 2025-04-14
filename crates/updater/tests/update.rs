@@ -7,7 +7,7 @@
 
 use std::{
     collections::HashMap,
-    fs::File,
+    fs::{self, File},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -126,7 +126,7 @@ fn update_app() {
     for (format, update_package_path) in generated_packages {
         let ext = update_package_path.extension().unwrap().to_str().unwrap();
         let signature_path = update_package_path.with_extension(format!("{ext}.sig",));
-        let signature = std::fs::read_to_string(&signature_path).unwrap_or_else(|_| {
+        let signature = fs::read_to_string(&signature_path).unwrap_or_else(|_| {
             panic!("failed to read signature file {}", signature_path.display())
         });
 
@@ -136,7 +136,7 @@ fn update_app() {
         let update_package_path = {
             let filename = update_package_path.file_name().unwrap().to_str().unwrap();
             let new_path = update_package_path.with_file_name(format!("update-{filename}",));
-            std::fs::rename(&update_package_path, &new_path).expect("failed to rename bundle");
+            fs::rename(&update_package_path, &new_path).expect("failed to rename bundle");
             new_path
         };
 
@@ -262,7 +262,7 @@ fn update_app() {
         let app = root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app/Contents/MacOS/cargo-packager-updater-app-test");
 
         // save the current creation time
-        let ctime1 = std::fs::metadata(&app)
+        let ctime1 = fs::metadata(&app)
             .expect("failed to read app metadata")
             .created()
             .unwrap();
@@ -281,7 +281,7 @@ fn update_app() {
         loop {
             // check if the main binary creation time has changed since `ctime1`
             if app.exists() {
-                let ctime2 = std::fs::metadata(&app)
+                let ctime2 = fs::metadata(&app)
                     .expect("failed to read app metadata")
                     .created()
                     .unwrap();

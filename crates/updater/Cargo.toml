@@ -1,24 +1,28 @@
 [package]
 name = "cargo-packager-updater"
-version = "0.1.4"
+version = "0.2.2"
 description = "Rust executable updater."
-authors = [
-  "CrabNebula Ltd.",
-  "Tauri Programme within The Commons Conservancy"
-]
+authors = ["CrabNebula Ltd.", "Tauri Programme within The Commons Conservancy"]
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 
 [features]
-process-relaunch-dangerous-allow-symlink-macos = [ ]
-native-tls = [ "reqwest/native-tls" ]
-native-tls-vendored = [ "reqwest/native-tls-vendored" ]
-rustls-tls = [ "reqwest/rustls-tls-native-roots" ]
+default = ["rustls-tls"]
+process-relaunch-dangerous-allow-symlink-macos = [
+  "cargo-packager-utils/process-relaunch-dangerous-allow-symlink-macos",
+]
+native-tls = ["reqwest/native-tls"]
+native-tls-vendored = ["reqwest/native-tls-vendored"]
+rustls-tls = ["reqwest/rustls-tls-native-roots"]
 
 [dependencies]
-cargo-packager-utils = { version = "0.1.0", path = "../utils" }
-reqwest = { version = "0.12", default-features = false, features = [ "json", "stream", "blocking" ] }
+cargo-packager-utils = { version = "0.1.1", path = "../utils" }
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "stream",
+  "blocking",
+] }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -26,12 +30,12 @@ dunce = { workspace = true }
 dirs = { workspace = true }
 semver = { workspace = true }
 base64 = { workspace = true }
-time = { workspace = true, features = [ "parsing", "formatting" ] }
+time = { workspace = true, features = ["parsing", "formatting"] }
 http = "1"
-url = { version = "2.5", features = [ "serde" ] }
+url = { version = "2", features = ["serde"] }
 minisign-verify = "0.2"
 ctor = "0.2"
-tempfile = "3.10"
+tempfile = "3.12"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tar = { workspace = true }

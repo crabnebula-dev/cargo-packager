@@ -8,13 +8,14 @@ use std::{
     collections::HashMap,
     ffi::OsString,
     fmt::{self, Display},
+    fs,
     path::{Path, PathBuf},
 };
 
 use relative_path::PathExt;
 use serde::{Deserialize, Serialize};
 
-use crate::util;
+use crate::{util, Error};
 
 mod builder;
 mod category;
@@ -81,7 +82,7 @@ pub struct FileAssociation {
 }
 
 impl FileAssociation {
-    /// Creates a new [`FileAssociation``] using provided extensions.
+    /// Creates a new [`FileAssociation`] using provided extensions.
     pub fn new<I, S>(extensions: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -132,14 +133,57 @@ impl FileAssociation {
     }
 }
 
-/// The Linux debian configuration.
+/// Deep link protocol
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct DeepLinkProtocol {
+    /// URL schemes to associate with this app without `://`. For example `my-app`
+    pub schemes: Vec<String>,
+    /// The protocol name. **macOS-only** and maps to `CFBundleTypeName`. Defaults to `<bundle-id>.<schemes[0]>`
+    pub name: Option<String>,
+    /// The app's role for these schemes. **macOS-only** and maps to `CFBundleTypeRole`.
+    #[serde(default)]
+    pub role: BundleTypeRole,
+}
+
+impl DeepLinkProtocol {
+    /// Creates a new [`DeepLinkProtocol``] using provided schemes.
+    pub fn new<I, S>(schemes: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            schemes: schemes.into_iter().map(Into::into).collect(),
+            name: None,
+            role: BundleTypeRole::default(),
+        }
+    }
+
+    /// Set the name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
+    pub fn name<S: Into<String>>(mut self, name: S) -> Self {
+        self.name.replace(name.into());
+        self
+    }
+
+    /// Set he app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    /// Defaults to [`BundleTypeRole::Editor`]
+    pub fn role(mut self, role: BundleTypeRole) -> Self {
+        self.role = role;
+        self
+    }
+}
+
+/// The Linux Debian configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[non_exhaustive]
 pub struct DebianConfig {
-    /// The list of debian dependencies.
-    pub depends: Option<Vec<String>>,
+    /// The list of Debian dependencies.
+    pub depends: Option<Dependencies>,
     /// Path to a custom desktop file Handlebars template.
     ///
     /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
@@ -151,7 +195,7 @@ pub struct DebianConfig {
     /// {{#if comment}}
     /// Comment={{comment}}
     /// {{/if}}
-    /// Exec={{exec}}
+    /// Exec={{exec}} {{exec_arg}}
     /// Icon={{icon}}
     /// Name={{name}}
     /// Terminal=false
@@ -160,6 +204,23 @@ pub struct DebianConfig {
     /// MimeType={{mime_type}}
     /// {{/if}}
     /// ```
+    ///
+    /// The `{{exec_arg}}` will be set to:
+    /// * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given.
+    ///   * The "%F" arg means that your application can be invoked with multiple file paths.
+    /// * "%U", if at least one [Config::deep_link_protocols] was specified.
+    ///   * The "%U" arg means that your application can be invoked with multiple URLs.
+    ///   * If both [Config::file_associations] and [Config::deep_link_protocols] were specified,
+    ///     the "%U" arg will be used, causing the file paths to be passed to your app as `file://` URLs.
+    /// * An empty string "" (nothing) if neither are given.
+    ///   * This means that your application will never be invoked with any URLs or file paths.
+    ///
+    /// To specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`:
+    /// ```text
+    /// Exec={{exec}} %u
+    /// ```
+    ///
+    /// See more here: <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>.
     #[serde(alias = "desktop-template", alias = "desktop_template")]
     pub desktop_template: Option<PathBuf>,
     /// Define the section in Debian Control file. See : <https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections>
@@ -178,14 +239,25 @@ impl DebianConfig {
         Self::default()
     }
 
-    /// Set the list of debian dependencies.
+    /// Set the list of Debian dependencies directly using an iterator of strings.
     pub fn depends<I, S>(mut self, depends: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.depends
-            .replace(depends.into_iter().map(Into::into).collect());
+        self.depends.replace(Dependencies::List(
+            depends.into_iter().map(Into::into).collect(),
+        ));
+        self
+    }
+
+    /// Set the list of Debian dependencies indirectly via a path to a file,
+    /// which must contain one dependency (a package name) per line.
+    pub fn depends_path<P>(mut self, path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        self.depends.replace(Dependencies::Path(path.into()));
         self
     }
 
@@ -200,7 +272,7 @@ impl DebianConfig {
     /// {{#if comment}}
     /// Comment={{comment}}
     /// {{/if}}
-    /// Exec={{exec}}
+    /// Exec={{exec}} {{exec_arg}}
     /// Icon={{icon}}
     /// Name={{name}}
     /// Terminal=false
@@ -242,6 +314,49 @@ impl DebianConfig {
                 .collect(),
         );
         self
+    }
+}
+
+/// A list of dependencies specified as either a list of Strings
+/// or as a path to a file that lists the dependencies, one per line.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum Dependencies {
+    /// The list of dependencies provided directly as a vector of Strings.
+    List(Vec<String>),
+    /// A path to the file containing the list of dependences, formatted as one per line:
+    /// ```text
+    /// libc6
+    /// libxcursor1
+    /// libdbus-1-3
+    /// libasyncns0
+    /// ...
+    /// ```
+    Path(PathBuf),
+}
+impl Dependencies {
+    /// Returns the dependencies as a list of Strings.
+    pub fn to_list(&self) -> crate::Result<Vec<String>> {
+        match self {
+            Self::List(v) => Ok(v.clone()),
+            Self::Path(path) => {
+                let trimmed_lines = fs::read_to_string(path)
+                    .map_err(|e| Error::IoWithPath(path.clone(), e))?
+                    .lines()
+                    .filter_map(|line| {
+                        let trimmed = line.trim();
+                        if !trimmed.is_empty() {
+                            Some(trimmed.to_owned())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                Ok(trimmed_lines)
+            }
+        }
     }
 }
 
@@ -354,8 +469,8 @@ pub struct PacmanConfig {
     pub files: Option<HashMap<String, String>>,
     /// List of softwares that must be installed for the app to build and run.
     ///
-    /// See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
-    pub depends: Option<Vec<String>>,
+    /// See : <https://wiki.archlinux.org/title/PKGBUILD#depends>
+    pub depends: Option<Dependencies>,
     /// Additional packages that are provided by this app.
     ///
     /// See : <https://wiki.archlinux.org/title/PKGBUILD#provides>
@@ -396,16 +511,29 @@ impl PacmanConfig {
         );
         self
     }
-    /// Set the list of pacman dependencies.
+
+    /// Set the list of pacman dependencies directly using an iterator of strings.
     pub fn depends<I, S>(mut self, depends: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.depends
-            .replace(depends.into_iter().map(Into::into).collect());
+        self.depends.replace(Dependencies::List(
+            depends.into_iter().map(Into::into).collect(),
+        ));
         self
     }
+
+    /// Set the list of pacman dependencies indirectly via a path to a file,
+    /// which must contain one dependency (a package name) per line.
+    pub fn depends_path<P>(mut self, path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        self.depends.replace(Dependencies::Path(path.into()));
+        self
+    }
+
     /// Set the list of additional packages that are provided by this app.
     pub fn provides<I, S>(mut self, provides: I) -> Self
     where
@@ -581,15 +709,23 @@ pub struct MacOsConfig {
     #[serde(alias = "exception-domain", alias = "exception_domain")]
     pub exception_domain: Option<String>,
     /// Code signing identity.
+    ///
+    /// This is typically of the form: `"Developer ID Application: TEAM_NAME (TEAM_ID)"`.
     #[serde(alias = "signing-identity", alias = "signing_identity")]
     pub signing_identity: Option<String>,
     /// Codesign certificate (base64 encoded of the p12 file).
+    ///
+    /// Note: this field cannot be specified via a config file or Cargo package metadata.
     #[serde(skip)]
     pub signing_certificate: Option<OsString>,
     /// Password of the codesign certificate.
+    ///
+    /// Note: this field cannot be specified via a config file or Cargo package metadata.
     #[serde(skip)]
     pub signing_certificate_password: Option<OsString>,
     /// Notarization authentication credentials.
+    ///
+    /// Note: this field cannot be specified via a config file or Cargo package metadata.
     #[serde(skip)]
     pub notarization_credentials: Option<MacOsNotarizationCredentials>,
     /// Provider short name for notarization.
@@ -600,6 +736,20 @@ pub struct MacOsConfig {
     /// Path to the Info.plist file for the package.
     #[serde(alias = "info-plist-path", alias = "info_plist_path")]
     pub info_plist_path: Option<PathBuf>,
+    /// Path to the embedded.provisionprofile file for the package.
+    #[serde(
+        alias = "embedded-provisionprofile-path",
+        alias = "embedded_provisionprofile_path"
+    )]
+    pub embedded_provisionprofile_path: Option<PathBuf>,
+    /// Apps that need to be packaged within the app.
+    #[serde(alias = "embedded-apps", alias = "embedded_apps")]
+    pub embedded_apps: Option<Vec<String>>,
+    /// Whether this is a background application. If true, the app will not appear in the Dock.
+    ///
+    /// Sets the `LSUIElement` flag in the macOS plist file.
+    #[serde(default, alias = "background_app", alias = "background-app")]
+    pub background_app: bool,
 }
 
 impl MacOsConfig {
@@ -667,6 +817,42 @@ impl MacOsConfig {
         self.info_plist_path.replace(info_plist_path.into());
         self
     }
+
+    /// Path to the embedded.provisionprofile file for the package.
+    pub fn embedded_provisionprofile_path<S: Into<PathBuf>>(
+        mut self,
+        embedded_provisionprofile_path: S,
+    ) -> Self {
+        self.embedded_provisionprofile_path
+            .replace(embedded_provisionprofile_path.into());
+        self
+    }
+
+    /// Apps that need to be packaged within the app.
+    pub fn embedded_apps<I, S>(mut self, embedded_apps: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.embedded_apps
+            .replace(embedded_apps.into_iter().map(Into::into).collect());
+        self
+    }
+}
+
+/// Linux configuration
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct LinuxConfig {
+    /// Flag to indicate if desktop entry should be generated.
+    #[serde(
+        default = "default_true",
+        alias = "generate-desktop-entry",
+        alias = "generate_desktop_entry"
+    )]
+    pub generate_desktop_entry: bool,
 }
 
 /// A wix language.
@@ -981,12 +1167,12 @@ pub struct NsisConfig {
     /// A custom `.nsi` template to use.
     ///
     /// See the default template here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     pub template: Option<PathBuf>,
     /// Logic of an NSIS section that will be ran before the install section.
     ///
     /// See the available libraries, dlls and global variables here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     ///
     /// ### Example
     /// ```toml
@@ -1078,7 +1264,7 @@ impl NsisConfig {
     /// Set a custom `.nsi` template to use.
     ///
     /// See the default template here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     pub fn template<P: Into<PathBuf>>(mut self, template: P) -> Self {
         self.template.replace(template.into());
         self
@@ -1087,7 +1273,7 @@ impl NsisConfig {
     /// Set the logic of an NSIS section that will be ran before the install section.
     ///
     /// See the available libraries, dlls and global variables here
-    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/installer.nsi>
+    /// <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
     ///
     /// ### Example
     /// ```toml
@@ -1480,7 +1666,7 @@ pub struct Config {
     /// Defaults to [`Config::out_dir`].
     #[serde(default, alias = "binaries-dir", alias = "binaries_dir")]
     pub binaries_dir: Option<PathBuf>,
-    /// The target triple we are packaging for. This mainly affects [`Config::external_binaries`].
+    /// The target triple we are packaging for.
     ///
     /// Defaults to the current OS target triple.
     #[serde(alias = "target-triple", alias = "target_triple")]
@@ -1510,6 +1696,9 @@ pub struct Config {
     /// The file associations
     #[serde(alias = "file-associations", alias = "file_associations")]
     pub file_associations: Option<Vec<FileAssociation>>,
+    /// Deep-link protocols.
+    #[serde(alias = "deep-link-protocols", alias = "deep_link_protocols")]
+    pub deep_link_protocols: Option<Vec<DeepLinkProtocol>>,
     /// The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory
     /// or an object of `src` and `target` paths. In the case of using an object,
     /// the `src` could be either a glob pattern, path to a file, path to a directory,
@@ -1541,6 +1730,8 @@ pub struct Config {
     pub windows: Option<WindowsConfig>,
     /// MacOS-specific configuration.
     pub macos: Option<MacOsConfig>,
+    /// Linux-specific configuration
+    pub linux: Option<LinuxConfig>,
     /// Debian-specific configuration.
     pub deb: Option<DebianConfig>,
     /// AppImage configuration.
@@ -1569,6 +1760,11 @@ impl Config {
     /// Returns the [macos](Config::macos) specific configuration.
     pub fn macos(&self) -> Option<&MacOsConfig> {
         self.macos.as_ref()
+    }
+
+    /// Returns the [linux](Config::linux) specific configuration.
+    pub fn linux(&self) -> Option<&LinuxConfig> {
+        self.linux.as_ref()
     }
 
     /// Returns the [nsis](Config::nsis) specific configuration.
@@ -1655,13 +1851,13 @@ impl Config {
     /// Returns the out dir. Defaults to the current directory.
     pub fn out_dir(&self) -> PathBuf {
         if self.out_dir.as_os_str().is_empty() {
-            std::env::current_dir().expect("failed to resolve cwd")
-        } else if self.out_dir.exists() {
-            dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
-        } else {
-            std::fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
-            self.out_dir.clone()
+            return std::env::current_dir().expect("failed to resolve cwd");
         }
+
+        if !self.out_dir.exists() {
+            fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
+        }
+        dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
     }
 
     /// Returns the binaries dir. Defaults to [`Self::out_dir`] if [`Self::binaries_dir`] is not set.
@@ -1677,6 +1873,14 @@ impl Config {
     pub fn main_binary(&self) -> crate::Result<&Binary> {
         self.binaries
             .iter()
+            .find(|bin| bin.main)
+            .ok_or_else(|| crate::Error::MainBinaryNotFound)
+    }
+
+    /// Returns a mutable reference to the main binary.
+    pub fn main_binary_mut(&mut self) -> crate::Result<&mut Binary> {
+        self.binaries
+            .iter_mut()
             .find(|bin| bin.main)
             .ok_or_else(|| crate::Error::MainBinaryNotFound)
     }
@@ -1723,8 +1927,10 @@ impl Config {
             let path = entry.path();
             if path.is_file() {
                 let relative = path.relative_to(src_dir)?.to_path("");
+                let src = dunce::canonicalize(path)
+                    .map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
                 let resource = ResolvedResource {
-                    src: dunce::canonicalize(path)?,
+                    src,
                     target: target_dir.join(relative),
                 };
                 out.push(resource);
@@ -1737,7 +1943,8 @@ impl Config {
     pub(crate) fn resources_from_glob(glob: &str) -> crate::Result<Vec<ResolvedResource>> {
         let mut out = Vec::new();
         for src in glob::glob(glob)? {
-            let src = dunce::canonicalize(src?)?;
+            let src = src?;
+            let src = dunce::canonicalize(&src).map_err(|e| Error::IoWithPath(src, e))?;
             let target = PathBuf::from(src.file_name().unwrap_or_default());
             out.push(ResolvedResource { src, target })
         }
@@ -1764,8 +1971,10 @@ impl Config {
                         if src_path.is_dir() {
                             out.extend(Self::resources_from_dir(&src_path, &target_dir)?);
                         } else if src_path.is_file() {
+                            let src = dunce::canonicalize(&src_path)
+                                .map_err(|e| Error::IoWithPath(src_path, e))?;
                             out.push(ResolvedResource {
-                                src: dunce::canonicalize(src_path)?,
+                                src,
                                 target: sanitize_path(target),
                             });
                         } else {
@@ -1809,11 +2018,12 @@ impl Config {
     pub(crate) fn copy_resources(&self, path: &Path) -> crate::Result<()> {
         for resource in self.resources()? {
             let dest = path.join(resource.target);
-            std::fs::create_dir_all(
+            fs::create_dir_all(
                 dest.parent()
                     .ok_or_else(|| crate::Error::ParentDirNotFound(dest.to_path_buf()))?,
             )?;
-            std::fs::copy(resource.src, dest)?;
+            fs::copy(&resource.src, &dest)
+                .map_err(|e| Error::CopyFile(resource.src.clone(), dest.clone(), e))?;
         }
         Ok(())
     }
@@ -1837,7 +2047,7 @@ impl Config {
                 let dest = path.join(format!("{file_name}.exe"));
                 #[cfg(not(windows))]
                 let dest = path.join(&*file_name);
-                std::fs::copy(src, &dest)?;
+                fs::copy(&src, &dest).map_err(|e| Error::CopyFile(src.clone(), dest.clone(), e))?;
                 paths.push(dest);
             }
         }

@@ -7,7 +7,7 @@
 
 use std::{
     fmt::Debug,
-    fs::OpenOptions,
+    fs::{self, OpenOptions},
     io::{BufReader, Write},
     path::{Path, PathBuf},
     str,
@@ -15,10 +15,12 @@ use std::{
 };
 
 use base64::{engine::general_purpose::STANDARD, Engine};
-use minisign::{sign, KeyPair as KP, SecretKey, SecretKeyBox};
 use serde::{Deserialize, Serialize};
 
-use crate::util::{self, PathExt};
+use crate::{
+    util::{self, PathExt},
+    Error,
+};
 
 /// A public and secret key pair.
 #[derive(Clone, Debug)]
@@ -34,7 +36,7 @@ pub struct KeyPair {
 /// empty string as the password.
 #[tracing::instrument(level = "trace")]
 pub fn generate_key(password: Option<String>) -> crate::Result<KeyPair> {
-    let KP { pk, sk } = KP::generate_encrypted_keypair(password)?;
+    let minisign::KeyPair { pk, sk } = minisign::KeyPair::generate_encrypted_keypair(password)?;
 
     let pk_box_str = pk.to_box()?.to_string();
     let sk_box_str = sk.to_box(None)?.to_string();
@@ -55,9 +57,12 @@ fn decode_base64(base64_key: &str) -> crate::Result<String> {
 
 /// Decodes a private key using the specified password.
 #[tracing::instrument(level = "trace")]
-pub fn decode_private_key(private_key: &str, password: Option<&str>) -> crate::Result<SecretKey> {
+pub fn decode_private_key(
+    private_key: &str,
+    password: Option<&str>,
+) -> crate::Result<minisign::SecretKey> {
     let decoded_secret = decode_base64(private_key)?;
-    let sk_box = SecretKeyBox::from_string(&decoded_secret)?;
+    let sk_box = minisign::SecretKeyBox::from_string(&decoded_secret)?;
     let sk = sk_box.into_secret_key(password.map(Into::into))?;
     Ok(sk)
 }
@@ -76,14 +81,14 @@ pub fn save_keypair<P: AsRef<Path> + Debug>(
 
     if path.exists() {
         if !force {
-            return Err(crate::Error::SigningKeyExists(path.to_path_buf()));
+            return Err(Error::SigningKeyExists(path.to_path_buf()));
         } else {
-            std::fs::remove_file(path)?;
+            fs::remove_file(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
         }
     }
 
     if pk_path.exists() {
-        std::fs::remove_file(pk_path)?;
+        fs::remove_file(pk_path).map_err(|e| Error::IoWithPath(pk_path.to_path_buf(), e))?;
     }
 
     let mut sk_writer = util::create_file(path)?;
@@ -94,7 +99,10 @@ pub fn save_keypair<P: AsRef<Path> + Debug>(
     write!(pk_writer, "{}", keypair.pk)?;
     pk_writer.flush()?;
 
-    Ok((dunce::canonicalize(path)?, dunce::canonicalize(pk_path)?))
+    Ok((
+        dunce::canonicalize(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?,
+        dunce::canonicalize(pk_path).map_err(|e| Error::IoWithPath(pk_path.to_path_buf(), e))?,
+    ))
 }
 
 /// Signing configuration.
@@ -144,7 +152,7 @@ pub fn sign_file<P: AsRef<Path> + Debug>(
 /// Signs a specified file using an already decoded secret key.
 #[tracing::instrument(level = "trace")]
 pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
-    secret_key: &SecretKey,
+    secret_key: &minisign::SecretKey,
     path: P,
 ) -> crate::Result<PathBuf> {
     let path = path.as_ref();
@@ -162,10 +170,13 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
             .to_string_lossy()
     );
 
-    let file = OpenOptions::new().read(true).open(path)?;
+    let file = OpenOptions::new()
+        .read(true)
+        .open(path)
+        .map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
     let file_reader = BufReader::new(file);
 
-    let signature_box = sign(
+    let signature_box = minisign::sign(
         None,
         secret_key,
         file_reader,
@@ -177,5 +188,5 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     signature_box_writer.write_all(encoded_signature.as_bytes())?;
     signature_box_writer.flush()?;
 
-    Ok(dunce::canonicalize(signature_path)?)
+    dunce::canonicalize(signature_path).map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))
 }

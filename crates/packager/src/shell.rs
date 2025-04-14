@@ -6,27 +6,17 @@
 use std::{
     borrow::Cow,
     io::{BufRead, BufReader},
-    process::{Command, ExitStatus, Output, Stdio},
+    process::{Command, Output, Stdio},
     sync::{Arc, Mutex},
 };
 
 pub trait CommandExt {
-    // The `piped` method sets the stdout and stderr to properly
-    // show the command output in the Node.js wrapper.
-    fn piped(&mut self) -> std::io::Result<ExitStatus>;
     fn output_ok(&mut self) -> std::io::Result<Output>;
     fn output_ok_info(&mut self) -> std::io::Result<Output>;
     fn output_ok_inner(&mut self, level: tracing::Level) -> std::io::Result<Output>;
 }
 
 impl CommandExt for Command {
-    fn piped(&mut self) -> std::io::Result<ExitStatus> {
-        self.stdout(os_pipe::dup_stdout()?);
-        self.stderr(os_pipe::dup_stderr()?);
-        tracing::debug!("Running Command `{self:?}`");
-        self.status().map_err(Into::into)
-    }
-
     fn output_ok(&mut self) -> std::io::Result<Output> {
         self.output_ok_inner(tracing::Level::DEBUG)
     }

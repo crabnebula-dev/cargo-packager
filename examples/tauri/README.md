@@ -3,7 +3,7 @@
 1. install `tauri-cli` first
 
    ```sh
-   cargo install tauri-cli --version "2.0.0-alpha.10" --locked
+   cargo install tauri-cli --version "2.0.0-rc.10" --locked
    ```
 
 2. Change `UPDATER_ENDPOINT` value in `src/main.rs` to point to your updater server or static update file.

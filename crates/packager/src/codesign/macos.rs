@@ -38,7 +38,7 @@ pub fn setup_keychain(
     let keychain_list_output = Command::new("security")
         .args(["list-keychain", "-d", "user"])
         .output()
-        .map_err(crate::Error::FailedToListKeyChain)?;
+        .map_err(Error::FailedToListKeyChain)?;
 
     let tmp_dir = tempfile::tempdir()?;
 
@@ -47,11 +47,8 @@ pub fn setup_keychain(
         .join("cert.p12")
         .to_string_lossy()
         .to_string();
-    let cert_path_tmp = tmp_dir
-        .path()
-        .join("cert.p12.tmp")
-        .to_string_lossy()
-        .to_string();
+    let cert_path_tmp = tmp_dir.path().join("cert.p12.tmp");
+    let cert_path_tmp_str = cert_path_tmp.to_string_lossy().to_string();
     let certificate_encoded = certificate_encoded
         .to_str()
         .expect("failed to convert APPLE_CERTIFICATE to string")
@@ -64,23 +61,24 @@ pub fn setup_keychain(
     // as certificate contain whitespace decoding may be broken
     // https://github.com/marshallpierce/rust-base64/issues/105
     // we'll use builtin base64 command from the OS
-    let mut tmp_cert = File::create(cert_path_tmp.clone())?;
+    let mut tmp_cert =
+        File::create(&cert_path_tmp).map_err(|e| Error::IoWithPath(cert_path_tmp, e))?;
     tmp_cert.write_all(certificate_encoded)?;
 
     Command::new("base64")
-        .args(["--decode", "-i", &cert_path_tmp, "-o", &cert_path])
+        .args(["--decode", "-i", &cert_path_tmp_str, "-o", &cert_path])
         .output_ok()
-        .map_err(crate::Error::FailedToDecodeCert)?;
+        .map_err(Error::FailedToDecodeCert)?;
 
     Command::new("security")
         .args(["create-keychain", "-p", KEYCHAIN_PWD, KEYCHAIN_ID])
         .output_ok()
-        .map_err(crate::Error::FailedToCreateKeyChain)?;
+        .map_err(Error::FailedToCreateKeyChain)?;
 
     Command::new("security")
         .args(["unlock-keychain", "-p", KEYCHAIN_PWD, KEYCHAIN_ID])
         .output_ok()
-        .map_err(crate::Error::FailedToUnlockKeyChain)?;
+        .map_err(Error::FailedToUnlockKeyChain)?;
 
     Command::new("security")
         .args([
@@ -98,12 +96,12 @@ pub fn setup_keychain(
             "/usr/bin/productbuild",
         ])
         .output_ok()
-        .map_err(crate::Error::FailedToImportCert)?;
+        .map_err(Error::FailedToImportCert)?;
 
     Command::new("security")
         .args(["set-keychain-settings", "-t", "3600", "-u", KEYCHAIN_ID])
         .output_ok()
-        .map_err(crate::Error::FailedToSetKeychainSettings)?;
+        .map_err(Error::FailedToSetKeychainSettings)?;
 
     Command::new("security")
         .args([
@@ -116,7 +114,7 @@ pub fn setup_keychain(
             KEYCHAIN_ID,
         ])
         .output_ok()
-        .map_err(crate::Error::FailedToSetKeyPartitionList)?;
+        .map_err(Error::FailedToSetKeyPartitionList)?;
 
     let current_keychains = String::from_utf8_lossy(&keychain_list_output.stdout)
         .split('\n')
@@ -132,7 +130,7 @@ pub fn setup_keychain(
         .args(current_keychains)
         .arg(KEYCHAIN_ID)
         .output_ok()
-        .map_err(crate::Error::FailedToListKeyChain)?;
+        .map_err(Error::FailedToListKeyChain)?;
 
     Ok(())
 }
@@ -169,7 +167,7 @@ impl PartialOrd for SignTarget {
     }
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> crate::Result<()> {
     let certificate_encoded = config
         .macos()
@@ -210,7 +208,7 @@ pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> cr
     Ok(())
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 fn sign(
     path_to_sign: &Path,
     identity: &str,
@@ -247,7 +245,7 @@ fn sign(
         .args(args)
         .arg(path_to_sign)
         .output_ok()
-        .map_err(crate::Error::FailedToRunCodesign)?;
+        .map_err(Error::FailedToRunCodesign)?;
 
     Ok(())
 }
@@ -259,7 +257,7 @@ struct NotarytoolSubmitOutput {
     message: String,
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 pub fn notarize(
     app_bundle_path: PathBuf,
     auth: MacOsNotarizationCredentials,
@@ -267,7 +265,7 @@ pub fn notarize(
 ) -> crate::Result<()> {
     let bundle_stem = app_bundle_path
         .file_stem()
-        .ok_or_else(|| crate::Error::FailedToExtractFilename(app_bundle_path.clone()))?;
+        .ok_or_else(|| Error::FailedToExtractFilename(app_bundle_path.clone()))?;
 
     let tmp_dir = tempfile::tempdir()?;
     let zip_path = tmp_dir
@@ -290,7 +288,7 @@ pub fn notarize(
     Command::new("ditto")
         .args(zip_args)
         .output_ok()
-        .map_err(crate::Error::FailedToRunDitto)?;
+        .map_err(Error::FailedToRunDitto)?;
 
     // sign the zip file
     if let Some(identity) = &config
@@ -324,7 +322,7 @@ pub fn notarize(
         .args(notarize_args)
         .notarytool_args(&auth)
         .output_ok()
-        .map_err(crate::Error::FailedToRunXcrun)?;
+        .map_err(Error::FailedToRunXcrun)?;
 
     if !output.status.success() {
         return Err(Error::FailedToNotarize);
@@ -340,6 +338,16 @@ pub fn notarize(
             tracing::info!("Notarizing {}", log_message);
             staple_app(app_bundle_path)?;
             Ok(())
+        } else if let Ok(output) = Command::new("xcrun")
+            .args(["notarytool", "log"])
+            .arg(&submit_output.id)
+            .notarytool_args(&auth)
+            .output_ok()
+        {
+            Err(Error::NotarizeRejected(format!(
+                "{log_message}\nLog:\n{}",
+                String::from_utf8_lossy(&output.stdout),
+            )))
         } else {
             Err(Error::NotarizeRejected(log_message))
         }
@@ -353,19 +361,19 @@ pub fn notarize(
 fn staple_app(app_bundle_path: PathBuf) -> crate::Result<()> {
     let filename = app_bundle_path
         .file_name()
-        .ok_or_else(|| crate::Error::FailedToExtractFilename(app_bundle_path.clone()))?
+        .ok_or_else(|| Error::FailedToExtractFilename(app_bundle_path.clone()))?
         .to_string_lossy()
         .to_string();
 
     let app_bundle_path_dir = app_bundle_path
         .parent()
-        .ok_or_else(|| crate::Error::ParentDirNotFound(app_bundle_path.clone()))?;
+        .ok_or_else(|| Error::ParentDirNotFound(app_bundle_path.clone()))?;
 
     Command::new("xcrun")
         .args(vec!["stapler", "staple", "-v", &filename])
         .current_dir(app_bundle_path_dir)
         .output_ok()
-        .map_err(crate::Error::FailedToRunXcrun)?;
+        .map_err(Error::FailedToRunXcrun)?;
 
     Ok(())
 }

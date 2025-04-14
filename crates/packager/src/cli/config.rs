@@ -4,22 +4,46 @@
 
 use std::{
     fmt::Debug,
+    fs,
     path::{Path, PathBuf},
 };
 
+use super::{Error, Result};
 use crate::{config::Binary, Config};
 
-fn find_nearset_pkg_name(path: &Path) -> crate::Result<Option<String>> {
-    fn find_nearset_pkg_name_inner() -> crate::Result<Option<String>> {
-        if let Ok(contents) = std::fs::read_to_string("Cargo.toml") {
-            let toml = toml::from_str::<toml::Table>(&contents)?;
+impl Config {
+    pub(crate) fn name(&self) -> &str {
+        self.name.as_deref().unwrap_or_default()
+    }
+
+    /// Whether this config should be packaged or skipped
+    pub(crate) fn should_pacakge(&self, cli: &super::Cli) -> bool {
+        // Should be packaged when it is enabled and this package was in the explicit packages list specified on the CLI,
+        // or the packages list specified on the CLI is empty which means build all
+        self.enabled
+            && cli
+                .packages
+                .as_ref()
+                .map(|packages| packages.iter().any(|p| p == self.name()))
+                .unwrap_or(true)
+    }
+}
+
+fn find_nearset_pkg_name(path: &Path) -> Result<Option<String>> {
+    fn find_nearset_pkg_name_inner() -> Result<Option<String>> {
+        if let Ok(contents) = fs::read_to_string("Cargo.toml") {
+            let toml = toml::from_str::<toml::Table>(&contents)
+                .map_err(|e| Error::FailedToParseCargoToml(Box::new(e)))?;
+
             if let Some(name) = toml.get("package").and_then(|p| p.get("name")) {
                 return Ok(Some(name.to_string()));
             }
         }
 
-        if let Ok(contents) = std::fs::read("package.json") {
-            let json = serde_json::from_slice::<serde_json::Value>(&contents)?;
+        if let Ok(contents) = fs::read("package.json") {
+            let json = serde_json::from_slice::<serde_json::Value>(&contents)
+                .map_err(Error::FailedToParsePacakgeJson)?;
+
             if let Some(name) = json.get("name") {
                 return Ok(Some(name.to_string()));
             }
@@ -29,31 +53,40 @@ fn find_nearset_pkg_name(path: &Path) -> crate::Result<Option<String>> {
     }
 
     let cwd = std::env::current_dir()?;
-    std::env::set_current_dir(path)?;
+    std::env::set_current_dir(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
     let res = find_nearset_pkg_name_inner();
-    std::env::set_current_dir(cwd)?;
+    std::env::set_current_dir(&cwd).map_err(|e| Error::IoWithPath(cwd, e))?;
     res
 }
 
 #[tracing::instrument(level = "trace")]
-pub fn parse_config_file<P: AsRef<Path> + Debug>(
-    path: P,
-) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
-    let path = path.as_ref().to_path_buf().canonicalize()?;
-    let content = std::fs::read_to_string(&path)?;
+fn parse_config_file<P: AsRef<Path> + Debug>(path: P) -> Result<Vec<(Option<PathBuf>, Config)>> {
+    let p = path.as_ref().to_path_buf();
+    let path = p.canonicalize().map_err(|e| Error::IoWithPath(p, e))?;
+    let content = fs::read_to_string(&path).map_err(|e| Error::IoWithPath(path.clone(), e))?;
     let mut configs = match path.extension().and_then(|e| e.to_str()) {
         Some("toml") => {
-            if let Ok(cs) = toml::from_str::<Vec<Config>>(&content) {
-                cs.into_iter().map(|c| (Some(path.clone()), c)).collect()
+            if let Ok(configs) = toml::from_str::<Vec<Config>>(&content) {
+                configs
+                    .into_iter()
+                    .map(|c| (Some(path.clone()), c))
+                    .collect()
             } else {
-                vec![(Some(path), toml::from_str::<Config>(&content)?)]
+                toml::from_str::<Config>(&content)
+                    .map_err(|e| Error::FailedToParseTomlConfigFromPath(path.clone(), Box::new(e)))
+                    .map(|config| vec![(Some(path), config)])?
             }
         }
         _ => {
-            if let Ok(cs) = serde_json::from_str::<Vec<Config>>(&content) {
-                cs.into_iter().map(|c| (Some(path.clone()), c)).collect()
+            if let Ok(configs) = serde_json::from_str::<Vec<Config>>(&content) {
+                configs
+                    .into_iter()
+                    .map(|c| (Some(path.clone()), c))
+                    .collect()
             } else {
-                vec![(Some(path), serde_json::from_str::<Config>(&content)?)]
+                serde_json::from_str::<Config>(&content)
+                    .map_err(|e| Error::FailedToParseJsonConfigFromPath(path.clone(), e))
+                    .map(|config| vec![(Some(path), config)])?
             }
         }
     };
@@ -73,7 +106,7 @@ pub fn parse_config_file<P: AsRef<Path> + Debug>(
 }
 
 #[tracing::instrument(level = "trace")]
-pub fn find_config_files() -> crate::Result<Vec<PathBuf>> {
+fn find_config_files() -> crate::Result<Vec<PathBuf>> {
     let opts = glob::MatchOptions {
         case_sensitive: false,
         ..Default::default()
@@ -91,36 +124,39 @@ pub fn find_config_files() -> crate::Result<Vec<PathBuf>> {
 }
 
 #[tracing::instrument(level = "trace")]
-pub fn load_configs_from_cargo_workspace(
-    release: bool,
-    profile: Option<String>,
-    manifest_path: Option<PathBuf>,
-) -> crate::Result<Vec<(Option<PathBuf>, Config)>> {
-    let profile = if release {
+fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<PathBuf>, Config)>> {
+    let profile = if cli.release {
         "release"
-    } else if let Some(profile) = &profile {
+    } else if let Some(profile) = &cli.profile {
         profile.as_str()
     } else {
         "debug"
     };
 
     let mut metadata_cmd = cargo_metadata::MetadataCommand::new();
-    if let Some(manifest_path) = &manifest_path {
+    if let Some(manifest_path) = &cli.manifest_path {
         metadata_cmd.manifest_path(manifest_path);
     }
-    let Ok(metadata) = metadata_cmd.exec() else {
-        return Ok(Vec::new());
+
+    let metadata = match metadata_cmd.exec() {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::debug!("cargo metadata failed: {e}");
+            return Ok(Vec::new());
+        }
     };
 
     let mut configs = Vec::new();
     for package in metadata.workspace_packages().iter() {
         if let Some(config) = package.metadata.get("packager") {
-            let mut config: Config = serde_json::from_value(config.to_owned())?;
+            let mut config: Config = serde_json::from_value(config.to_owned())
+                .map_err(Error::FailedToParseJsonConfigCargoToml)?;
+
             if config.name.is_none() {
                 config.name.replace(package.name.clone());
             }
             if config.product_name.is_empty() {
-                config.product_name = package.name.clone();
+                config.product_name.clone_from(&package.name);
             }
             if config.version.is_empty() {
                 config.version = package.version.to_string();
@@ -139,11 +175,12 @@ pub fn load_configs_from_cargo_workspace(
                     .replace(format!("com.{}.{}", author, package.name));
             }
 
-            let cargo_out_dir = metadata
-                .target_directory
-                .as_std_path()
-                .to_path_buf()
-                .join(profile);
+            let mut cargo_out_dir = metadata.target_directory.as_std_path().to_path_buf();
+            if let Some(target_triple) = cli.target.as_ref().or(config.target_triple.as_ref()) {
+                cargo_out_dir.push(target_triple);
+            }
+            cargo_out_dir.push(profile);
+
             if config.binaries_dir.is_none() {
                 config.binaries_dir.replace(cargo_out_dir.clone());
             }
@@ -152,7 +189,7 @@ pub fn load_configs_from_cargo_workspace(
             }
 
             if config.description.is_none() {
-                config.description = package.description.clone();
+                config.description.clone_from(&package.description);
             }
             if config.authors.is_none() {
                 config.authors = Some(package.authors.clone());
@@ -183,6 +220,41 @@ pub fn load_configs_from_cargo_workspace(
             ));
         }
     }
+
+    Ok(configs)
+}
+
+pub fn detect_configs(cli: &super::Cli) -> Result<Vec<(Option<PathBuf>, Config)>> {
+    let configs = match &cli.config {
+        // if a raw json object
+        Some(c) if c.starts_with('{') => serde_json::from_str::<Config>(c)
+            .map(|c| vec![(None, c)])
+            .map_err(Error::FailedToParseJsonConfig)?,
+        // if a raw json array
+        Some(c) if c.starts_with('[') => serde_json::from_str::<Vec<Config>>(c)
+            .map_err(Error::FailedToParseJsonConfig)?
+            .into_iter()
+            .map(|c| (None, c))
+            .collect(),
+        // if a path to config file
+        Some(c) => parse_config_file(c)?,
+        // fallback to config files and cargo workspaces configs
+        _ => {
+            let config_files = find_config_files()?
+                .into_iter()
+                .filter_map(|c| parse_config_file(c).ok())
+                .collect::<Vec<_>>()
+                .concat();
+
+            let cargo_configs = load_configs_from_cargo_workspace(cli)?;
+
+            [config_files, cargo_configs]
+                .concat()
+                .into_iter()
+                .filter(|(_, c)| c.should_pacakge(cli))
+                .collect()
+        }
+    };
 
     Ok(configs)
 }

@@ -11,18 +11,9 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 /// Errors returned by cargo-packager.
 pub enum Error {
-    /// Clap error.
+    /// JSON parsing error.
     #[error(transparent)]
-    Clap(#[from] clap::error::Error),
-    /// Error while reading cargo metadata.
-    #[error("Failed to read cargo metadata: {0}")]
-    Metadata(#[from] cargo_metadata::Error),
-    /// JSON Config parsing error.
-    #[error("Failed to parse config: {0}")]
-    JSONConfigParseError(#[from] serde_json::Error),
-    /// TOML Config parsing error.
-    #[error("Failed to parse config: {0}")]
-    TOMLConfigParseError(#[from] toml::de::Error),
+    Json(#[from] serde_json::Error),
     /// Target triple architecture error
     #[error("Unable to determine target-architecture")]
     Architecture,
@@ -32,6 +23,18 @@ pub enum Error {
     /// Target triple environment error
     #[error("Unable to determine target-environment")]
     Environment,
+    /// I/O errors with path.
+    #[error("I/O Error ({0}): {1}")]
+    IoWithPath(PathBuf, std::io::Error),
+    /// I/O copy file errors.
+    #[error("Failed to copy file from {0} to {1}: {2}")]
+    CopyFile(PathBuf, PathBuf, std::io::Error),
+    /// I/O rename file errors.
+    #[error("Failed to rename file from {0} to {1}: {2}")]
+    RenameFile(PathBuf, PathBuf, std::io::Error),
+    /// I/O symlink file errors.
+    #[error("Failed to symlink file from {0} to {1}: {2}")]
+    Symlink(PathBuf, PathBuf, std::io::Error),
     /// I/O errors.
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -97,7 +100,7 @@ pub enum Error {
     AppImageScriptFailed(std::io::Error),
     /// Failed to get parent directory of a path
     #[error("Failed to get parent directory of {0}")]
-    ParentDirNotFound(std::path::PathBuf),
+    ParentDirNotFound(PathBuf),
     /// A hook, for example `beforePackagaingCommand`, has failed.
     #[error("{0} `{1}` failed: {2}")]
     HookCommandFailure(String, String, std::io::Error),
@@ -232,6 +235,12 @@ pub enum Error {
     #[error("Failed to remove extended attributes from app bundle: {0}")]
     #[cfg(target_os = "macos")]
     FailedToRemoveExtendedAttributes(std::io::Error),
+    /// Could not find the embedded.provisionprofile file.
+    #[error("Embedded provision profile file {0} not found")]
+    EmbeddedProvisionprofileFileNotFound(PathBuf),
+    /// Could not copy the embedded.provisionprofile file to the Contents directory.
+    #[error("Could not copy embedded provision profile file {0}: {1}")]
+    FailedToCopyEmbeddedProvisionprofile(PathBuf, std::io::Error),
 }
 
 /// Convenient type alias of Result type for cargo-packager.

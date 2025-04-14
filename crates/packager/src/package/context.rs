@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use crate::{util, Config};
 
@@ -24,7 +24,7 @@ impl Context {
             .unwrap_or_else(|| config.out_dir())
             .join(".cargo-packager");
         if !tools_path.exists() {
-            std::fs::create_dir_all(&tools_path)?;
+            fs::create_dir_all(&tools_path)?;
         }
 
         let intermediates_path = config.out_dir().join(".cargo-packager");

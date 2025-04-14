@@ -1,21 +1,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-fn main() -> wry::Result<()> {
-    use wry::{
-        application::{
-            event::{Event, StartCause, WindowEvent},
-            event_loop::{ControlFlow, EventLoop},
-            window::WindowBuilder,
-        },
-        webview::WebViewBuilder,
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use tao::{
+        event::{Event, StartCause, WindowEvent},
+        event_loop::{ControlFlow, EventLoop},
+        window::WindowBuilder,
     };
+    use wry::WebViewBuilder;
 
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("html5test")
         .build(&event_loop)?;
-    let _webview = WebViewBuilder::new(window)?
-        .with_url("https://html5test.com/")?
+    let _webview = WebViewBuilder::new(&window)
+        .with_url("https://html5test.com/")
         .build()?;
 
     event_loop.run(move |event, _, control_flow| {
