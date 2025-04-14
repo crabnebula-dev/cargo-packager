@@ -860,6 +860,13 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "packageName": {
+          "description": "Overwrite package name just for deb.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false

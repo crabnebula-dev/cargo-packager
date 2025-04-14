@@ -210,7 +210,7 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
 
     let generate_desktop_entry = config
         .linux()
-        .map_or(true, |linux| linux.generate_desktop_entry);
+        .is_none_or(|linux| linux.generate_desktop_entry);
 
     if generate_desktop_entry {
         tracing::debug!("Generating desktop file");
@@ -302,7 +302,14 @@ fn generate_control_file(
     // https://www.debian.org/doc/debian-policy/ch-controlfields.html
     let dest_path = control_dir.join("control");
     let mut file = util::create_file(&dest_path)?;
-    writeln!(file, "Package: {}", AsKebabCase(&config.product_name))?;
+
+    let pkg_name = AsKebabCase(&config.product_name).to_string();
+    let pkg_name: String = config
+        .deb()
+        .map(|x| x.package_name.clone().unwrap_or(pkg_name.clone()))
+        .unwrap_or(pkg_name);
+
+    writeln!(file, "Package: {}", pkg_name)?;
     writeln!(file, "Version: {}", &config.version)?;
     writeln!(file, "Architecture: {}", arch)?;
     // Installed-Size must be divided by 1024, see https://www.debian.org/doc/debian-policy/ch-controlfields.html#installed-size
