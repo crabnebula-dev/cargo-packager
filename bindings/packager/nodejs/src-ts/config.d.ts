@@ -273,6 +273,10 @@ export interface Config {
    */
   macos?: MacOsConfig | null;
   /**
+   * Linux-specific configuration
+   */
+  linux?: LinuxConfig | null;
+  /**
    * Debian-specific configuration.
    */
   deb?: DebianConfig | null;
@@ -439,10 +443,19 @@ export interface MacOsConfig {
   embeddedApps?: string[] | null;
   /**
    * Whether this is a background application. If true, the app will not appear in the Dock.
-   * 
+   *
    * Sets the `LSUIElement` flag in the macOS plist file.
    */
   backgroundApp?: boolean;
+}
+/**
+ * Linux configuration
+ */
+export interface LinuxConfig {
+  /**
+   * Flag to indicate if desktop entry should be generated.
+   */
+  generateDesktopEntry?: boolean;
 }
 /**
  * The Linux Debian configuration.

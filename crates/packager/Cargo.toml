@@ -87,10 +87,10 @@ tempfile = "3"
 plist = "1"
 
 [target."cfg(target_os = \"windows\")".dependencies]
-winreg = "0.52"
-once_cell = "1.19"
+windows-registry = "0.5"
+once_cell = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
-regex = "1.10"
+regex = "1"
 
 [target."cfg(target_os = \"windows\")".dependencies.windows-sys]
 version = "0.52"

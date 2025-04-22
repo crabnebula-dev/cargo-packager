@@ -241,6 +241,15 @@ pub enum Error {
     /// Could not copy the embedded.provisionprofile file to the Contents directory.
     #[error("Could not copy embedded provision profile file {0}: {1}")]
     FailedToCopyEmbeddedProvisionprofile(PathBuf, std::io::Error),
+    /// Failed to open Windows registry.
+    #[error("failed to open registry {0}")]
+    OpenRegistry(String),
+    /// Failed to get registry value.
+    #[error("failed to get {0} value on registry")]
+    GetRegistryValue(String),
+    /// Failed to enumerate registry keys.
+    #[error("failed to enumerate registry keys")]
+    FailedToEnumerateRegKeys,
 }
 
 /// Convenient type alias of Result type for cargo-packager.
