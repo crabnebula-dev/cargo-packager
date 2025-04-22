@@ -210,7 +210,7 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
 
     let generate_desktop_entry = config
         .linux()
-        .map_or(true, |linux| linux.generate_desktop_entry);
+        .is_none_or(|linux| linux.generate_desktop_entry);
 
     if generate_desktop_entry {
         tracing::debug!("Generating desktop file");
