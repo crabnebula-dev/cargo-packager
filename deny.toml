@@ -29,6 +29,7 @@ allow = [
     "ISC",
     # Apparently for us it's equivalent to BSD-3 which is considered compatible with MIT and Apache-2.0
     "Unicode-DFS-2016",
+    "Unicode-3.0",
     # Used by webpki-roots and option-ext which we are using without modifications in a larger work, therefore okay.
     "MPL-2.0",
     "BSD-3-Clause",
