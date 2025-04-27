@@ -34,7 +34,7 @@ time = { workspace = true, features = ["parsing", "formatting"] }
 http = "1"
 url = { version = "2", features = ["serde"] }
 minisign-verify = "0.2"
-ctor = "0.2"
+ctor = "0.4"
 tempfile = "3.12"
 
 [target."cfg(target_os = \"macos\")".dependencies]
