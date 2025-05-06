@@ -9,11 +9,6 @@ use std::{fmt::Debug, path::Path, process::Command};
 use once_cell::sync::Lazy;
 #[cfg(windows)]
 use std::path::PathBuf;
-#[cfg(windows)]
-use winreg::{
-    enums::{HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_32KEY},
-    RegKey,
-};
 
 use crate::{config::Config, shell::CommandExt, util};
 
@@ -70,20 +65,22 @@ static SIGN_TOOL: Lazy<crate::Result<PathBuf>> = Lazy::new(|| {
     const INSTALLED_ROOTS_REGKEY_PATH: &str = r"SOFTWARE\Microsoft\Windows Kits\Installed Roots";
     const KITS_ROOT_REGVALUE_NAME: &str = r"KitsRoot10";
 
-    let installed_roots_key_path = Path::new(INSTALLED_ROOTS_REGKEY_PATH);
-
     // Open 32-bit HKLM "Installed Roots" key
-    let installed_roots_key = RegKey::predef(HKEY_LOCAL_MACHINE)
-        .open_subkey_with_flags(installed_roots_key_path, KEY_READ | KEY_WOW64_32KEY)?;
+    let installed_roots_key = windows_registry::LOCAL_MACHINE
+        .open(INSTALLED_ROOTS_REGKEY_PATH)
+        .map_err(|_| crate::Error::OpenRegistry(INSTALLED_ROOTS_REGKEY_PATH.to_string()))?;
+
     // Get the Windows SDK root path
-    let kits_root_10_path: String = installed_roots_key.get_value(KITS_ROOT_REGVALUE_NAME)?;
+    let kits_root_10_path: String = installed_roots_key
+        .get_string(KITS_ROOT_REGVALUE_NAME)
+        .map_err(|_| crate::Error::GetRegistryValue(KITS_ROOT_REGVALUE_NAME.to_string()))?;
+
     // Construct Windows SDK bin path
     let kits_root_10_bin_path = Path::new(&kits_root_10_path).join("bin");
 
     let mut installed_kits: Vec<String> = installed_roots_key
-        .enum_keys()
-        /* Report and ignore errors, pass on values. */
-        .filter_map(|res| res.ok())
+        .keys()
+        .map_err(|_| crate::Error::FailedToEnumerateRegKeys)?
         .collect();
 
     // Sort installed kits
