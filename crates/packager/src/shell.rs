@@ -83,7 +83,14 @@ impl CommandExt for Command {
         if output.status.success() {
             Ok(output)
         } else {
-            Err(std::io::Error::last_os_error())
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "failed to run command: {self:?}\nstdout: {}\nstderr: {}",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                ),
+            ))
         }
     }
 }
