@@ -37,8 +37,8 @@ importers:
         specifier: ^11.0.3
         version: 11.0.4
       '@types/node':
-        specifier: ^20.8.10
-        version: 20.12.8
+        specifier: ^22.0.0
+        version: 22.15.2
       ava:
         specifier: ^6.2.0
         version: 6.2.0
@@ -55,8 +55,8 @@ importers:
         specifier: ^2.18.1
         version: 2.18.2
       '@types/node':
-        specifier: ^20.8.10
-        version: 20.12.8
+        specifier: ^22.0.0
+        version: 22.15.2
       ava:
         specifier: ^6.0.0
         version: 6.2.0
@@ -73,8 +73,8 @@ importers:
         specifier: ^2.2.1
         version: 2.2.3
       '@types/node':
-        specifier: ^20.8.10
-        version: 20.12.8
+        specifier: ^22.0.0
+        version: 22.15.2
       ava:
         specifier: ^6.2.0
         version: 6.2.0
@@ -247,8 +247,8 @@ packages:
   '@types/minimatch@5.1.2':
     resolution: {integrity: sha512-K0VQKziLUWkVKiRVrx4a40iPaxTUefQmjtkQofBkYRcoaaL/8rhwDWww9qWbrgicNOgnpIsMxyNIUM4+n6dUIA==}
 
-  '@types/node@20.12.8':
-    resolution: {integrity: sha512-NU0rJLJnshZWdE/097cdCBbyW1h4hEg0xpovcoAQYHl8dnEyp/NAOiE45pvc+Bd1Dt+2r94v2eGFpQJ4R7g+2w==}
+  '@types/node@22.15.2':
+    resolution: {integrity: sha512-uKXqKN9beGoMdBfcaTY1ecwz6ctxuJAcUlwE55938g0ZJ8lRxwAZqRz2AJ4pzpt5dHdTPMB863UZ0ESiFUcP7A==}
 
   '@types/prettier@2.7.3':
     resolution: {integrity: sha512-+68kP9yzs4LMp7VNh8gdzMSPZFL44MLGqiHWvttYJe+6qnuVr4Ek9wSBQoveqY/r+LwjCcU29kNVkidwim+kYA==}
@@ -1196,8 +1196,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  undici-types@5.26.5:
-    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   unicorn-magic@0.3.0:
     resolution: {integrity: sha512-+QBBXBCvifc56fsbuxZQ6Sic3wqqc3WWaqxs58gvJrcOuN83HGTCwz3oS5phzU9LthRNE9VrJCFCLUgHeeFnfA==}
@@ -1411,7 +1411,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.0.4
       '@types/keyv': 3.1.4
-      '@types/node': 20.12.8
+      '@types/node': 22.15.2
       '@types/responselike': 1.0.3
 
   '@types/estree@1.0.7': {}
@@ -1419,12 +1419,12 @@ snapshots:
   '@types/fs-extra@11.0.4':
     dependencies:
       '@types/jsonfile': 6.1.4
-      '@types/node': 20.12.8
+      '@types/node': 22.15.2
 
   '@types/glob@7.2.0':
     dependencies:
       '@types/minimatch': 5.1.2
-      '@types/node': 20.12.8
+      '@types/node': 22.15.2
 
   '@types/http-cache-semantics@4.0.4': {}
 
@@ -1432,29 +1432,29 @@ snapshots:
 
   '@types/jsonfile@6.1.4':
     dependencies:
-      '@types/node': 20.12.8
+      '@types/node': 22.15.2
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 20.12.8
+      '@types/node': 22.15.2
 
   '@types/lodash@4.14.202': {}
 
   '@types/minimatch@5.1.2': {}
 
-  '@types/node@20.12.8':
+  '@types/node@22.15.2':
     dependencies:
-      undici-types: 5.26.5
+      undici-types: 6.21.0
 
   '@types/prettier@2.7.3': {}
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 20.12.8
+      '@types/node': 22.15.2
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 20.12.8
+      '@types/node': 22.15.2
     optional: true
 
   '@vercel/nft@0.27.10':
@@ -2400,7 +2400,7 @@ snapshots:
 
   typescript@5.4.5: {}
 
-  undici-types@5.26.5: {}
+  undici-types@6.21.0: {}
 
   unicorn-magic@0.3.0: {}
 
