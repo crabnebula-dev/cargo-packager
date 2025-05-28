@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.11.6]
+
+- [`735d6c4`](https://www.github.com/crabnebula-dev/cargo-packager/commit/735d6c4745911793cbcf5d929d8da288840bcf24) ([#345](https://www.github.com/crabnebula-dev/cargo-packager/pull/345)) Fixed a typo on the `digest_algorithm` config (was `digest-algorithim`).
+- [`5205088`](https://www.github.com/crabnebula-dev/cargo-packager/commit/5205088cd78412fb6cbe5e48a715524fcc5a2ee7) ([#340](https://www.github.com/crabnebula-dev/cargo-packager/pull/340)) Enhance sign error message.
+- [`55924d3`](https://www.github.com/crabnebula-dev/cargo-packager/commit/55924d3522c4ab1cfcb4436044e5ebad8adf241c) ([#334](https://www.github.com/crabnebula-dev/cargo-packager/pull/334)) Migrate from `winreg` crate to `windows-registry`. This adds new variants to the packager's `Error` type.
+
 ## \[0.11.5]
 
 - [`17194a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17194a92aabd59c9e075105072ff939f5d55a107) ([#313](https://www.github.com/crabnebula-dev/cargo-packager/pull/313)) Added `linux > generateDesktopEntry` config to allow disabling generating a .desktop file on Linux bundles (defaults to true).

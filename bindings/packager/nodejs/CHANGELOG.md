@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.11.6]
+
+- [`5205088`](https://www.github.com/crabnebula-dev/cargo-packager/commit/5205088cd78412fb6cbe5e48a715524fcc5a2ee7) ([#340](https://www.github.com/crabnebula-dev/cargo-packager/pull/340)) Enhance sign error message.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.6`
+
 ## \[0.11.5]
 
 - [`17194a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17194a92aabd59c9e075105072ff939f5d55a107) ([#313](https://www.github.com/crabnebula-dev/cargo-packager/pull/313)) Added `linux > generateDesktopEntry` config to allow disabling generating a .desktop file on Linux bundles (defaults to true).
