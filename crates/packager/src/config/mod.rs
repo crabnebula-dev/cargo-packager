@@ -1398,7 +1398,7 @@ impl NsisConfig {
 #[non_exhaustive]
 pub struct WindowsConfig {
     /// The file digest algorithm to use for creating file signatures. Required for code signing. SHA-256 is recommended.
-    #[serde(alias = "digest-algorithim", alias = "digest_algorithim")]
+    #[serde(alias = "digest-algorithm", alias = "digest_algorithm")]
     pub digest_algorithm: Option<String>,
     /// The SHA1 hash of the signing certificate.
     #[serde(alias = "certificate-thumbprint", alias = "certificate_thumbprint")]
