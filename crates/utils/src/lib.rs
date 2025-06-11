@@ -45,6 +45,8 @@ pub enum PackageFormat {
     AppImage,
     /// The Linux Pacman package (.tar.gz and PKGBUILD)
     Pacman,
+    /// The Red Hat package (.rpm).
+    Rpm,
 }
 
 impl Display for PackageFormat {
@@ -65,6 +67,8 @@ impl PackageFormat {
             "nsis" => Some(PackageFormat::Nsis),
             "deb" => Some(PackageFormat::Deb),
             "appimage" => Some(PackageFormat::AppImage),
+            "pacman" => Some(PackageFormat::Pacman),
+            "rpm" => Some(PackageFormat::Rpm),
             _ => None,
         }
     }
@@ -83,6 +87,7 @@ impl PackageFormat {
             PackageFormat::Deb => "deb",
             PackageFormat::AppImage => "appimage",
             PackageFormat::Pacman => "pacman",
+            PackageFormat::Rpm => "rpm",
         }
     }
 
@@ -125,6 +130,14 @@ impl PackageFormat {
                 target_os = "openbsd"
             ))]
             PackageFormat::Pacman,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Rpm,
         ]
     }
 
@@ -165,6 +178,14 @@ impl PackageFormat {
                 target_os = "openbsd"
             ))]
             PackageFormat::Pacman,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Rpm,
         ]
     }
 
@@ -187,6 +208,7 @@ impl PackageFormat {
             PackageFormat::AppImage => 0,
             PackageFormat::Pacman => 0,
             PackageFormat::Dmg => 1,
+            PackageFormat::Rpm => 0,
         }
     }
 }

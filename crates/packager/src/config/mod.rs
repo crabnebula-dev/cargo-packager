@@ -317,6 +317,78 @@ impl DebianConfig {
     }
 }
 
+/// The Linux RPM configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct RpmConfig {
+    /// The list of Red Hat dependencies.
+    pub depends: Option<Dependencies>,
+    /// Path to a custom desktop file Handlebars template.
+    ///
+    /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
+    #[serde(alias = "desktop-template", alias = "desktop_template")]
+    pub desktop_template: Option<PathBuf>,
+    /// List of custom files to add to the rpm package.
+    /// Maps a dir/file to a dir/file inside the rpm package.
+    pub files: Option<HashMap<String, String>>,
+}
+
+impl RpmConfig {
+    /// Creates a new [`RpmConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the list of Red Hat dependencies directly using an iterator of strings.
+    pub fn depends<I, S>(mut self, depends: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.depends.replace(Dependencies::List(
+            depends.into_iter().map(Into::into).collect(),
+        ));
+        self
+    }
+
+    /// Set the list of Red Hat dependencies indirectly via a path to a file,
+    /// which must contain one dependency (a package name) per line.
+    pub fn depends_path<P>(mut self, path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        self.depends.replace(Dependencies::Path(path.into()));
+        self
+    }
+
+    /// Set the path to a custom desktop file Handlebars template.
+    ///
+    /// Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
+    pub fn desktop_template<P: Into<PathBuf>>(mut self, desktop_template: P) -> Self {
+        self.desktop_template.replace(desktop_template.into());
+        self
+    }
+
+    /// Set the list of custom files to add to the rpm package.
+    /// Maps a dir/file to a dir/file inside the rpm package.
+    pub fn files<I, S, T>(mut self, files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, T)>,
+        S: Into<String>,
+        T: Into<String>,
+    {
+        self.files.replace(
+            files
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
+        );
+        self
+    }
+}
+
 /// A list of dependencies specified as either a list of Strings
 /// or as a path to a file that lists the dependencies, one per line.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1744,6 +1816,8 @@ pub struct Config {
     pub nsis: Option<NsisConfig>,
     /// Dmg configuration.
     pub dmg: Option<DmgConfig>,
+    /// Rpm configuration.
+    pub rpm: Option<RpmConfig>,
 }
 
 impl Config {

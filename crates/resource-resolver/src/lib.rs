@@ -60,6 +60,7 @@ pub fn current_format() -> crate::Result<PackageFormat> {
         Some("deb") => Ok(PackageFormat::Deb),
         Some("appimage") => Ok(PackageFormat::AppImage),
         Some("pacman") => Ok(PackageFormat::Pacman),
+        Some("rpm") => Ok(PackageFormat::Rpm),
         _ => Err(Error::UnkownPackageFormat),
     }
 }
@@ -94,6 +95,14 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
             let exe_name = exe.file_name().unwrap().to_string_lossy();
 
             let path = format!("/usr/lib/{}/", exe_name);
+            Ok(PathBuf::from(path))
+        }
+
+        PackageFormat::Rpm => {
+            let exe = current_exe()?;
+            let exe_name = exe.file_name().unwrap().to_string_lossy();
+            // RPM packages prefer to have their executables in `/usr/libexec/<exe_name>/`
+            let path = format!("/usr/libexec/{}/", exe_name);
             Ok(PathBuf::from(path))
         }
 
