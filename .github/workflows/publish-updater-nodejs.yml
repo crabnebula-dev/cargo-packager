@@ -92,7 +92,7 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: latest
           package_json_file: bindings/updater/nodejs
@@ -396,7 +396,7 @@ jobs:
       # - test-linux-arm-gnueabihf-binding
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: latest
           package_json_file: bindings/updater/nodejs
