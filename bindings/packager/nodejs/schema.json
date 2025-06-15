@@ -324,6 +324,17 @@
           "type": "null"
         }
       ]
+    },
+    "rpm": {
+      "description": "Rpm configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RpmConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "additionalProperties": false,
@@ -480,6 +491,13 @@
           "type": "string",
           "enum": [
             "pacman"
+          ]
+        },
+        {
+          "description": "The Red Hat package (.rpm).",
+          "type": "string",
+          "enum": [
+            "rpm"
           ]
         }
       ]
@@ -1424,6 +1442,41 @@
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "RpmConfig": {
+      "description": "The Linux RPM configuration.",
+      "type": "object",
+      "properties": {
+        "depends": {
+          "description": "The list of Red Hat dependencies.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Dependencies"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "desktopTemplate": {
+          "description": "Path to a custom desktop file Handlebars template.\n\nAvailable variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "files": {
+          "description": "List of custom files to add to the rpm package. Maps a dir/file to a dir/file inside the rpm package.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
