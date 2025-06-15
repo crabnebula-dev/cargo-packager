@@ -5,26 +5,20 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
-    collections::{BTreeSet, HashMap},
-    ffi::OsStr,
-    fs::{self, File},
-    io::{BufReader, Write},
-    path::{Path, PathBuf},
+    collections::{BTreeSet, HashMap}, ffi::OsStr, fs::{self, File}, io::BufReader, path::{Path, PathBuf}
 };
 
-use flate2::{write::GzEncoder, Compression};
 use handlebars::Handlebars;
-use heck::AsKebabCase;
 use image::{codecs::png::PngDecoder, ImageDecoder};
 use relative_path::PathExt;
+use rpm::{PackageBuilder, FileOptions};
 use serde::Serialize;
-use tar::HeaderMode;
 use walkdir::WalkDir;
 
 use super::Context;
 use crate::{
     config::Config,
-    util::{self, PathExt as UtilPathExt},
+    util::{self},
     Error,
 };
 
@@ -36,7 +30,7 @@ pub struct RpmIcon {
     pub path: PathBuf,
 }
 
-/// Generate the icon files and store them under the `data_dir`.
+// Generate the icon files and store them under the `data_dir`.
 #[tracing::instrument(level = "trace", skip(config))]
 fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet<RpmIcon>> {
     let hicolor_dir = data_dir.join("usr/share/icons/hicolor");
@@ -57,7 +51,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
                 continue;
             }
             // Put file in scope so that it's closed when copying it
-            let deb_icon = {
+            let rpm_ico = {
                 let file =
                     File::open(&icon_path).map_err(|e| Error::IoWithPath(icon_path.clone(), e))?;
                 let file = BufReader::new(file);
@@ -73,16 +67,16 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
                     path: dest_path,
                 }
             };
-            if !icons_set.contains(&deb_icon) {
-                let parent = deb_icon
+            if !icons_set.contains(&rpm_ico) {
+                let parent = rpm_ico
                     .path
                     .parent()
-                    .ok_or_else(|| crate::Error::ParentDirNotFound(deb_icon.path.clone()))?;
+                    .ok_or_else(|| crate::Error::ParentDirNotFound(rpm_ico.path.clone()))?;
                 fs::create_dir_all(parent)
                     .map_err(|e| Error::IoWithPath(parent.to_path_buf(), e))?;
-                fs::copy(&icon_path, &deb_icon.path)
-                    .map_err(|e| Error::CopyFile(icon_path.clone(), deb_icon.path.clone(), e))?;
-                icons_set.insert(deb_icon);
+                fs::copy(&icon_path, &rpm_ico.path)
+                    .map_err(|e| Error::CopyFile(icon_path.clone(), rpm_ico.path.clone(), e))?;
+                icons_set.insert(rpm_ico);
             }
         }
     }
@@ -104,7 +98,7 @@ fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> 
 
     let mut handlebars = Handlebars::new();
     handlebars.register_escape_fn(handlebars::no_escape);
-    if let Some(template) = config.deb().and_then(|d| d.desktop_template.as_ref()) {
+    if let Some(template) = config.rpm().and_then(|d| d.desktop_template.as_ref()) {
         handlebars
             .register_template_string("main.desktop", fs::read_to_string(template)?)
             .map_err(Box::new)?;
@@ -290,28 +284,71 @@ pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> cr
     Ok(())
 }
 
-/// Generates the debian control file and stores it under the `control_dir`.
-#[tracing::instrument(level = "trace", skip(config))]
-fn generate_control_file(
-    config: &Config,
-    arch: &str,
-    control_dir: &Path,
-    data_dir: &Path,
-) -> crate::Result<()> {
-    // TODO: Generte RPM spec file instead of control file.
-    // RENAME to `generate_spec_file`?
+fn collect_package_files(build_root: &Path) -> crate::Result<Vec<(PathBuf, String)>> {
+    let mut entries = Vec::new();
+    for entry in WalkDir::new(build_root) {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file() {
+            let rel_path = path.strip_prefix(build_root).unwrap();
+            entries.push((path.to_path_buf(), format!("/{}", rel_path.display())));
+        }
+    }
+    Ok(entries)
 }
 
-/// Creates a `.tar.gz` file from the given directory (placing the new file
-/// within the given directory's parent directory), then deletes the original
-/// directory and returns the path to the new file.
-pub fn tar_and_gzip_dir<P: AsRef<Path>>(src_dir: P) -> crate::Result<PathBuf> {
-    // TODO: Use CPIO instead for rpm packages.#
-    // RENAME to `cpio_dir`?
+pub fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
+    let config = &ctx.config;
+    let build_root = ctx.intermediates_path.join("rpm");
+    fs::create_dir_all(&build_root)?;
+
+    generate_data(config, &build_root)?;
+    if let Some(custom_files) = config.rpm().and_then(|rpm| rpm.files.as_ref()) {
+        copy_custom_files(custom_files, &build_root)?;
+    }
+
+    let package_files = collect_package_files(&build_root)?;
+    // Try to extract the license name from the license file, or use "MIT" as default
+    let license = if let Some(license_file) = &config.license_file {
+        match fs::read_to_string(license_file) {
+            Ok(content) => {
+                // Use the first non-empty line as the license name
+                content
+                    .lines()
+                    .find(|line| !line.trim().is_empty())
+                    .map(|line| line.trim().to_string())
+                    .unwrap_or_else(|| "MIT".to_string())
+            }
+            Err(_) => "MIT".to_string(),
+        }
+    } else {
+        "MIT".to_string()
+    };
+
+    let mut pkg_builder = PackageBuilder::new(
+        &config.main_binary_name()?,
+        &config.version,
+        &license,
+        "x86_64",
+        config.description.as_deref().unwrap_or(""),
+    );
+
+    for (src, dest) in package_files {
+        let mut opts = FileOptions::new(dest.clone());
+        // Set executable bit for files in /usr/bin, otherwise 644
+        if dest.starts_with("/usr/bin/") {
+            opts = opts.mode(0o755);
+        } else {
+            opts = opts.mode(0o644);
+        }
+        pkg_builder = pkg_builder.with_file(src, opts).map_err(|e| Error::RpmError(e.to_string()))?;
+    }
+
+    let rpm = pkg_builder.build().map_err(|e| Error::RpmError(e.to_string()))?;
+    let out_path = ctx.config.out_dir.as_path().join(format!("{}-{}.rpm", config.main_binary_name()?, config.version));
+    let mut out_file = File::create(&out_path)?;
+    rpm.write(&mut out_file).map_err(|e| Error::RpmError(e.to_string()))?;
+
+    Ok(vec![out_path])
 }
 
-#[tracing::instrument(level = "trace", skip(ctx))]
-pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
-    // TODO: Implement the packaging logic for RPM.
-    // Use the rpm or https://crates.io/crates/cargo-generate-rpm
-}

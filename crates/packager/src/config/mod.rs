@@ -1871,6 +1871,11 @@ impl Config {
         self.dmg.as_ref()
     }
 
+    /// Returns the [rpm](Config::rpm) specific configuration.
+    pub fn rpm(&self) -> Option<&RpmConfig> {
+        self.rpm.as_ref()
+    }
+
     /// Returns the target triple of this config, if not set, fallsback to the current OS target triple.
     pub fn target_triple(&self) -> String {
         self.target_triple.clone().unwrap_or_else(|| {

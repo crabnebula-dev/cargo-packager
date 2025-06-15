@@ -250,6 +250,9 @@ pub enum Error {
     /// Failed to enumerate registry keys.
     #[error("failed to enumerate registry keys")]
     FailedToEnumerateRegKeys,
+    /// RPM package error.
+    #[error("RPM package error: {0}")]
+    RpmError(String),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
