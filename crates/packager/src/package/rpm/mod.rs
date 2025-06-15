@@ -13,7 +13,6 @@ use image::{codecs::png::PngDecoder, ImageDecoder};
 use relative_path::PathExt;
 use rpm::{PackageBuilder, FileOptions};
 use serde::Serialize;
-use walkdir::WalkDir;
 
 use super::Context;
 use crate::{
@@ -214,31 +213,7 @@ pub fn generate_data(config: &Config, data_dir: &Path) -> crate::Result<BTreeSet
     Ok(icons)
 }
 
-pub fn get_size<P: AsRef<Path>>(path: P) -> crate::Result<u64> {
-    let mut result = 0;
-    let path = path.as_ref();
-
-    if path.is_dir() {
-        for entry in fs::read_dir(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))? {
-            let path = entry?.path();
-            if path.is_file() {
-                let metadata = path.metadata().map_err(|e| Error::IoWithPath(path, e))?;
-                result += metadata.len();
-            } else {
-                result += get_size(path)?;
-            }
-        }
-    } else {
-        let metadata = path
-            .metadata()
-            .map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
-        result += metadata.len();
-    }
-
-    Ok(result)
-}
-
-/// Copies user-defined files to the deb package.
+/// Copies user-defined files to the rpm package.
 #[tracing::instrument(level = "trace")]
 pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> crate::Result<()> {
     for (src, target) in files.iter() {
@@ -284,71 +259,102 @@ pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> cr
     Ok(())
 }
 
-fn collect_package_files(build_root: &Path) -> crate::Result<Vec<(PathBuf, String)>> {
-    let mut entries = Vec::new();
-    for entry in WalkDir::new(build_root) {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_file() {
-            let rel_path = path.strip_prefix(build_root).unwrap();
-            entries.push((path.to_path_buf(), format!("/{}", rel_path.display())));
+
+fn add_custom_files(files: &HashMap<String, String>, rpm_pkg: &mut PackageBuilder) -> crate::Result<()> {
+    for (src, target) in files.iter() {
+        let src = Path::new(src);
+        let src = src
+            .canonicalize()
+            .map_err(|e| Error::IoWithPath(src.to_path_buf(), e))?;
+        let target = Path::new(target);
+        let target = if target.is_absolute() {
+            target.strip_prefix("/").unwrap()
+        } else {
+            target
+        };
+
+        if src.is_file() {
+            let file_options = FileOptions::new(target.to_string_lossy());
+            let pkg = std::mem::take(rpm_pkg);
+            *rpm_pkg = pkg
+                .with_file(&src, file_options)
+                .map_err(|err| Error::RpmError(err.to_string()))?;
+        } else if src.is_dir() {
+            for entry in walkdir::WalkDir::new(&src) {
+                let entry = entry?;
+                let path = entry.path();
+                if path.is_file() {
+                    let relative = path.relative_to(&src)?.to_path("");
+                    let file_options = FileOptions::new(relative.to_string_lossy());
+                    let pkg = std::mem::take(rpm_pkg);
+                    *rpm_pkg = pkg
+                        .with_file(path, file_options)
+                        .map_err(|err| Error::RpmError(err.to_string()))?;
+                }
+            }
         }
     }
-    Ok(entries)
+
+    Ok(())
 }
 
+
+
+#[tracing::instrument(level = "trace", skip(ctx))]
 pub fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
-    let config = &ctx.config;
-    let build_root = ctx.intermediates_path.join("rpm");
-    fs::create_dir_all(&build_root)?;
+    let Context {
+        config,
+        intermediates_path,
+        ..
+    } = ctx;
 
-    generate_data(config, &build_root)?;
-    if let Some(custom_files) = config.rpm().and_then(|rpm| rpm.files.as_ref()) {
-        copy_custom_files(custom_files, &build_root)?;
-    }
-
-    let package_files = collect_package_files(&build_root)?;
-    // Try to extract the license name from the license file, or use "MIT" as default
-    let license = if let Some(license_file) = &config.license_file {
-        match fs::read_to_string(license_file) {
-            Ok(content) => {
-                // Use the first non-empty line as the license name
-                content
-                    .lines()
-                    .find(|line| !line.trim().is_empty())
-                    .map(|line| line.trim().to_string())
-                    .unwrap_or_else(|| "MIT".to_string())
-            }
-            Err(_) => "MIT".to_string(),
-        }
-    } else {
-        "MIT".to_string()
+    let arch = match config.target_arch()? {
+        "x86" => "i386",
+        "x86_64" => "amd64",
+        "arm" => "armhf",
+        "aarch64" => "arm64",
+        other => other,
     };
 
-    let mut pkg_builder = PackageBuilder::new(
-        &config.main_binary_name()?,
+    let intermediates_path = intermediates_path.join("deb");
+    util::create_clean_dir(&intermediates_path)?;
+
+    let rpm_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
+    let rpm_name = format!("{rpm_base_name}.rpm");
+
+    let _rpm_dir = intermediates_path.join(&rpm_base_name);
+    let rpm_path = config.out_dir().join(&rpm_name);
+
+    tracing::info!("Packaging {} ({})", rpm_name, rpm_path.display());
+
+    tracing::debug!("Generating RPM package");
+    let mut rpm_pkg = rpm::PackageBuilder::new(
+        config.name.as_deref().unwrap_or("test"),
         &config.version,
-        &license,
-        "x86_64",
+        "MIT",
+        arch,
         config.description.as_deref().unwrap_or(""),
-    );
+    )
+    .compression(rpm::CompressionType::Zstd);
 
-    for (src, dest) in package_files {
-        let mut opts = FileOptions::new(dest.clone());
-        // Set executable bit for files in /usr/bin, otherwise 644
-        if dest.starts_with("/usr/bin/") {
-            opts = opts.mode(0o755);
-        } else {
-            opts = opts.mode(0o644);
-        }
-        pkg_builder = pkg_builder.with_file(src, opts).map_err(|e| Error::RpmError(e.to_string()))?;
-    }
+    tracing::debug!("Copying files specified in `rpm.files`");
+    // Iterate over all the files in the data directory and add them to the RPM package.
+    if let Some(files) = config.rpm().and_then(|d| d.files.as_ref()) {
+        add_custom_files(files, &mut rpm_pkg)
+            .map_err(|err| Error::RpmError(err.to_string()))?;
+    };
 
-    let rpm = pkg_builder.build().map_err(|e| Error::RpmError(e.to_string()))?;
-    let out_path = ctx.config.out_dir.as_path().join(format!("{}-{}.rpm", config.main_binary_name()?, config.version));
-    let mut out_file = File::create(&out_path)?;
-    rpm.write(&mut out_file).map_err(|e| Error::RpmError(e.to_string()))?;
+    tracing::debug!("Building RPM package");
+    let built_rpm_pkg = rpm_pkg.build()
+        .map_err(|err| Error::RpmError(err.to_string()))?;
 
-    Ok(vec![out_path])
+
+    tracing::debug!("Writing RPM package to {}", rpm_path.display());
+    let mut f = fs::File::create(&rpm_path)
+        .map_err(|err| Error::IoWithPath(rpm_path.to_path_buf(), err))?;
+    built_rpm_pkg.write(&mut f)
+        .map_err(|err| Error::RpmError(err.to_string()))?;
+
+    Ok(vec![])
 }
 
