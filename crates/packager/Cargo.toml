@@ -85,6 +85,7 @@ time = { workspace = true, features = ["formatting"] }
 image = { version = "0.25", default-features = false, features = ["rayon", "bmp", "ico", "png", "jpeg"] }
 tempfile = "3"
 plist = "1"
+url = { version = "2", features = ["serde"] }
 
 [target."cfg(target_os = \"windows\")".dependencies]
 windows-registry = "0.5"
