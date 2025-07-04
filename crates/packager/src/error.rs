@@ -250,6 +250,9 @@ pub enum Error {
     /// Failed to enumerate registry keys.
     #[error("failed to enumerate registry keys")]
     FailedToEnumerateRegKeys,
+    /// Url parsing errors.
+    #[error(transparent)]
+    UrlParse(#[from] url::ParseError),
 }
 
 /// Convenient type alias of Result type for cargo-packager.
