@@ -4,6 +4,9 @@
 
 use std::path::PathBuf;
 
+use serde::Serialize;
+use url::Url;
+
 use crate::{config, shell::CommandExt, util, Config, PackageFormat};
 
 use self::context::Context;
@@ -49,6 +52,8 @@ pub struct PackageOutput {
     pub format: PackageFormat,
     /// All paths for this package.
     pub paths: Vec<PathBuf>,
+    /// Package summary for `latest.json`
+    pub summary: Option<PackageOutputSummary>,
 }
 
 impl PackageOutput {
@@ -57,8 +62,26 @@ impl PackageOutput {
     /// This is only useful if you need to sign the packages in a different process,
     /// after packaging the app and storing its paths.
     pub fn new(format: PackageFormat, paths: Vec<PathBuf>) -> Self {
-        Self { format, paths }
+        Self {
+            format,
+            paths,
+            summary: None,
+        }
     }
+}
+
+/// Summary information for this package to be included in `latest.json`
+#[derive(Debug, Clone, Serialize)]
+pub struct PackageOutputSummary {
+    /// Download URL for the platform
+    pub url: Url,
+    /// Signature for the platform. If it is None then something has gone wrong
+    pub signature: Option<String>,
+    /// Update format
+    pub format: PackageFormat,
+    /// Target triple for this package
+    #[serde(skip)]
+    pub target_triple: String,
 }
 
 /// Package an app using the specified config.
@@ -95,7 +118,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
     tracing::trace!(ctx = ?ctx);
 
     let mut packages = Vec::new();
-    for format in &formats {
+    for &format in &formats {
         run_before_each_packaging_command_hook(
             config,
             &formats_comma_separated,
@@ -114,6 +137,7 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
                     let paths = app::package(&ctx)?;
                     packages.push(PackageOutput {
                         format: PackageFormat::App,
+                        summary: None,
                         paths,
                     });
                 }
@@ -153,8 +177,11 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
             }
         }?;
 
+        let summary = build_package_summary(&paths, format, config)?;
+
         packages.push(PackageOutput {
-            format: *format,
+            format,
+            summary,
             paths,
         });
     }
@@ -270,4 +297,46 @@ fn run_before_packaging_command_hook(
     }
 
     Ok(())
+}
+
+fn build_package_summary(
+    paths: &Vec<PathBuf>,
+    format: PackageFormat,
+    config: &Config,
+) -> crate::Result<Option<PackageOutputSummary>> {
+    Ok(if let Some(url) = &config.endpoint {
+        let paths = paths
+            .iter()
+            .cloned()
+            .filter_map(|path| path.file_name().and_then(|f| f.to_str().map(Into::into)))
+            .collect::<Vec<String>>();
+
+        if paths.len() == 1 {
+            let artefact = paths.first().unwrap();
+
+            let url: Url = url
+                .to_string()
+                // url::Url automatically url-encodes the path components
+                .replace("%7B%7Bversion%7D%7D", &config.version)
+                .replace("%7B%7Bartefact%7D%7D", &artefact)
+                // but not query parameters
+                .replace("{{version}}", &config.version)
+                .replace("{{artefact}}", &artefact)
+                .parse()?;
+
+            Some(PackageOutputSummary {
+                url,
+                format,
+                target_triple: config.target_triple(),
+                // Signature will be set later
+                signature: None,
+            })
+        } else {
+            // TODO: Implement logic to decide which path to publish in PackageOutputSummary when there are multiple to choose from
+            None
+        }
+    } else {
+        // No endpoint has been configured, so no summary is outputted
+        None
+    })
 }
