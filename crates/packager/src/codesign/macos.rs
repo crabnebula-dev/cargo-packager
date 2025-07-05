@@ -410,72 +410,79 @@ impl NotarytoolCmdExt for Command {
                 .arg(key_path)
                 .arg("--issuer")
                 .arg(issuer),
+            MacOsNotarizationCredentials::KeychainProfile { keychain_profile } => {
+                self.arg("--keychain-profile").arg(keychain_profile)
+            }
         }
     }
 }
 
 #[tracing::instrument(level = "trace")]
 pub fn notarize_auth() -> crate::Result<MacOsNotarizationCredentials> {
-    match (
-        std::env::var_os("APPLE_ID"),
-        std::env::var_os("APPLE_PASSWORD"),
-        std::env::var_os("APPLE_TEAM_ID"),
-    ) {
-        (Some(apple_id), Some(password), Some(team_id)) => {
-            Ok(MacOsNotarizationCredentials::AppleId {
-                apple_id,
-                password,
-                team_id,
-            })
-        }
-        _ => {
-            match (
-                std::env::var_os("APPLE_API_KEY"),
-                std::env::var_os("APPLE_API_ISSUER"),
-                std::env::var("APPLE_API_KEY_PATH"),
-            ) {
-                (Some(key_id), Some(issuer), Ok(key_path)) => {
-                    Ok(MacOsNotarizationCredentials::ApiKey {
-                        key_id,
-                        key_path: key_path.into(),
-                        issuer,
-                    })
-                }
-                (Some(key_id), Some(issuer), Err(_)) => {
-                    let mut api_key_file_name = OsString::from("AuthKey_");
-                    api_key_file_name.push(&key_id);
-                    api_key_file_name.push(".p8");
-                    let mut key_path = None;
-
-                    let mut search_paths = vec!["./private_keys".into()];
-                    if let Some(home_dir) = dirs::home_dir() {
-                        search_paths.push(home_dir.join("private_keys"));
-                        search_paths.push(home_dir.join(".private_keys"));
-                        search_paths.push(home_dir.join(".appstoreconnect/private_keys"));
-                    }
-
-                    for folder in search_paths {
-                        if let Some(path) = find_api_key(folder, &api_key_file_name) {
-                            key_path = Some(path);
-                            break;
-                        }
-                    }
-
-                    if let Some(key_path) = key_path {
+    if let Some(keychain_profile) = std::env::var_os("APPLE_KEYCHAIN_PROFILE") {
+        Ok(MacOsNotarizationCredentials::KeychainProfile { keychain_profile })
+    } else {
+        match (
+            std::env::var_os("APPLE_ID"),
+            std::env::var_os("APPLE_PASSWORD"),
+            std::env::var_os("APPLE_TEAM_ID"),
+        ) {
+            (Some(apple_id), Some(password), Some(team_id)) => {
+                Ok(MacOsNotarizationCredentials::AppleId {
+                    apple_id,
+                    password,
+                    team_id,
+                })
+            }
+            _ => {
+                match (
+                    std::env::var_os("APPLE_API_KEY"),
+                    std::env::var_os("APPLE_API_ISSUER"),
+                    std::env::var("APPLE_API_KEY_PATH"),
+                ) {
+                    (Some(key_id), Some(issuer), Ok(key_path)) => {
                         Ok(MacOsNotarizationCredentials::ApiKey {
                             key_id,
-                            key_path,
+                            key_path: key_path.into(),
                             issuer,
                         })
-                    } else {
-                        Err(Error::ApiKeyMissing {
-                            filename: api_key_file_name
-                                .into_string()
-                                .expect("failed to convert api_key_file_name to string"),
-                        })
                     }
+                    (Some(key_id), Some(issuer), Err(_)) => {
+                        let mut api_key_file_name = OsString::from("AuthKey_");
+                        api_key_file_name.push(&key_id);
+                        api_key_file_name.push(".p8");
+                        let mut key_path = None;
+
+                        let mut search_paths = vec!["./private_keys".into()];
+                        if let Some(home_dir) = dirs::home_dir() {
+                            search_paths.push(home_dir.join("private_keys"));
+                            search_paths.push(home_dir.join(".private_keys"));
+                            search_paths.push(home_dir.join(".appstoreconnect/private_keys"));
+                        }
+
+                        for folder in search_paths {
+                            if let Some(path) = find_api_key(folder, &api_key_file_name) {
+                                key_path = Some(path);
+                                break;
+                            }
+                        }
+
+                        if let Some(key_path) = key_path {
+                            Ok(MacOsNotarizationCredentials::ApiKey {
+                                key_id,
+                                key_path,
+                                issuer,
+                            })
+                        } else {
+                            Err(Error::ApiKeyMissing {
+                                filename: api_key_file_name
+                                    .into_string()
+                                    .expect("failed to convert api_key_file_name to string"),
+                            })
+                        }
+                    }
+                    _ => Err(Error::MissingNotarizeAuthVars),
                 }
-                _ => Err(Error::MissingNotarizeAuthVars),
             }
         }
     }
