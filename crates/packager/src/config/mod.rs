@@ -1819,6 +1819,20 @@ impl Config {
         })
     }
 
+    /// Returns the operating system for the package to be built (e.g. "linux", "macos " or "windows").
+    pub fn target_os(&self) -> crate::Result<&str> {
+        let target = self.target_triple();
+        if target.contains("windows") {
+            Ok("windows")
+        } else if target.contains("macos") {
+            Ok("macos")
+        } else if target.contains("linux") {
+            Ok("linux")
+        } else {
+            return Err(crate::Error::UnexpectedTargetTriple(target));
+        }
+    }
+
     /// Returns the architecture for the package to be built (e.g. "arm", "x86" or "x86_64").
     pub fn target_arch(&self) -> crate::Result<&str> {
         let target = self.target_triple();
