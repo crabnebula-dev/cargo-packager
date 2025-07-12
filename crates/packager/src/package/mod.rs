@@ -81,7 +81,7 @@ pub struct PackageOutputSummary {
     pub format: PackageFormat,
     /// Target triple for this package
     #[serde(skip)]
-    pub target_triple: String,
+    pub platform: String,
 }
 
 /// Package an app using the specified config.
@@ -324,15 +324,20 @@ fn build_package_summary(
                 .replace("{{artefact}}", &artefact)
                 .parse()?;
 
+            let target_arch = config.target_arch()?;
+            let target_os = config.target_os()?;
+            let platform = format!("{target_os}-{target_arch}");
+
             Some(PackageOutputSummary {
                 url,
                 format,
-                target_triple: config.target_triple(),
+                platform,
                 // Signature will be set later
                 signature: None,
             })
         } else {
             // TODO: Implement logic to decide which path to publish in PackageOutputSummary when there are multiple to choose from
+            tracing::warn!("Could not produce a latest.json build summary for {format:?} - not yet supported");
             None
         }
     } else {
