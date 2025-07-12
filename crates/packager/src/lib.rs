@@ -265,7 +265,7 @@ pub fn summarise_outputs(
                 platforms.insert(summary.platform.clone(), summary);
             } else {
                 // The signer failed to update the signature field
-                tracing::warn!("A summary could not be summarized in latest.json because it could not be signed.")
+                tracing::warn!("A package could not be summarized in latest.json because it could not be signed.")
             }
         }
     }
