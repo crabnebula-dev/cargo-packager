@@ -1820,16 +1820,16 @@ impl Config {
     }
 
     /// Returns the operating system for the package to be built (e.g. "linux", "macos " or "windows").
-    pub fn target_os(&self) -> crate::Result<&str> {
+    pub fn target_os(&self) -> Option<&str> {
         let target = self.target_triple();
         if target.contains("windows") {
-            Ok("windows")
+            Some("windows")
         } else if target.contains("macos") {
-            Ok("macos")
+            Some("macos")
         } else if target.contains("linux") {
-            Ok("linux")
+            Some("linux")
         } else {
-            return Err(crate::Error::UnexpectedTargetTriple(target));
+            None
         }
     }
 

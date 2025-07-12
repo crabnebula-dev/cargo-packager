@@ -324,20 +324,40 @@ fn build_package_summary(
                 .replace("{{artefact}}", &artefact)
                 .parse()?;
 
-            let target_arch = config.target_arch()?;
-            let target_os = config.target_os()?;
-            let platform = format!("{target_os}-{target_arch}");
+            let target_triple = config.target_triple();
+            // See the updater crate for which particular target strings are required.
+            let target_arch = if target_triple.starts_with("x86_64") {
+                Some("x86_64")
+            } else if target_triple.starts_with('i') {
+                Some("i686")
+            } else if target_triple.starts_with("arm") {
+                Some("armv7")
+            } else if target_triple.starts_with("aarch64") {
+                Some("aarch64")
+            } else {
+                None
+            };
+            let target_os = config.target_os();
+            match (target_arch, target_os) {
+                (Some(target_arch), Some(target_os)) => {
+                    let platform = format!("{target_os}-{target_arch}");
 
-            Some(PackageOutputSummary {
-                url,
-                format,
-                platform,
-                // Signature will be set later
-                signature: None,
-            })
+                    Some(PackageOutputSummary {
+                        url,
+                        format,
+                        platform,
+                        // Signature will be set later
+                        signature: None,
+                    })
+                }
+                _ => {
+                    tracing::warn!("A package could not be summarized in latest.json because the platform string could not be determined from {target_triple}.");
+                    None
+                }
+            }
         } else {
             // TODO: Implement logic to decide which path to publish in PackageOutputSummary when there are multiple to choose from
-            tracing::warn!("Could not produce a latest.json build summary for {format:?} - not yet supported");
+            tracing::warn!("A package could not be summarized in latest.json because the package format {format:?} is not yet supported.");
             None
         }
     } else {
