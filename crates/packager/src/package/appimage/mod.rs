@@ -158,7 +158,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .and_then(|a| a.excluded_libs.clone())
         .unwrap_or_default()
         .into_iter()
-        .map(|library| format!("--exclude-library {}", library))
+        .map(|library| format!("--exclude-library {library}"))
         .collect::<Vec<_>>()
         .join(" ");
     sh_map.insert("excluded_libs", to_json(excluded_libraries));
