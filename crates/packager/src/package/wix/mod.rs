@@ -246,7 +246,7 @@ impl ResourceDirectory {
             directories.push_str(wix_string.as_str());
         }
         let wix_string = if self.name.is_empty() {
-            format!("{}{}", files, directories)
+            format!("{files}{directories}")
         } else {
             format!(
                 r#"<Directory Id="I{id}" Name="{name}">{files}{directories}</Directory>"#,
@@ -488,7 +488,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     data.insert("manufacturer", to_json(manufacturer));
     let upgrade_code = Uuid::new_v5(
         &Uuid::NAMESPACE_DNS,
-        format!("{}.app.x64", main_binary_name).as_bytes(),
+        format!("{main_binary_name}.app.x64").as_bytes(),
     )
     .to_string();
 
@@ -718,7 +718,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
 
         let locale_contents = locale_contents.replace(
             "</WixLocalization>",
-            &format!("{}</WixLocalization>", unset_locale_strings),
+            &format!("{unset_locale_strings}</WixLocalization>"),
         );
         let locale_path = intermediates_path.join("locale.wxl");
         {
