@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.2.3]
+
+- [`d861f1a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/d861f1a6b1dfe585014e04234b33d49b1a895219) ([#356](https://www.github.com/crabnebula-dev/cargo-packager/pull/356)) Pull enhancements from tauri-plugin-updater.
+
 ## \[0.2.2]
 
 - [`af990f8`](https://www.github.com/crabnebula-dev/cargo-packager/commit/af990f848b78fa07fe2aa8f4cc32599557af9bf7) ([#281](https://www.github.com/crabnebula-dev/cargo-packager/pull/281)) Relax `url` dependency version requirement from `2.5` to `2`.

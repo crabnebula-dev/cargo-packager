@@ -1,5 +1,13 @@
 # Changelog
 
+## \[0.2.3]
+
+- [`d861f1a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/d861f1a6b1dfe585014e04234b33d49b1a895219) ([#356](https://www.github.com/crabnebula-dev/cargo-packager/pull/356)) Pull enhancements from tauri-plugin-updater.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.2.3`
+
 ## \[0.2.2]
 
 ### Dependencies

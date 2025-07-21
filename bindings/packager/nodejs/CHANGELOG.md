@@ -1,5 +1,14 @@
 # Changelog
 
+## \[0.11.6]
+
+- [`b81b81f`](https://www.github.com/crabnebula-dev/cargo-packager/commit/b81b81fbd7fd185edfc7652f535d0cfacb786ac9) ([#354](https://www.github.com/crabnebula-dev/cargo-packager/pull/354)) Changed the download URL of a dependency of the AppImage bundler to Tauri's mirror to resolve 404 errors.
+- [`5205088`](https://www.github.com/crabnebula-dev/cargo-packager/commit/5205088cd78412fb6cbe5e48a715524fcc5a2ee7) ([#340](https://www.github.com/crabnebula-dev/cargo-packager/pull/340)) Enhance sign error message.
+
+### Dependencies
+
+- Upgraded to `cargo-packager@0.11.6`
+
 ## \[0.11.5]
 
 - [`17194a9`](https://www.github.com/crabnebula-dev/cargo-packager/commit/17194a92aabd59c9e075105072ff939f5d55a107) ([#313](https://www.github.com/crabnebula-dev/cargo-packager/pull/313)) Added `linux > generateDesktopEntry` config to allow disabling generating a .desktop file on Linux bundles (defaults to true).
