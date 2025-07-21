@@ -93,7 +93,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
 #[tracing::instrument(level = "trace", skip(config))]
 fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> {
     let bin_name = config.main_binary_name()?;
-    let desktop_file_name = format!("{}.desktop", bin_name);
+    let desktop_file_name = format!("{bin_name}.desktop");
     let desktop_file_path = data_dir
         .join("usr/share/applications")
         .join(desktop_file_name);
@@ -304,24 +304,24 @@ fn generate_control_file(
     let mut file = util::create_file(&dest_path)?;
     writeln!(file, "Package: {}", AsKebabCase(&config.product_name))?;
     writeln!(file, "Version: {}", &config.version)?;
-    writeln!(file, "Architecture: {}", arch)?;
+    writeln!(file, "Architecture: {arch}")?;
     // Installed-Size must be divided by 1024, see https://www.debian.org/doc/debian-policy/ch-controlfields.html#installed-size
     writeln!(file, "Installed-Size: {}", get_size(data_dir)? / 1024)?;
     if let Some(authors) = &config.authors {
         writeln!(file, "Maintainer: {}", authors.join(", "))?;
     }
     if let Some(section) = config.deb().and_then(|d| d.section.as_ref()) {
-        writeln!(file, "Section: {}", section)?;
+        writeln!(file, "Section: {section}")?;
     }
 
     if let Some(priority) = config.deb().and_then(|d| d.priority.as_ref()) {
-        writeln!(file, "Priority: {}", priority)?;
+        writeln!(file, "Priority: {priority}")?;
     } else {
         writeln!(file, "Priority: optional")?;
     }
 
     if let Some(homepage) = &config.homepage {
-        writeln!(file, "Homepage: {}", homepage)?;
+        writeln!(file, "Homepage: {homepage}")?;
     }
     if let Some(depends) = config.deb().and_then(|d| d.depends.as_ref()) {
         let dependencies = depends.to_list()?;
@@ -345,7 +345,7 @@ fn generate_control_file(
         if line.is_empty() {
             writeln!(file, " .")?;
         } else {
-            writeln!(file, " {}", line)?;
+            writeln!(file, " {line}")?;
         }
     }
     file.flush()?;
@@ -368,14 +368,14 @@ fn generate_md5sums(control_dir: &Path, data_dir: &Path) -> crate::Result<()> {
         let mut hash = md5::Context::new();
         std::io::copy(&mut file, &mut hash)?;
         for byte in hash.compute().iter() {
-            write!(md5sums_file, "{:02x}", byte)?;
+            write!(md5sums_file, "{byte:02x}")?;
         }
         let rel_path = path.strip_prefix(data_dir)?;
         let path_str = rel_path.to_str().ok_or_else(|| {
-            let msg = format!("Non-UTF-8 path: {:?}", rel_path);
+            let msg = format!("Non-UTF-8 path: {rel_path:?}");
             std::io::Error::new(std::io::ErrorKind::InvalidData, msg)
         })?;
-        writeln!(md5sums_file, "  {}", path_str)?;
+        writeln!(md5sums_file, "  {path_str}")?;
     }
     Ok(())
 }

@@ -26,7 +26,7 @@ fn donwload_dependencies(
     let internal_deps = vec![
         (
             format!("AppRun-{arch}"),
-            format!("https://github.com/AppImage/AppImageKit/releases/download/continuous/AppRun-{arch}")
+            format!("https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-{arch}")
         ),
         (
             format!("linuxdeploy-{linuxdeploy_arch}.AppImage"),
@@ -158,7 +158,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         .and_then(|a| a.excluded_libs.clone())
         .unwrap_or_default()
         .into_iter()
-        .map(|library| format!("--exclude-library {}", library))
+        .map(|library| format!("--exclude-library {library}"))
         .collect::<Vec<_>>()
         .join(" ");
     sh_map.insert("excluded_libs", to_json(excluded_libraries));
