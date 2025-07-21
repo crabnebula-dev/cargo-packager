@@ -36,6 +36,8 @@ url = { version = "2", features = ["serde"] }
 minisign-verify = "0.2"
 ctor = "0.2"
 tempfile = "3.12"
+log = "0.4"
+percent-encoding = "2"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tar = { workspace = true }
