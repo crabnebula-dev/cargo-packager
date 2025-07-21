@@ -30,7 +30,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     util::create_clean_dir(&intermediates_path)?;
 
     let package_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
-    let package_name = format!("{}.tar.gz", package_base_name);
+    let package_name = format!("{package_base_name}.tar.gz");
 
     let pkg_dir = intermediates_path.join(&package_base_name);
     let pkg_path = config.out_dir().join(&package_name);
@@ -82,10 +82,10 @@ fn generate_pkgbuild_file(
         "pkgdesc=\"{}\"",
         config.description.as_deref().unwrap_or("")
     )?;
-    writeln!(file, "arch=('{}')", arch)?;
+    writeln!(file, "arch=('{arch}')")?;
 
     if let Some(homepage) = &config.homepage {
-        writeln!(file, "url=\"{}\"", homepage)?;
+        writeln!(file, "url=\"{homepage}\"")?;
     }
 
     let dependencies = config
@@ -131,7 +131,7 @@ fn generate_pkgbuild_file(
     io::copy(&mut sha_file, &mut sha512)?;
     let sha_hash = sha512.finalize();
 
-    writeln!(file, "sha512sums=(\"{:x}\")", sha_hash)?;
+    writeln!(file, "sha512sums=(\"{sha_hash:x}\")")?;
     writeln!(
         file,
         "package() {{\n\tcp -r \"${{srcdir}}\"/* \"${{pkgdir}}\"/\n}}"
