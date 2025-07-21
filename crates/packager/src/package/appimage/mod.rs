@@ -26,7 +26,7 @@ fn donwload_dependencies(
     let internal_deps = vec![
         (
             format!("AppRun-{arch}"),
-            format!("https://github.com/AppImage/AppImageKit/releases/download/continuous/AppRun-{arch}")
+            format!("https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-{arch}")
         ),
         (
             format!("linuxdeploy-{linuxdeploy_arch}.AppImage"),
