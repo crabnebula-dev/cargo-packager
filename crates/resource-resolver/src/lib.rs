@@ -93,7 +93,7 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
             let exe = current_exe()?;
             let exe_name = exe.file_name().unwrap().to_string_lossy();
 
-            let path = format!("/usr/lib/{}/", exe_name);
+            let path = format!("/usr/lib/{exe_name}/");
             Ok(PathBuf::from(path))
         }
 

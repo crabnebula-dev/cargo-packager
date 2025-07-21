@@ -412,7 +412,7 @@ fn copy_dir(from: &Path, to: &Path) -> crate::Result<()> {
 // Copies the framework under `{src_dir}/{framework}.framework` to `{dest_dir}/{framework}.framework`.
 #[tracing::instrument(level = "trace")]
 fn copy_framework_from(dest_dir: &Path, framework: &str, src_dir: &Path) -> crate::Result<bool> {
-    let src_name = format!("{}.framework", framework);
+    let src_name = format!("{framework}.framework");
     let src_path = src_dir.join(&src_name);
     if src_path.exists() {
         copy_dir(&src_path, &dest_dir.join(&src_name))?;
