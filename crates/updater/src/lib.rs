@@ -138,8 +138,12 @@
 
 use base64::Engine;
 use cargo_packager_utils::current_exe::current_exe;
-use http::HeaderName;
+use http::{
+    header::{ACCEPT, USER_AGENT},
+    HeaderName,
+};
 use minisign_verify::{PublicKey, Signature};
+use percent_encoding::{AsciiSet, CONTROLS};
 use reqwest::{
     blocking::Client,
     header::{HeaderMap, HeaderValue},
@@ -498,7 +502,9 @@ impl Updater {
     pub fn check(&self) -> Result<Option<Update>> {
         // we want JSON only
         let mut headers = self.headers.clone();
-        headers.insert("Accept", HeaderValue::from_str("application/json").unwrap());
+        if !headers.contains_key(ACCEPT) {
+            headers.insert(ACCEPT, HeaderValue::from_str("application/json").unwrap());
+        }
 
         // Set SSL certs for linux if they aren't available.
         #[cfg(target_os = "linux")]
@@ -513,6 +519,13 @@ impl Updater {
 
         let mut remote_release: Option<RemoteRelease> = None;
         let mut last_error: Option<Error> = None;
+
+        let version = self.current_version.to_string();
+        let version = version.as_bytes();
+        const CONTROLS_ADD: &AsciiSet = &CONTROLS.add(b'+');
+        let encoded_version = percent_encoding::percent_encode(version, CONTROLS_ADD);
+        let encoded_version = encoded_version.to_string();
+
         for url in &self.config.endpoints {
             // replace {{current_version}}, {{target}} and {{arch}} in the provided URL
             // this is useful if we need to query example
@@ -524,17 +537,16 @@ impl Updater {
             let url: Url = url
                 .to_string()
                 // url::Url automatically url-encodes the path components
-                .replace(
-                    "%7B%7Bcurrent_version%7D%7D",
-                    &self.current_version.to_string(),
-                )
+                .replace("%7B%7Bcurrent_version%7D%7D", &encoded_version)
                 .replace("%7B%7Btarget%7D%7D", &self.target)
                 .replace("%7B%7Barch%7D%7D", self.arch)
                 // but not query parameters
-                .replace("{{current_version}}", &self.current_version.to_string())
+                .replace("{{current_version}}", &encoded_version)
                 .replace("{{target}}", &self.target)
                 .replace("{{arch}}", self.arch)
                 .parse()?;
+
+            log::debug!("checking for updates {url}");
 
             let mut request = Client::new().get(url).headers(headers.clone());
             if let Some(timeout) = self.timeout {
@@ -542,22 +554,42 @@ impl Updater {
             }
             let response = request.send();
 
-            if let Ok(res) = response {
-                if res.status().is_success() {
-                    // no updates found!
-                    if StatusCode::NO_CONTENT == res.status() {
-                        return Ok(None);
-                    };
+            match response {
+                Ok(res) => {
+                    if res.status().is_success() {
+                        // no updates found!
+                        if StatusCode::NO_CONTENT == res.status() {
+                            log::debug!("update endpoint returned 204 No Content");
+                            return Ok(None);
+                        };
 
-                    match serde_json::from_value::<RemoteRelease>(res.json()?).map_err(Into::into) {
-                        Ok(release) => {
-                            last_error = None;
-                            remote_release = Some(release);
-                            // we found a relase, break the loop
-                            break;
+                        let update_response: serde_json::Value = res.json()?;
+                        log::debug!("update response: {update_response:?}");
+
+                        match serde_json::from_value::<RemoteRelease>(update_response)
+                            .map_err(Into::into)
+                        {
+                            Ok(release) => {
+                                log::debug!("parsed release response {release:?}");
+                                last_error = None;
+                                remote_release = Some(release);
+                                // we found a relase, break the loop
+                                break;
+                            }
+                            Err(err) => {
+                                log::error!("failed to deserialize update response: {err}");
+                                last_error = Some(err)
+                            }
                         }
-                        Err(err) => last_error = Some(err),
+                    } else {
+                        log::error!(
+                            "update endpoint did not respond with a successful status code"
+                        );
                     }
+                }
+                Err(err) => {
+                    log::error!("failed to check for updates: {err}");
+                    last_error = Some(err.into());
                 }
             }
         }
@@ -660,14 +692,18 @@ impl Update {
     ) -> Result<Vec<u8>> {
         // set our headers
         let mut headers = self.headers.clone();
-        headers.insert(
-            "Accept",
-            HeaderValue::from_str("application/octet-stream").unwrap(),
-        );
-        headers.insert(
-            "User-Agent",
-            HeaderValue::from_str("cargo-packager-updater").unwrap(),
-        );
+        if !headers.contains_key(ACCEPT) {
+            headers.insert(
+                ACCEPT,
+                HeaderValue::from_str("application/octet-stream").unwrap(),
+            );
+        }
+        if !headers.contains_key(USER_AGENT) {
+            headers.insert(
+                USER_AGENT,
+                HeaderValue::from_str("cargo-packager-updater").unwrap(),
+            );
+        }
 
         let mut request = Client::new()
             .get(self.download_url.clone())
@@ -977,44 +1013,91 @@ impl Update {
     #[cfg(target_os = "macos")]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
         use flate2::read::GzDecoder;
-        use std::fs;
 
         let cursor = Cursor::new(bytes);
+        let mut extracted_files: Vec<PathBuf> = Vec::new();
 
-        // the first file in the tar.gz will always be
-        // <app_name>/Contents
-        let tmp_dir = tempfile::Builder::new().prefix("current_app").tempdir()?;
+        // Create temp directories for backup and extraction
+        let tmp_backup_dir = tempfile::Builder::new()
+            .prefix("packager_current_app")
+            .tempdir()?;
 
-        // create backup of our current app
-        fs::rename(&self.extract_path, tmp_dir.path())?;
+        let tmp_extract_dir = tempfile::Builder::new()
+            .prefix("packager_updated_app")
+            .tempdir()?;
 
         let decoder = GzDecoder::new(cursor);
         let mut archive = tar::Archive::new(decoder);
 
-        fn extract_archive<R: std::io::Read>(
-            archive: &mut tar::Archive<R>,
-            extract_path: &Path,
-        ) -> Result<()> {
-            fs::create_dir(extract_path)?;
-            for entry in archive.entries()? {
-                let mut entry = entry?;
-                let entry_path: PathBuf = entry.path()?.components().skip(1).collect();
-                entry.unpack(extract_path.join(entry_path))?;
+        // Extract files to temporary directory
+        for entry in archive.entries()? {
+            let mut entry = entry?;
+            let collected_path: PathBuf = entry.path()?.iter().skip(1).collect();
+            let extraction_path = tmp_extract_dir.path().join(&collected_path);
+
+            // Ensure parent directories exist
+            if let Some(parent) = extraction_path.parent() {
+                std::fs::create_dir_all(parent)?;
             }
 
-            let _ = std::process::Command::new("touch")
-                .arg(extract_path)
+            if let Err(err) = entry.unpack(&extraction_path) {
+                // Cleanup on error
+                std::fs::remove_dir_all(tmp_extract_dir.path()).ok();
+                return Err(err.into());
+            }
+            extracted_files.push(extraction_path);
+        }
+
+        // Try to move the current app to backup
+        let move_result = std::fs::rename(
+            &self.extract_path,
+            tmp_backup_dir.path().join("current_app"),
+        );
+        let need_authorization = if let Err(err) = move_result {
+            if err.kind() == std::io::ErrorKind::PermissionDenied {
+                true
+            } else {
+                std::fs::remove_dir_all(tmp_extract_dir.path()).ok();
+                return Err(err.into());
+            }
+        } else {
+            false
+        };
+
+        if need_authorization {
+            log::debug!("app installation needs admin privileges");
+            // Use AppleScript to perform moves with admin privileges
+            let apple_script = format!(
+                "do shell script \"rm -rf '{src}' && mv -f '{new}' '{src}'\" with administrator privileges",
+                src = self.extract_path.display(),
+                new = tmp_extract_dir.path().display()
+            );
+
+            let res = std::process::Command::new("osascript")
+                .arg("-e")
+                .arg(apple_script)
                 .status();
 
-            Ok(())
+            if res.is_err() || !res.unwrap().success() {
+                log::error!("failed to install update using AppleScript");
+                std::fs::remove_dir_all(tmp_extract_dir.path()).ok();
+                return Err(Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    "Failed to move the new app into place",
+                )));
+            }
+        } else {
+            // Remove existing directory if it exists
+            if self.extract_path.exists() {
+                std::fs::remove_dir_all(&self.extract_path)?;
+            }
+            // Move the new app to the target path
+            std::fs::rename(tmp_extract_dir.path(), &self.extract_path)?;
         }
 
-        // if something went wrong during the extraction, we should restore previous app
-        if let Err(e) = extract_archive(&mut archive, &self.extract_path) {
-            fs::remove_dir(&self.extract_path)?;
-            fs::rename(tmp_dir.path(), &self.extract_path)?;
-            return Err(e);
-        }
+        let _ = std::process::Command::new("touch")
+            .arg(&self.extract_path)
+            .status();
 
         Ok(())
     }
@@ -1058,6 +1141,8 @@ pub(crate) fn get_updater_arch() -> Option<&'static str> {
         Some("armv7")
     } else if cfg!(target_arch = "aarch64") {
         Some("aarch64")
+    } else if cfg!(target_arch = "riscv64") {
+        Some("riscv64")
     } else {
         None
     }
