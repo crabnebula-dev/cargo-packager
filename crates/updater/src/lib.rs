@@ -170,11 +170,15 @@ pub use reqwest;
 pub use semver;
 pub use url;
 
+/// The app installation data.
 pub enum AppInstallation {
+    /// Bytes of the app being installed.
     Bytes(Vec<u8>),
+    /// Path to the app being installed.
     Path(PathBuf),
 }
 
+/// A function that is called before the app is installed.
 pub type OnBeforeInstall = Arc<dyn Fn(AppInstallation) + Send + Sync + 'static>;
 
 /// Install modes for the Windows update.
@@ -444,6 +448,9 @@ impl UpdaterBuilder {
         self
     }
 
+    /// Specify a function that is called before the app is installed.
+    ///
+    /// The function will be called with the app installation data.
     pub fn on_before_install<F: Fn(AppInstallation) + Send + Sync + 'static>(
         mut self,
         f: F,
@@ -679,7 +686,8 @@ pub struct Update {
     pub headers: HeaderMap,
     /// Update format
     pub format: UpdateFormat,
-    on_before_install: Option<OnBeforeInstall>,
+    /// A function that is called before the app is installed.
+    pub on_before_install: Option<OnBeforeInstall>,
 }
 
 impl Update {
@@ -1106,8 +1114,10 @@ impl Update {
             );
 
             if let Some(on_before_install) = self.on_before_install.as_ref() {
-                log::debug!("running on_before_install hook");
+                log::info!("running on_before_install hook");
                 on_before_install(AppInstallation::Path(tmp_extract_dir.path().to_path_buf()));
+            } else {
+                log::info!("no on_before_install hook, skipping");
             }
 
             let res = std::process::Command::new("osascript")
@@ -1125,8 +1135,10 @@ impl Update {
             }
         } else {
             if let Some(on_before_install) = self.on_before_install.as_ref() {
-                log::debug!("running on_before_install hook");
+                log::info!("running on_before_install hook");
                 on_before_install(AppInstallation::Path(tmp_extract_dir.path().to_path_buf()));
+            } else {
+                log::info!("no on_before_install hook, skipping");
             }
 
             // Remove existing directory if it exists

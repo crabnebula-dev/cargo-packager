@@ -175,6 +175,7 @@ impl Update {
                 map
             },
             format: self.format.into(),
+            on_before_install: None,
         })
     }
 }
