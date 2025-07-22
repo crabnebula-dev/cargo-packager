@@ -95,9 +95,9 @@ pub enum Error {
     /// Custom signing command error
     #[error("Error running custom signing command: {0}")]
     CustomSignCommandFailed(std::io::Error),
-    /// bundle_appimage script error
-    #[error("Error running bundle_appimage.sh script: {0}")]
-    AppImageScriptFailed(std::io::Error),
+    /// build_appimage script error
+    #[error("Error running {0} script: {1}")]
+    AppImageScriptFailed(PathBuf, std::io::Error),
     /// Failed to get parent directory of a path
     #[error("Failed to get parent directory of {0}")]
     ParentDirNotFound(PathBuf),
