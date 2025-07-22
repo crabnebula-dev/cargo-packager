@@ -155,6 +155,7 @@ use std::{
     collections::HashMap,
     io::{Cursor, Read},
     path::{Path, PathBuf},
+    sync::Arc,
     time::Duration,
 };
 use time::OffsetDateTime;
@@ -168,6 +169,13 @@ pub use http;
 pub use reqwest;
 pub use semver;
 pub use url;
+
+pub enum AppInstallation {
+    Bytes(Vec<u8>),
+    Path(PathBuf),
+}
+
+pub type OnBeforeInstall = Arc<dyn Fn(AppInstallation) + Send + Sync + 'static>;
 
 /// Install modes for the Windows update.
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -345,6 +353,7 @@ pub struct UpdaterBuilder {
     target: Option<String>,
     headers: HeaderMap,
     timeout: Option<Duration>,
+    on_before_install: Option<OnBeforeInstall>,
 }
 
 impl UpdaterBuilder {
@@ -358,6 +367,7 @@ impl UpdaterBuilder {
             target: None,
             headers: Default::default(),
             timeout: None,
+            on_before_install: None,
         }
     }
 
@@ -434,6 +444,14 @@ impl UpdaterBuilder {
         self
     }
 
+    pub fn on_before_install<F: Fn(AppInstallation) + Send + Sync + 'static>(
+        mut self,
+        f: F,
+    ) -> Self {
+        self.on_before_install.replace(Arc::new(f));
+        self
+    }
+
     /// Build the updater.
     pub fn build(self) -> Result<Updater> {
         if self.config.endpoints.is_empty() {
@@ -478,6 +496,7 @@ impl UpdaterBuilder {
             json_target,
             headers: self.headers,
             extract_path,
+            on_before_install: self.on_before_install,
         })
     }
 }
@@ -495,6 +514,7 @@ pub struct Updater {
     json_target: String,
     headers: HeaderMap,
     extract_path: PathBuf,
+    on_before_install: Option<OnBeforeInstall>,
 }
 
 impl Updater {
@@ -622,6 +642,7 @@ impl Updater {
                 timeout: self.timeout,
                 headers: self.headers.clone(),
                 format: release.format(&self.json_target)?,
+                on_before_install: self.on_before_install.clone(),
             })
         } else {
             None
@@ -632,7 +653,7 @@ impl Updater {
 }
 
 /// Information about an update and associted methods to perform the update.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Update {
     /// Config used to check for this update.
     pub config: Config,
@@ -658,6 +679,7 @@ pub struct Update {
     pub headers: HeaderMap,
     /// Update format
     pub format: UpdateFormat,
+    on_before_install: Option<OnBeforeInstall>,
 }
 
 impl Update {
@@ -813,6 +835,11 @@ impl Update {
         );
 
         const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        if let Some(on_before_install) = self.on_before_install.as_ref() {
+            log::debug!("running on_before_install hook");
+            on_before_install(AppInstallation::Path(temp_file.path().to_path_buf()));
+        }
 
         // we support 2 type of files exe & msi for now
         // If it's an `exe` we expect an installer not a runtime.
@@ -985,6 +1012,11 @@ impl Update {
                     // create a backup of our current app image
                     fs::rename(&self.extract_path, &tmp_app_image)?;
 
+                    if let Some(on_before_install) = self.on_before_install.as_ref() {
+                        log::debug!("running on_before_install hook");
+                        on_before_install(AppInstallation::Bytes(bytes));
+                    }
+
                     // if something went wrong during the extraction, we should restore previous app
                     if let Err(err) = fs::write(&self.extract_path, bytes).and_then(|_| {
                         fs::set_permissions(&self.extract_path, metadata.permissions())
@@ -1073,6 +1105,11 @@ impl Update {
                 new = tmp_extract_dir.path().display()
             );
 
+            if let Some(on_before_install) = self.on_before_install.as_ref() {
+                log::debug!("running on_before_install hook");
+                on_before_install(AppInstallation::Path(tmp_extract_dir.path().to_path_buf()));
+            }
+
             let res = std::process::Command::new("osascript")
                 .arg("-e")
                 .arg(apple_script)
@@ -1087,6 +1124,11 @@ impl Update {
                 )));
             }
         } else {
+            if let Some(on_before_install) = self.on_before_install.as_ref() {
+                log::debug!("running on_before_install hook");
+                on_before_install(AppInstallation::Path(tmp_extract_dir.path().to_path_buf()));
+            }
+
             // Remove existing directory if it exists
             if self.extract_path.exists() {
                 std::fs::remove_dir_all(&self.extract_path)?;
