@@ -1013,51 +1013,53 @@ impl Update {
     #[cfg(target_os = "macos")]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
         use flate2::read::GzDecoder;
+        use std::fs;
 
         let cursor = Cursor::new(bytes);
-        let mut extracted_files: Vec<PathBuf> = Vec::new();
 
-        // Create temp directories for backup and extraction
-        let tmp_backup_dir = tempfile::Builder::new()
-            .prefix("packager_current_app")
-            .tempdir()?;
-
-        let tmp_extract_dir = tempfile::Builder::new()
-            .prefix("packager_updated_app")
-            .tempdir()?;
+        // the first file in the tar.gz will always be
+        // <app_name>/Contents
+        let tmp_dir = tempfile::Builder::new().prefix("current_app").tempdir()?;
+        let tmp_extract_dir = tempfile::Builder::new().prefix("updated_app").tempdir()?;
 
         let decoder = GzDecoder::new(cursor);
         let mut archive = tar::Archive::new(decoder);
 
-        // Extract files to temporary directory
-        for entry in archive.entries()? {
-            let mut entry = entry?;
-            let collected_path: PathBuf = entry.path()?.iter().skip(1).collect();
-            let extraction_path = tmp_extract_dir.path().join(&collected_path);
+        fn extract_archive<R: std::io::Read>(
+            archive: &mut tar::Archive<R>,
+            extract_path: &Path,
+        ) -> Result<()> {
+            for entry in archive.entries()? {
+                let mut entry = entry?;
+                let entry_path: PathBuf = entry.path()?.components().skip(1).collect();
+                log::debug!(
+                    "extracting {} to {}",
+                    entry_path.display(),
+                    extract_path.display()
+                );
+                let extraction_path = extract_path.join(entry_path);
 
-            // Ensure parent directories exist
-            if let Some(parent) = extraction_path.parent() {
-                std::fs::create_dir_all(parent)?;
+                if let Some(parent) = extraction_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+
+                entry.unpack(&extraction_path)?;
             }
 
-            if let Err(err) = entry.unpack(&extraction_path) {
-                // Cleanup on error
-                std::fs::remove_dir_all(tmp_extract_dir.path()).ok();
-                return Err(err.into());
-            }
-            extracted_files.push(extraction_path);
+            Ok(())
         }
 
-        // Try to move the current app to backup
-        let move_result = std::fs::rename(
-            &self.extract_path,
-            tmp_backup_dir.path().join("current_app"),
-        );
+        // extract app update
+        log::debug!("extracting app update");
+        extract_archive(&mut archive, tmp_extract_dir.path())?;
+
+        // create backup of our current app
+        let move_result = fs::rename(&self.extract_path, tmp_dir.path());
+
         let need_authorization = if let Err(err) = move_result {
             if err.kind() == std::io::ErrorKind::PermissionDenied {
                 true
             } else {
-                std::fs::remove_dir_all(tmp_extract_dir.path()).ok();
                 return Err(err.into());
             }
         } else {
@@ -1080,20 +1082,17 @@ impl Update {
 
             if res.is_err() || !res.unwrap().success() {
                 log::error!("failed to install update using AppleScript");
-                std::fs::remove_dir_all(tmp_extract_dir.path()).ok();
                 return Err(Error::Io(std::io::Error::new(
                     std::io::ErrorKind::PermissionDenied,
                     "Failed to move the new app into place",
                 )));
             }
         } else {
-            // Remove existing directory if it exists
-            if self.extract_path.exists() {
-                std::fs::remove_dir_all(&self.extract_path)?;
-            }
-            // Move the new app to the target path
+            log::debug!("applying app update");
             std::fs::rename(tmp_extract_dir.path(), &self.extract_path)?;
         }
+
+        log::debug!("update applied");
 
         let _ = std::process::Command::new("touch")
             .arg(&self.extract_path)
