@@ -546,7 +546,7 @@ impl Updater {
                 .replace("{{arch}}", self.arch)
                 .parse()?;
 
-            log::debug!("checking for updates {url}");
+            log::info!("checking for updates {url}");
 
             let mut request = Client::new().get(url).headers(headers.clone());
             if let Some(timeout) = self.timeout {
@@ -559,7 +559,7 @@ impl Updater {
                     if res.status().is_success() {
                         // no updates found!
                         if StatusCode::NO_CONTENT == res.status() {
-                            log::debug!("update endpoint returned 204 No Content");
+                            log::info!("update endpoint returned 204 No Content");
                             return Ok(None);
                         };
 
@@ -1050,8 +1050,11 @@ impl Update {
         }
 
         // extract app update
-        log::debug!("extracting app update");
-        extract_archive(&mut archive, tmp_extract_dir.path())?;
+        log::info!("extracting app update");
+        extract_archive(&mut archive, tmp_extract_dir.path()).inspect_err(|e| {
+            log::error!("failed to extract app update: {e}");
+        })?;
+        log::info!("app update extracted");
 
         // create backup of our current app
         let move_result = fs::rename(&self.extract_path, tmp_dir.path());
@@ -1067,7 +1070,7 @@ impl Update {
         };
 
         if need_authorization {
-            log::debug!("app installation needs admin privileges");
+            log::info!("app installation needs admin privileges");
             // Use AppleScript to perform moves with admin privileges
             let apple_script = format!(
                 "do shell script \"rm -rf '{src}' && mv -f '{new}' '{src}'\" with administrator privileges",
@@ -1088,11 +1091,11 @@ impl Update {
                 )));
             }
         } else {
-            log::debug!("applying app update");
+            log::info!("applying app update");
             std::fs::rename(tmp_extract_dir.path(), &self.extract_path)?;
         }
 
-        log::debug!("update applied");
+        log::info!("update applied");
 
         let _ = std::process::Command::new("touch")
             .arg(&self.extract_path)
