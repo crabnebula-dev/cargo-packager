@@ -31,7 +31,7 @@ allow = [
     "Unicode-DFS-2016",
     "Unicode-3.0",
     # Used by webpki-roots and option-ext which we are using without modifications in a larger work, therefore okay.
-    "CDLA-Permissive-2.0"
+    "CDLA-Permissive-2.0",
     "MPL-2.0",
     "BSD-3-Clause",
     "BSD-2-Clause",
