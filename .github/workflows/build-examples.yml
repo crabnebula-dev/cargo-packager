@@ -38,7 +38,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
       - run: cargo install cargo-binstall --locked
-      - run: cargo binstall tauri-cli
-      - run: cargo binstall dioxus-cli
+      - run: cargo binstall tauri-cli --locked
+      - run: cargo binstall dioxus-cli --locked --force
       - run: cargo r --package cargo-packager -- signer generate --password '123' --path ./signing-key -vvv
       - run: cargo r --package cargo-packager -- --release --private-key ./signing-key --password '123' --formats all -vvv
