@@ -34,7 +34,7 @@ fn donwload_dependencies(
         ),
         // This path is incompatible with cross-platform compilation but linuxdeploy doens't support that anyway.
         (
-            format!("linuxdeploy-plugin-appimage.AppImage"),
+            "linuxdeploy-plugin-appimage.AppImage".to_string(),
             format!("https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-{arch}.AppImage")
         ),
     ];
