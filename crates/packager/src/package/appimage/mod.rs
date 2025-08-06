@@ -32,6 +32,11 @@ fn donwload_dependencies(
             format!("linuxdeploy-{linuxdeploy_arch}.AppImage"),
             format!("https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-{linuxdeploy_arch}.AppImage")
         ),
+        // This path is incompatible with cross-platform compilation but linuxdeploy doens't support that anyway.
+        (
+            "linuxdeploy-plugin-appimage.AppImage".to_string(),
+            format!("https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-{arch}.AppImage")
+        ),
     ];
 
     let user_deps = ctx
