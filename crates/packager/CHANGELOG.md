@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.11.7]
+
+- [`d49b606`](https://www.github.com/crabnebula-dev/cargo-packager/commit/d49b606ba8a612c833233ec8a6061481a2118639) ([#353](https://www.github.com/crabnebula-dev/cargo-packager/pull/353)) Allow using notarization credentials stored on the Keychain by providing the `APPLE_KEYCHAIN_PROFILE` environment variable. See `xcrun notarytool store-credentials` for more information.
+- [`b337564`](https://www.github.com/crabnebula-dev/cargo-packager/commit/b337564c0e5a9de966b4124890dddea1e353acb4) ([#362](https://www.github.com/crabnebula-dev/cargo-packager/pull/362)) Updated linuxdeploy's AppImage plugin to not require libfuse on the user's system anymore.
+
 ## \[0.11.6]
 
 - [`b81b81f`](https://www.github.com/crabnebula-dev/cargo-packager/commit/b81b81fbd7fd185edfc7652f535d0cfacb786ac9) ([#354](https://www.github.com/crabnebula-dev/cargo-packager/pull/354)) Changed the download URL of a dependency of the AppImage bundler to Tauri's mirror to resolve 404 errors.
