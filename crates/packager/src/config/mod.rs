@@ -682,13 +682,13 @@ pub enum MacOsNotarizationCredentials {
     },
     /// Keychain profile with a stored app-specific password for notarytool to use
     /// Passwords can be generated at https://account.apple.com when signed in with your developer account.
-    /// The password must then be stored in your keychain for naotarytool to access,
-    /// using the following, with the appopriate Apple and Team id:
+    /// The password must then be stored in your keychain for notarytool to access,
+    /// using the following, with the appopriate Apple and Team IDs:
     /// `xcrun notarytool store-credentials --apple-id "name@example.com" --team-id "ABCD123456"`
     /// This will prompt for a keychain profile name, and the password itself.
     /// This setting can only be provided as an environment variable "APPLE_KEYCHAIN_PROFILE"
     KeychainProfile {
-        /// The keychain profile name (as provided when the password was strored using notarytool)
+        /// The keychain profile name (as provided when the password was stored using notarytool)
         keychain_profile: OsString,
     },
 }
