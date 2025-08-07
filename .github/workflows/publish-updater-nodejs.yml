@@ -95,7 +95,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: latest
           package_json_file: bindings/updater/nodejs
@@ -400,7 +400,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: latest
           package_json_file: bindings/updater/nodejs
