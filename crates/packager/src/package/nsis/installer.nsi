@@ -492,9 +492,9 @@ Section Install
     File /a "/oname={{this}}" "{{@key}}"
   {{/each}}
 
-   ; Create file associations
+  ; Create file associations
   {{#each file_associations as |association| ~}}
-    {{#each association.ext as |ext| ~}}
+    {{#each association.extensions as |ext| ~}}
        !insertmacro APP_ASSOCIATE "{{ext}}" "{{or association.name ext}}" "{{association-description association.description ext}}" "$INSTDIR\${MAINBINARYNAME}.exe,0" "Open with ${PRODUCTNAME}" "$INSTDIR\${MAINBINARYNAME}.exe $\"%1$\""
     {{/each}}
   {{/each}}
