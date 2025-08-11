@@ -303,13 +303,12 @@ fn generate_control_file(
     let dest_path = control_dir.join("control");
     let mut file = util::create_file(&dest_path)?;
 
-    let pkg_name = AsKebabCase(&config.product_name).to_string();
-    let pkg_name: String = config
+    let pkg_name = config
         .deb()
-        .map(|x| x.package_name.clone().unwrap_or(pkg_name.clone()))
-        .unwrap_or(pkg_name);
+        .and_then(|deb| deb.package_name.clone())
+        .unwrap_or_else(|| AsKebabCase(&config.product_name).to_string());
 
-    writeln!(file, "Package: {}", pkg_name)?;
+    writeln!(file, "Package: {pkg_name}")?;
     writeln!(file, "Version: {}", &config.version)?;
     writeln!(file, "Architecture: {arch}")?;
     // Installed-Size must be divided by 1024, see https://www.debian.org/doc/debian-policy/ch-controlfields.html#installed-size
