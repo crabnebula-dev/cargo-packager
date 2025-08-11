@@ -75,7 +75,7 @@ pub struct FileAssociation {
     pub description: Option<String>,
     /// The name. Maps to `CFBundleTypeName` on macOS. Defaults to the first item in `ext`
     pub name: Option<String>,
-    /// The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    /// The app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
     /// Defaults to [`BundleTypeRole::Editor`]
     #[serde(default)]
     pub role: BundleTypeRole,
@@ -125,7 +125,7 @@ impl FileAssociation {
         self
     }
 
-    /// Set he app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    /// Set he app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
     /// Defaults to [`BundleTypeRole::Editor`]
     pub fn role(mut self, role: BundleTypeRole) -> Self {
         self.role = role;
@@ -168,7 +168,7 @@ impl DeepLinkProtocol {
         self
     }
 
-    /// Set he app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+    /// Set he app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
     /// Defaults to [`BundleTypeRole::Editor`]
     pub fn role(mut self, role: BundleTypeRole) -> Self {
         self.role = role;
@@ -231,7 +231,8 @@ pub struct DebianConfig {
     /// List of custom files to add to the deb package.
     /// Maps a dir/file to a dir/file inside the debian package.
     pub files: Option<HashMap<String, String>>,
-    /// Overwrite package name just for deb.
+    /// Name to use for the `Package` field in the Debian Control file.
+    /// Defaults to [`Config::product_name`] converted to kebab-case.
     #[serde(alias = "package-name", alias = "package_name")]
     pub package_name: Option<String>,
 }
@@ -1648,7 +1649,7 @@ pub struct Config {
     pub binaries: Vec<Binary>,
     /// The application identifier in reverse domain name notation (e.g. `com.packager.example`).
     /// This string must be unique across applications since it is used in some system configurations.
-    /// This string must contain only alphanumeric characters (A–Z, a–z, and 0–9), hyphens (-),
+    /// This string must contain only alphanumeric characters (A-Z, a-z, and 0-9), hyphens (-),
     /// and periods (.).
     #[cfg_attr(feature = "schema", schemars(regex(pattern = r"^[a-zA-Z0-9-\.]*$")))]
     pub identifier: Option<String>,
