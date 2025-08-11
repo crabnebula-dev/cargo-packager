@@ -8,7 +8,7 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [dependencies]
-ctor = "0.2"
+ctor = "0.5"
 schemars = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
