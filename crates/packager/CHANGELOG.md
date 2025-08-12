@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.11.8]
+
+- [`6e6a10c`](https://www.github.com/crabnebula-dev/cargo-packager/commit/6e6a10cc1692973293966034dc4b798e3976d094) ([#321](https://www.github.com/crabnebula-dev/cargo-packager/pull/321)) Allow explicitly specifying the Package name for the .deb bundle.
+- [`c34de36`](https://www.github.com/crabnebula-dev/cargo-packager/commit/c34de365705db150eb101caa94adf42eff74f71a) ([#365](https://www.github.com/crabnebula-dev/cargo-packager/pull/365)) Change nsi template from using `association.ext` to `association.extensions`, to match struct field in `FileAssociation`.
+  This allows file associations to be generated in `.nsi` files, and therefore in the final NSIS installer.
+
 ## \[0.11.7]
 
 - [`d49b606`](https://www.github.com/crabnebula-dev/cargo-packager/commit/d49b606ba8a612c833233ec8a6061481a2118639) ([#353](https://www.github.com/crabnebula-dev/cargo-packager/pull/353)) Allow using notarization credentials stored on the Keychain by providing the `APPLE_KEYCHAIN_PROFILE` environment variable. See `xcrun notarytool store-credentials` for more information.
