@@ -161,7 +161,7 @@ export interface Config {
    */
   binaries?: Binary[];
   /**
-   * The application identifier in reverse domain name notation (e.g. `com.packager.example`). This string must be unique across applications since it is used in some system configurations. This string must contain only alphanumeric characters (A–Z, a–z, and 0–9), hyphens (-), and periods (.).
+   * The application identifier in reverse domain name notation (e.g. `com.packager.example`). This string must be unique across applications since it is used in some system configurations. This string must contain only alphanumeric characters (A-Z, a-z, and 0-9), hyphens (-), and periods (.).
    */
   identifier?: string | null;
   /**
@@ -335,7 +335,7 @@ export interface FileAssociation {
    */
   name?: string | null;
   /**
-   * The app’s role with respect to the type. Maps to `CFBundleTypeRole` on macOS. Defaults to [`BundleTypeRole::Editor`]
+   * The app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS. Defaults to [`BundleTypeRole::Editor`]
    */
   role?: BundleTypeRole & string;
 }
@@ -493,6 +493,10 @@ export interface DebianConfig {
   files?: {
     [k: string]: string;
   } | null;
+  /**
+   * Name to use for the `Package` field in the Debian Control file. Defaults to [`Config::product_name`] converted to kebab-case.
+   */
+  packageName?: string | null;
 }
 /**
  * The Linux AppImage configuration.
