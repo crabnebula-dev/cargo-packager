@@ -1,6 +1,6 @@
 [package]
 name = "cargo-packager"
-version = "0.11.7"
+version = "0.11.8"
 description = "Executable packager and bundler distributed as a CLI and library."
 authors = [
     "CrabNebula Ltd.",
