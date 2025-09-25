@@ -68,7 +68,7 @@ sha2 = "0.10"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 handlebars = "6.0"
 glob = "0.3"
-relative-path = "1.9"
+relative-path = "2.0"
 walkdir = "2"
 os_pipe = "1"
 minisign = "0.7"
