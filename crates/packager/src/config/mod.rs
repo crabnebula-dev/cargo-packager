@@ -14,6 +14,7 @@ use std::{
 
 use relative_path::PathExt;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::{util, Error};
 
@@ -1759,6 +1760,20 @@ pub struct Config {
     pub nsis: Option<NsisConfig>,
     /// Dmg configuration.
     pub dmg: Option<DmgConfig>,
+    /// When set, a summary `latest.json` build artefact will be generated which can be
+    /// hosted alongside other build artefacts as an endpoint for the updater, including
+    /// meta data about the version and URL's to point at each of the other build artefacts.
+    ///
+    /// Specifically, this URL specifies where these build artefacts are hosted. For example,
+    /// a using Github Releases: `https://github.com/org/repo/releases/download/v{{version}}/{{artefact}}`
+    ///
+    /// Each endpoint optionally could have `{{version}}` or `{{artefact}}`
+    /// which will be detected and replaced with the appropriate value
+    ///
+    /// - `{{version}}`: The version of the app which is being packaged
+    /// - `{{artefact}}`: The file name of the particular build artefact
+    ///     One URL is produced per build artefact.
+    pub endpoint: Option<Url>,
 }
 
 impl Config {
@@ -1817,6 +1832,20 @@ impl Config {
         self.target_triple.clone().unwrap_or_else(|| {
             util::target_triple().expect("Failed to detect current target triple")
         })
+    }
+
+    /// Returns the operating system for the package to be built (e.g. "linux", "macos " or "windows").
+    pub fn target_os(&self) -> Option<&str> {
+        let target = self.target_triple();
+        if target.contains("windows") {
+            Some("windows")
+        } else if target.contains("macos") {
+            Some("macos")
+        } else if target.contains("linux") {
+            Some("linux")
+        } else {
+            None
+        }
     }
 
     /// Returns the architecture for the package to be built (e.g. "arm", "x86" or "x86_64").
