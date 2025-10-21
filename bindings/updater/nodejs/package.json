@@ -30,7 +30,7 @@
   "devDependencies": {
     "@napi-rs/cli": "^2.18.1",
     "@tinyhttp/app": "^2.2.1",
-    "@types/node": "^20.8.10",
+    "@types/node": "^22.0.0",
     "ava": "^6.2.0",
     "execa": "^9.0.0",
     "@crabnebula/packager": "workspace:"
