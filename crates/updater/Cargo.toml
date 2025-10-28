@@ -34,7 +34,7 @@ time = { workspace = true, features = ["parsing", "formatting"] }
 http = "1"
 url = { version = "2", features = ["serde"] }
 minisign-verify = "0.2"
-ctor = "0.2"
+ctor = "0.6"
 tempfile = "3.12"
 log = "0.4"
 percent-encoding = "2"
