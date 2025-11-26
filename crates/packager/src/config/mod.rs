@@ -29,8 +29,10 @@ pub use cargo_packager_utils::PackageFormat;
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Default)]
 pub enum BundleTypeRole {
     /// CFBundleTypeRole.Editor. Files can be read and edited.
+    #[default]
     Editor,
     /// CFBundleTypeRole.Viewer. Files can be read.
     Viewer,
@@ -40,12 +42,6 @@ pub enum BundleTypeRole {
     QLGenerator,
     /// CFBundleTypeRole.None
     None,
-}
-
-impl Default for BundleTypeRole {
-    fn default() -> Self {
-        Self::Editor
-    }
 }
 
 impl Display for BundleTypeRole {
@@ -1125,12 +1121,14 @@ impl WixConfig {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[non_exhaustive]
+#[derive(Default)]
 pub enum NSISInstallerMode {
     /// Default mode for the installer.
     ///
     /// Install the app by default in a directory that doesn't require Administrator access.
     ///
     /// Installer metadata will be saved under the `HKCU` registry path.
+    #[default]
     CurrentUser,
     /// Install the app by default in the `Program Files` folder directory requires Administrator
     /// access for the installation.
@@ -1143,12 +1141,6 @@ pub enum NSISInstallerMode {
     ///
     /// Installer metadata will be saved under the `HKLM` or `HKCU` registry path based on the user's choice.
     Both,
-}
-
-impl Default for NSISInstallerMode {
-    fn default() -> Self {
-        Self::CurrentUser
-    }
 }
 
 /// Compression algorithms used in the NSIS installer.
@@ -1510,10 +1502,12 @@ impl WindowsConfig {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Default)]
 pub enum LogLevel {
     /// The "error" level.
     ///
     /// Designates very serious errors.
+    #[default]
     Error = 1,
     /// The "warn" level.
     ///
@@ -1531,12 +1525,6 @@ pub enum LogLevel {
     ///
     /// Designates very low priority, often extremely verbose, information.
     Trace,
-}
-
-impl Default for LogLevel {
-    fn default() -> Self {
-        Self::Error
-    }
 }
 
 /// A binary to package within the final package.
