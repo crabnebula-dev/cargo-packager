@@ -93,7 +93,7 @@ jobs:
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v4
         with:
@@ -398,7 +398,7 @@ jobs:
       # - test-linux-aarch64-musl-binding
       # - test-linux-arm-gnueabihf-binding
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v4
         with:
