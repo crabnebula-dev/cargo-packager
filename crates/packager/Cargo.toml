@@ -59,7 +59,7 @@ tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", optional = true, features = [
     "env-filter",
 ] }
-toml = "0.8"
+toml = "0.9"
 cargo_metadata = "0.18"
 ureq = { version = "2.10", default-features = false }
 hex = "0.4"
