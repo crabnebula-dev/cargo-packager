@@ -101,7 +101,7 @@ jobs:
         with:
           version: latest
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: ${{ !matrix.settings.docker }}
       - name: Install
         uses: dtolnay/rust-toolchain@stable
@@ -133,7 +133,7 @@ jobs:
         shell: bash
       - run: pnpm install
       - name: Setup node x86
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
           node-version: 18
@@ -178,7 +178,7 @@ jobs:
         with:
           version: latest
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
@@ -210,7 +210,7 @@ jobs:
         with:
           version: latest
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
@@ -243,7 +243,7 @@ jobs:
         with:
           version: latest
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - name: Install dependencies
@@ -409,7 +409,7 @@ jobs:
         with:
           version: latest
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
       - run: pnpm install
       - name: Download all artifacts
         uses: actions/download-artifact@v4
