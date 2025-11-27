@@ -13,6 +13,7 @@ authors = ["CrabNebula Ltd."]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/crabnebula-dev/cargo-packager"
+rust-version = "1.86"
 
 [workspace.dependencies]
 thiserror = "1.0"
