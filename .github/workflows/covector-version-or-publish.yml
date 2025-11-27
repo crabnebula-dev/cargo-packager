@@ -48,6 +48,7 @@ jobs:
           commit-message: "release: apply version updates from current changes"
           labels: "version updates"
           body: ${{ steps.covector.outputs.change }}
+          sign-commits: true
 
       - name: Trigger `@crabnebula/packager` publishing workflow
         if: |
