@@ -6,6 +6,7 @@ authors = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
+rust-version = { workspace = true }
 
 [dependencies]
 ctor = "0.2"
@@ -14,9 +15,9 @@ clap = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [features]
-default = [ "cli" ]
-cli = [ ]
-schema = [ "schemars" ]
-clap = [ "dep:clap" ]
-serde = [ "dep:serde" ]
+default = ["cli"]
+cli = []
+schema = ["schemars"]
+clap = ["dep:clap"]
+serde = ["dep:serde"]
 process-relaunch-dangerous-allow-symlink-macos = []

@@ -6,6 +6,7 @@ authors = ["CrabNebula Ltd.", "Tauri Programme within The Commons Conservancy"]
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
+rust-version = { workspace = true }
 
 [features]
 default = ["rustls-tls"]

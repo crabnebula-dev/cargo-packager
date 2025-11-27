@@ -18,6 +18,7 @@ categories = [
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
+rust-version = { workspace = true }
 
 [[bin]]
 name = "cargo-packager"
@@ -60,7 +61,7 @@ tracing-subscriber = { version = "0.3", optional = true, features = [
     "env-filter",
 ] }
 toml = "0.9"
-cargo_metadata = "0.18"
+cargo_metadata = "0.23"
 ureq = { version = "2.10", default-features = false }
 hex = "0.4"
 sha1 = "0.10"
@@ -82,7 +83,13 @@ cargo-packager-utils = { version = "0.1.1", path = "../utils", features = [
 ] }
 icns = { package = "tauri-icns", version = "0.1" }
 time = { workspace = true, features = ["formatting"] }
-image = { version = "0.25", default-features = false, features = ["rayon", "bmp", "ico", "png", "jpeg"] }
+image = { version = "0.25", default-features = false, features = [
+    "rayon",
+    "bmp",
+    "ico",
+    "png",
+    "jpeg",
+] }
 tempfile = "3"
 plist = "1"
 
