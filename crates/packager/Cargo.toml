@@ -97,6 +97,6 @@ version = "0.52"
 features = ["Win32_System_SystemInformation", "Win32_System_Diagnostics_Debug"]
 
 [target."cfg(any(target_os = \"linux\", target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"netbsd\", target_os = \"openbsd\"))".dependencies]
-md5 = "0.7"
+md5 = "0.8"
 heck = "0.5"
 ar = "0.9"
