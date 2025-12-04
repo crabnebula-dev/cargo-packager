@@ -88,12 +88,12 @@ Here is an example of the two expected JSON formats:
     "notes": "Test version",
     "pub_date": "2020-06-22T19:25:57Z",
     "platforms": {
-      "darwin-x86_64": {
+      "macos-x86_64": {
         "signature": "Content of app.tar.gz.sig",
         "url": "https://github.com/username/reponame/releases/download/v1.0.0/app-x86_64.app.tar.gz",
         "format": "app"
       },
-      "darwin-aarch64": {
+      "macos-aarch64": {
         "signature": "Content of app.tar.gz.sig",
         "url": "https://github.com/username/reponame/releases/download/v1.0.0/app-aarch64.app.tar.gz",
         "format": "app"
