@@ -20,9 +20,9 @@ use crate::{shell::CommandExt, Error};
 #[inline]
 pub(crate) fn cross_command(script: &str) -> Command {
     #[cfg(windows)]
-    let mut cmd = Command::new("cmd");
+    let mut cmd = Command::new("powershell");
     #[cfg(windows)]
-    cmd.arg("/S").arg("/C").arg(script);
+    cmd.arg("-Command").arg(script);
     #[cfg(not(windows))]
     let mut cmd = Command::new("sh");
     cmd.current_dir(dunce::canonicalize(std::env::current_dir().unwrap()).unwrap());
