@@ -12,9 +12,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let window = WindowBuilder::new()
         .with_title("html5test")
         .build(&event_loop)?;
-    let _webview = WebViewBuilder::new(&window)
+    let _webview = WebViewBuilder::new()
         .with_url("https://html5test.com/")
-        .build()?;
+        .build(&window)?;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;

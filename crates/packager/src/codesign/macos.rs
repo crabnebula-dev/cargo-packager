@@ -171,13 +171,13 @@ impl PartialOrd for SignTarget {
 pub fn try_sign(targets: Vec<SignTarget>, identity: &str, config: &Config) -> crate::Result<()> {
     let certificate_encoded = config
         .macos()
-        .map(|m| m.signing_certificate.clone())
-        .unwrap_or_else(|| std::env::var_os("APPLE_CERTIFICATE"));
+        .and_then(|m| m.signing_certificate.clone())
+        .or_else(|| std::env::var_os("APPLE_CERTIFICATE"));
 
     let certificate_password = config
         .macos()
-        .map(|m| m.signing_certificate_password.clone())
-        .unwrap_or_else(|| std::env::var_os("APPLE_CERTIFICATE_PASSWORD"));
+        .and_then(|m| m.signing_certificate_password.clone())
+        .or_else(|| std::env::var_os("APPLE_CERTIFICATE_PASSWORD"));
 
     let packager_keychain = if let (Some(certificate_encoded), Some(certificate_password)) =
         (certificate_encoded, certificate_password)
