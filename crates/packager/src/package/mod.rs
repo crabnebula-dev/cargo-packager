@@ -351,7 +351,7 @@ fn build_package_summary(
                     })
                 }
                 _ => {
-                    tracing::warn!("A package could not be summarized in latest.json because the platform string could not be determined from {target_triple}.");
+                    tracing::warn!(target_triple =?config.target_triple(), ?target_arch, ?target_os, "A package could not be summarized in latest.json because the platform string could not be determined from {target_triple}.");
                     None
                 }
             }

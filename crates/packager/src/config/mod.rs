@@ -1827,7 +1827,7 @@ impl Config {
         let target = self.target_triple();
         if target.contains("windows") {
             Some("windows")
-        } else if target.contains("macos") {
+        } else if target.contains("apple-darwin") {
             Some("macos")
         } else if target.contains("linux") {
             Some("linux")
