@@ -125,10 +125,14 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
             format.short_name(),
         )?;
 
+        let mut produce_summary: bool = true;
+
         let paths = match format {
             PackageFormat::App => app::package(&ctx),
             #[cfg(target_os = "macos")]
             PackageFormat::Dmg => {
+                produce_summary = false;
+
                 // PackageFormat::App is required for the DMG bundle
                 if !packages
                     .iter()
@@ -177,7 +181,10 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
             }
         }?;
 
-        let summary = build_package_summary(&paths, format, config)?;
+        let summary = produce_summary
+            .then(|| build_package_summary(&paths, format, config))
+            .transpose()?
+            .flatten();
 
         packages.push(PackageOutput {
             format,
