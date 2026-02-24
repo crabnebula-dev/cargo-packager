@@ -72,6 +72,10 @@ cargo add cargo-packager --no-default-features
 - **`cli`**: Enables the cli specifc features and dependencies. Enabled by default.
 - **`tracing`**: Enables `tracing` crate integration.
 
+### MSRV Policy
+
+All crates of this workspace may update its MSRV in a non-breaking version bump if dependency updates require it while always keeping support for the last 3 released Rust versions at that point in time.
+
 ## NPM (Node.js)
 
 Checkout the packager NPM cli [README](./bindings/packager/nodejs/README.md)
