@@ -8,7 +8,7 @@ publish = false
 dioxus = { version = "0.7", features = ["desktop"] }
 
 [package.metadata.packager]
-before-packaging-command = "dx build --platform desktop --release"
+before-packaging-command = "cargo build --release"
 out-dir = "./dist"
 product-name = "Dioxus example"
 identifier = "com.dioxus.example"
