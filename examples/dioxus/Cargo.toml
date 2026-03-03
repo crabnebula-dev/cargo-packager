@@ -8,6 +8,8 @@ publish = false
 dioxus = { version = "0.7", features = ["desktop"] }
 
 [package.metadata.packager]
+# TODO: Needs https://github.com/crabnebula-dev/cargo-packager/issues/360
+# before-packaging-command = "dx build --platform desktop --release"
 before-packaging-command = "cargo build --release"
 out-dir = "./dist"
 product-name = "Dioxus example"
