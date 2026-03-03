@@ -71,7 +71,7 @@ glob = "0.3"
 relative-path = "2"
 walkdir = "2"
 os_pipe = "1"
-minisign = "0.7"
+minisign = "0.9"
 tar = { workspace = true }
 flate2 = "1.0"
 strsim = "0.11"
