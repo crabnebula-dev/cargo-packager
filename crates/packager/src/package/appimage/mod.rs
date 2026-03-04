@@ -208,7 +208,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     Command::new(&sh_file)
         .current_dir(intermediates_path)
         .output_ok()
-        .map_err(crate::Error::AppImageScriptFailed)?;
+        .map_err(|e| crate::Error::AppImageScriptFailed(sh_file, e))?;
 
     Ok(vec![appimage_path])
 }
