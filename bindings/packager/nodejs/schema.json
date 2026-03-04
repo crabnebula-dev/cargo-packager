@@ -672,10 +672,87 @@
             "target": {
               "description": "A relative path from the root of the final package.\n\nIf `src` is a glob, this will always be treated as a directory where all globbed files will be placed under.",
               "type": "string"
+            },
+            "permissions": {
+              "description": "Permission to be applied to `target`.\n\nNote: this field is unused on windows.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Permissions"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         }
       ]
+    },
+    "Permissions": {
+      "description": "Permissions configuration",
+      "type": "object",
+      "properties": {
+        "owner": {
+          "description": "Owner permissions",
+          "default": {
+            "execute": false,
+            "read": true,
+            "write": true
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/PermissionSet"
+            }
+          ]
+        },
+        "group": {
+          "description": "Group permissions",
+          "default": {
+            "execute": false,
+            "read": true,
+            "write": false
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/PermissionSet"
+            }
+          ]
+        },
+        "other": {
+          "description": "Other permissions",
+          "default": {
+            "execute": false,
+            "read": true,
+            "write": false
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/PermissionSet"
+            }
+          ]
+        }
+      }
+    },
+    "PermissionSet": {
+      "description": "Permission set",
+      "type": "object",
+      "properties": {
+        "read": {
+          "description": "Read allowed",
+          "default": true,
+          "type": "boolean"
+        },
+        "write": {
+          "description": "Write allowed",
+          "default": false,
+          "type": "boolean"
+        },
+        "execute": {
+          "description": "Execute allowed",
+          "default": false,
+          "type": "boolean"
+        }
+      }
     },
     "WindowsConfig": {
       "description": "The Windows configuration.",

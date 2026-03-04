@@ -12,6 +12,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(all(unix, not(target_family = "wasm")))]
+use std::os::unix::fs::PermissionsExt;
+
 use relative_path::PathExt;
 use serde::{Deserialize, Serialize};
 
@@ -1564,6 +1567,129 @@ impl Binary {
     }
 }
 
+/// Permission set
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[non_exhaustive]
+pub struct PermissionSet {
+    /// Read allowed
+    #[serde(default = "default_true")]
+    pub read: bool,
+    /// Write allowed
+    #[serde(default = "default_false")]
+    pub write: bool,
+    /// Execute allowed
+    #[serde(default = "default_false")]
+    pub execute: bool,
+}
+
+fn default_owner_permissions() -> PermissionSet {
+    PermissionSet {
+        read: true,
+        write: true,
+        execute: false,
+    }
+}
+
+fn default_other_permissions() -> PermissionSet {
+    PermissionSet {
+        read: true,
+        write: false,
+        execute: false,
+    }
+}
+
+/// Permissions configuration
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[non_exhaustive]
+pub struct Permissions {
+    /// Owner permissions
+    #[serde(default = "default_owner_permissions")]
+    pub owner: PermissionSet,
+    /// Group permissions
+    #[serde(default = "default_other_permissions")]
+    pub group: PermissionSet,
+    /// Other permissions
+    #[serde(default = "default_other_permissions")]
+    pub other: PermissionSet,
+}
+
+impl Permissions {
+    #[cfg(all(unix, not(target_family = "wasm")))]
+    fn to_unix_mode(&self) -> u32 {
+        fn bits(set: &PermissionSet) -> u32 {
+            (if set.read { 0o4 } else { 0 })
+                | (if set.write { 0o2 } else { 0 })
+                | (if set.execute { 0o1 } else { 0 })
+        }
+
+        (bits(&self.owner) << 6) | (bits(&self.group) << 3) | bits(&self.other)
+    }
+
+    /// Convert permissions to std::fs::Permissions
+    #[cfg(all(unix, not(target_family = "wasm")))]
+    pub fn to_fs_permissions(&self) -> fs::Permissions {
+        fs::Permissions::from_mode(self.to_unix_mode())
+    }
+
+    /// Create Permissions from unix specification (ie.: 0o755)
+    pub fn from_unix_mode(mode: u32) -> Self {
+        let decode = |shift: u32| PermissionSet {
+            read: (mode >> shift) & 0o4 != 0,
+            write: (mode >> shift) & 0o2 != 0,
+            execute: (mode >> shift) & 0o1 != 0,
+        };
+
+        Permissions {
+            owner: decode(6),
+            group: decode(3),
+            other: decode(0),
+        }
+    }
+
+    /// Create Permissions from existing file
+    #[cfg(all(unix, not(target_family = "wasm")))]
+    pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<Self> {
+        let meta = fs::metadata(path)?;
+        Ok(Permissions::from_unix_mode(meta.permissions().mode()))
+    }
+}
+
+impl<'de> Deserialize<'de> for Permissions {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct PermissionsHelper {
+            #[serde(default = "default_owner_permissions")]
+            owner: PermissionSet,
+            #[serde(default = "default_other_permissions")]
+            group: PermissionSet,
+            #[serde(default = "default_other_permissions")]
+            other: PermissionSet,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Helper {
+            Num(u32),
+            Struct(PermissionsHelper),
+        }
+
+        let helper = Helper::deserialize(deserializer)?;
+        match helper {
+            Helper::Num(n) => Ok(Permissions::from_unix_mode(n)),
+            Helper::Struct(s) => Ok(Permissions {
+                owner: s.owner,
+                group: s.group,
+                other: s.other,
+            }),
+        }
+    }
+}
+
 /// A path to a resource (with optional glob pattern)
 /// or an object of `src` and `target` paths.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1583,6 +1709,11 @@ pub enum Resource {
         /// If `src` is a glob, this will always be treated as a directory
         /// where all globbed files will be placed under.
         target: PathBuf,
+
+        /// Permission to be applied to `target`.
+        ///
+        /// Note: this field is unused on windows.
+        permissions: Option<Permissions>,
     },
 }
 
@@ -1916,6 +2047,9 @@ impl Config {
 pub(crate) struct ResolvedResource {
     pub src: PathBuf,
     pub target: PathBuf,
+
+    #[allow(unused)] // unused on windows
+    pub permissions: Option<Permissions>,
 }
 
 impl Config {
@@ -1935,6 +2069,7 @@ impl Config {
                 let resource = ResolvedResource {
                     src,
                     target: target_dir.join(relative),
+                    permissions: None,
                 };
                 out.push(resource);
             }
@@ -1949,7 +2084,11 @@ impl Config {
             let src = src?;
             let src = dunce::canonicalize(&src).map_err(|e| Error::IoWithPath(src, e))?;
             let target = PathBuf::from(src.file_name().unwrap_or_default());
-            out.push(ResolvedResource { src, target })
+            out.push(ResolvedResource {
+                src,
+                target,
+                permissions: None,
+            })
         }
         Ok(out)
     }
@@ -1968,17 +2107,23 @@ impl Config {
                             out.extend(Self::resources_from_glob(src)?);
                         }
                     }
-                    Resource::Mapped { src, target } => {
+                    Resource::Mapped {
+                        src,
+                        target,
+                        permissions,
+                    } => {
                         let src_path = PathBuf::from(src);
                         let target_dir = sanitize_path(target);
                         if src_path.is_dir() {
                             out.extend(Self::resources_from_dir(&src_path, &target_dir)?);
                         } else if src_path.is_file() {
                             let src = dunce::canonicalize(&src_path)
-                                .map_err(|e| Error::IoWithPath(src_path, e))?;
+                                .map_err(|e| Error::IoWithPath(src_path.clone(), e))?;
+
                             out.push(ResolvedResource {
                                 src,
                                 target: sanitize_path(target),
+                                permissions: permissions.clone(),
                             });
                         } else {
                             let globbed_res = Self::resources_from_glob(src)?;
@@ -2027,6 +2172,11 @@ impl Config {
             )?;
             fs::copy(&resource.src, &dest)
                 .map_err(|e| Error::CopyFile(resource.src.clone(), dest.clone(), e))?;
+            #[cfg(all(unix, not(target_family = "wasm")))]
+            if let Some(perms) = &resource.permissions {
+                fs::set_permissions(&dest, perms.to_fs_permissions())
+                    .map_err(|e| Error::ApplyPermissions(dest.clone(), e))?;
+            }
         }
         Ok(())
     }
@@ -2071,4 +2221,8 @@ fn sanitize_path<P: AsRef<Path>>(path: P) -> PathBuf {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_false() -> bool {
+    false
 }
