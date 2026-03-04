@@ -345,6 +345,7 @@ pub struct UpdaterBuilder {
     target: Option<String>,
     headers: HeaderMap,
     timeout: Option<Duration>,
+    proxy: Option<String>,
 }
 
 impl UpdaterBuilder {
@@ -358,7 +359,14 @@ impl UpdaterBuilder {
             target: None,
             headers: Default::default(),
             timeout: None,
+            proxy: None,
         }
+    }
+
+    /// Specify a proxy to use for the updater requests.
+    pub fn proxy(mut self, proxy: impl Into<String>) -> Self {
+        self.proxy = Some(proxy.into());
+        self
     }
 
     /// A custom function to compare whether a new version exists or not.
@@ -478,6 +486,7 @@ impl UpdaterBuilder {
             json_target,
             headers: self.headers,
             extract_path,
+            proxy: self.proxy,
         })
     }
 }
@@ -495,6 +504,7 @@ pub struct Updater {
     json_target: String,
     headers: HeaderMap,
     extract_path: PathBuf,
+    proxy: Option<String>,
 }
 
 impl Updater {
@@ -526,6 +536,15 @@ impl Updater {
         let encoded_version = percent_encoding::percent_encode(version, CONTROLS_ADD);
         let encoded_version = encoded_version.to_string();
 
+        let client_builder = Client::builder();
+
+        let client = if let Some(proxy_url) = &self.proxy {
+            let proxy = reqwest::Proxy::all(proxy_url)?;
+            client_builder.proxy(proxy).build()?
+        } else {
+            client_builder.build()?
+        };
+
         for url in &self.config.endpoints {
             // replace {{current_version}}, {{target}} and {{arch}} in the provided URL
             // this is useful if we need to query example
@@ -548,7 +567,7 @@ impl Updater {
 
             log::debug!("checking for updates {url}");
 
-            let mut request = Client::new().get(url).headers(headers.clone());
+            let mut request = client.get(url).headers(headers.clone());
             if let Some(timeout) = self.timeout {
                 request = request.timeout(timeout);
             }
@@ -622,6 +641,7 @@ impl Updater {
                 timeout: self.timeout,
                 headers: self.headers.clone(),
                 format: release.format(&self.json_target)?,
+                proxy: self.proxy.clone(),
             })
         } else {
             None
@@ -658,6 +678,8 @@ pub struct Update {
     pub headers: HeaderMap,
     /// Update format
     pub format: UpdateFormat,
+    /// Proxy
+    pub proxy: Option<String>,
 }
 
 impl Update {
@@ -705,9 +727,15 @@ impl Update {
             );
         }
 
-        let mut request = Client::new()
-            .get(self.download_url.clone())
-            .headers(headers);
+        let client_builder = Client::builder();
+        let client = if let Some(proxy_url) = &self.proxy {
+            let proxy = reqwest::Proxy::all(proxy_url)?;
+            client_builder.proxy(proxy).build()?
+        } else {
+            client_builder.build()?
+        };
+
+        let mut request = client.get(self.download_url.clone()).headers(headers);
         if let Some(timeout) = self.timeout {
             request = request.timeout(timeout);
         }
