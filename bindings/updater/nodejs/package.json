@@ -28,7 +28,7 @@
     "version": "napi version"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.1",
+    "@napi-rs/cli": "^3.0.0",
     "@tinyhttp/app": "^2.2.1",
     "@types/node": "^20.8.10",
     "ava": "^6.2.0",
