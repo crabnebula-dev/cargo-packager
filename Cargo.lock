@@ -992,6 +992,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ureq",
+ "url",
  "uuid",
  "walkdir",
  "windows-registry",

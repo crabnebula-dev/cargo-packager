@@ -150,7 +150,7 @@ use reqwest::{
     StatusCode,
 };
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{
     collections::HashMap,
     io::{Cursor, Read},
@@ -170,7 +170,7 @@ pub use semver;
 pub use url;
 
 /// Install modes for the Windows update.
-#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize)]
 pub enum WindowsUpdateInstallMode {
     /// Specifies there's a basic UI during the installation process, including a final dialog box at the end.
     BasicUi,
@@ -203,7 +203,7 @@ impl WindowsUpdateInstallMode {
 }
 
 /// The updater configuration for Windows.
-#[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WindowsConfig {
     /// Additional arguments given to the NSIS or WiX installer.
@@ -213,7 +213,7 @@ pub struct WindowsConfig {
 }
 
 /// Updater configuration.
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     /// The updater endpoints.
@@ -232,7 +232,7 @@ pub struct Config {
 }
 
 /// Supported update format
-#[derive(Debug, Serialize, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum UpdateFormat {
     /// The NSIS installer (.exe).
     Nsis,
@@ -260,18 +260,19 @@ impl std::fmt::Display for UpdateFormat {
 }
 
 /// Information about a release
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct ReleaseManifestPlatform {
     /// Download URL for the platform
     pub url: Url,
     /// Signature for the platform
     pub signature: String,
     /// Update format
-    pub format: UpdateFormat,
+    #[serde(deserialize_with = "custom_serialization::parse_update_format")]
+    pub format: Option<UpdateFormat>,
 }
 
 /// Information about a release data.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum RemoteReleaseData {
     /// Dynamic release data based on the platform the update has been requested from.
@@ -326,12 +327,13 @@ impl RemoteRelease {
     /// The release's update format for the given target.
     pub fn format(&self, target: &str) -> Result<UpdateFormat> {
         match self.data {
-            RemoteReleaseData::Dynamic(ref platform) => Ok(platform.format),
+            RemoteReleaseData::Dynamic(ref platform) => platform
+                .format
+                .ok_or(Error::TargetNotFound(target.to_string())),
             RemoteReleaseData::Static { ref platforms } => platforms
                 .get(target)
-                .map_or(Err(Error::TargetNotFound(target.to_string())), |platform| {
-                    Ok(platform.format)
-                }),
+                .and_then(|platform| platform.format)
+                .ok_or(Error::TargetNotFound(target.to_string())),
         }
     }
 }
@@ -583,7 +585,8 @@ impl Updater {
                         }
                     } else {
                         log::error!(
-                            "update endpoint did not respond with a successful status code"
+                            "update endpoint did not respond with a successful status code ({})",
+                            res.status()
                         );
                     }
                 }
