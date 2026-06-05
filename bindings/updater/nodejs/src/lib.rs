@@ -51,6 +51,8 @@ pub struct Options {
     pub headers: Option<HashMap<String, String>>,
     /// Request timeout in milliseconds.
     pub timeout: Option<u32>,
+    /// Reject updates whose authenticated signing timestamp is older than this many milliseconds.
+    pub signature_expiration: Option<u32>,
 }
 
 impl Options {
@@ -59,6 +61,7 @@ impl Options {
         let executable_path = self.executable_path.take();
         let headers = self.headers.take();
         let timeout = self.timeout.take();
+        let signature_expiration = self.signature_expiration.take();
         let config: cargo_packager_updater::Config = self.into();
 
         let mut builder = UpdaterBuilder::new(current_version, config);
@@ -70,6 +73,10 @@ impl Options {
         }
         if let Some(timeout) = timeout {
             builder = builder.timeout(Duration::from_millis(timeout as u64));
+        }
+        if let Some(signature_expiration) = signature_expiration {
+            builder =
+                builder.signature_expiration(Duration::from_millis(signature_expiration as u64));
         }
         if let Some(headers) = headers {
             for (key, value) in headers {
@@ -175,6 +182,7 @@ impl Update {
                 map
             },
             format: self.format.into(),
+            signature_expiration: None,
         })
     }
 }

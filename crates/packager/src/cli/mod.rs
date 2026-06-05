@@ -10,7 +10,8 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
 use crate::{
     config::{LogLevel, PackageFormat},
-    init_tracing_subscriber, package, parse_log_level, sign_outputs, util, SigningConfig,
+    init_tracing_subscriber, package, parse_log_level, sign_outputs_with_version, util,
+    SigningConfig,
 };
 
 mod config;
@@ -178,7 +179,7 @@ fn run_cli(cli: Cli) -> Result<()> {
 
         // sign the packages
         if let Some(signing_config) = &signing_config {
-            let s = sign_outputs(signing_config, &mut packages)?;
+            let s = sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
             signatures.extend(s);
         }
 

@@ -209,6 +209,21 @@ pub fn sign_outputs(
     config: &SigningConfig,
     packages: &mut Vec<PackageOutput>,
 ) -> crate::Result<Vec<PathBuf>> {
+    sign_outputs_with_version(config, packages, None)
+}
+
+/// Sign the specified packages and return the signatures paths, embedding an authenticated
+/// `version` into each signature's trusted comment.
+///
+/// Binding the version to the signed artifact lets the updater reject manifests that advertise a
+/// mismatched version, defeating downgrade attacks. Passing `None` keeps the legacy signature
+/// format. See [`sign::sign_file_with_version`].
+#[tracing::instrument(level = "trace")]
+pub fn sign_outputs_with_version(
+    config: &SigningConfig,
+    packages: &mut Vec<PackageOutput>,
+    version: Option<&str>,
+) -> crate::Result<Vec<PathBuf>> {
     let mut signatures = Vec::new();
     for package in packages {
         for path in &package.paths.clone() {
@@ -225,7 +240,7 @@ pub fn sign_outputs(
             } else {
                 path
             };
-            signatures.push(sign::sign_file(config, path)?);
+            signatures.push(sign::sign_file_with_version(config, path, version)?);
         }
     }
 
@@ -244,6 +259,6 @@ pub fn package_and_sign(
     signing_config: &SigningConfig,
 ) -> crate::Result<(Vec<PackageOutput>, Vec<PathBuf>)> {
     let mut packages = package(config)?;
-    let signatures = sign_outputs(signing_config, &mut packages)?;
+    let signatures = sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
     Ok((packages, signatures))
 }

@@ -35,6 +35,8 @@ export interface Options {
   headers?: Record<string, string>
   /** Request timeout in milliseconds. */
   timeout?: number
+  /** Reject updates whose authenticated signing timestamp is older than this many milliseconds. */
+  signatureExpiration?: number
 }
 /** Supported update format */
 export const enum UpdateFormat {

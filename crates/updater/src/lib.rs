@@ -133,6 +133,41 @@
 //! - [`"Passive"`](WindowsUpdateInstallMode::Passive): There will be a small window with a progress bar. The update will be installed without requiring any user interaction. Generally recommended and the default mode.
 //! - [`"BasicUi"`](WindowsUpdateInstallMode::BasicUi): There will be a basic user interface shown which requires user interaction to finish the installation.
 //! - [`"Quiet"`](WindowsUpdateInstallMode::Quiet): There will be no progress feedback to the user. With this mode the installer cannot request admin privileges by itself so it only works in user-wide installations or when your app itself already runs with admin privileges. Generally not recommended.
+//!
+//! ## Update authenticity and anti-rollback
+//!
+//! Every update artefact is verified against the configured [`Config::pubkey`] before installation.
+//! The updater also **requires** that the signature carries authenticated metadata — a `version` and
+//! `timestamp` embedded in the minisign trusted comment — and checks that the version advertised by
+//! the (unsigned) manifest matches the signed version, so a compromised distribution channel cannot
+//! advertise a high version number while serving an older, validly-signed artefact. Updates whose
+//! signatures lack this metadata are rejected.
+//!
+//! Every artefact signed by an up-to-date `cargo-packager` carries this metadata, so make sure the
+//! `cargo-packager` CLI in your release pipeline is current. Artefacts signed without it (a
+//! third-party minisign signer, or an old `cargo-packager`) cannot be installed.
+//!
+//! [`signature_expiration`](UpdaterBuilder::signature_expiration) additionally rejects updates whose
+//! authenticated signing timestamp is too old (guarding against freeze/replay attacks).
+//!
+//! ## Rotating the signing key
+//!
+//! The trust anchor is the [`Config::pubkey`] compiled into your application. Because that public
+//! key travels inside the application binary, rotating it is just another update:
+//!
+//! 1. Generate a new key pair.
+//! 2. Build a new release that embeds the **new** public key in its updater [`Config`].
+//! 3. Sign that release with your **old** private key.
+//!
+//! Clients still running the previous version verify the new release with the old public key they
+//! already trust, install it, and from then on trust the new key — so subsequent releases must be
+//! signed with the new private key. Keep the old private key available until enough of your fleet has
+//! migrated.
+//!
+//! This planned-rotation flow does not, by itself, recover from a *compromised* private key (an
+//! attacker holding the old key could also sign a malicious release). Recovering from key compromise
+//! requires an out-of-band channel, e.g. shipping a fresh installer through your normal distribution
+//! site.
 
 #![deny(missing_docs)]
 
@@ -345,6 +380,7 @@ pub struct UpdaterBuilder {
     target: Option<String>,
     headers: HeaderMap,
     timeout: Option<Duration>,
+    signature_expiration: Option<Duration>,
 }
 
 impl UpdaterBuilder {
@@ -358,6 +394,7 @@ impl UpdaterBuilder {
             target: None,
             headers: Default::default(),
             timeout: None,
+            signature_expiration: None,
         }
     }
 
@@ -413,6 +450,16 @@ impl UpdaterBuilder {
     /// Specify a timeout for the updater request.
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = Some(timeout);
+        self
+    }
+
+    /// Reject updates whose authenticated signing timestamp is older than `max_age`.
+    ///
+    /// This uses the cryptographically signed `timestamp` from the signature's trusted comment
+    /// (not the unsigned `pub_date` manifest field), providing protection against freeze and replay
+    /// attacks that try to keep a device on an old, vulnerable version.
+    pub fn signature_expiration(mut self, max_age: Duration) -> Self {
+        self.signature_expiration = Some(max_age);
         self
     }
 
@@ -478,6 +525,7 @@ impl UpdaterBuilder {
             json_target,
             headers: self.headers,
             extract_path,
+            signature_expiration: self.signature_expiration,
         })
     }
 }
@@ -495,6 +543,7 @@ pub struct Updater {
     json_target: String,
     headers: HeaderMap,
     extract_path: PathBuf,
+    signature_expiration: Option<Duration>,
 }
 
 impl Updater {
@@ -622,6 +671,7 @@ impl Updater {
                 timeout: self.timeout,
                 headers: self.headers.clone(),
                 format: release.format(&self.json_target)?,
+                signature_expiration: self.signature_expiration,
             })
         } else {
             None
@@ -658,6 +708,8 @@ pub struct Update {
     pub headers: HeaderMap,
     /// Update format
     pub format: UpdateFormat,
+    /// Maximum allowed age for the update signature, based on its authenticated signing timestamp.
+    pub signature_expiration: Option<Duration>,
 }
 
 impl Update {
@@ -756,9 +808,77 @@ impl Update {
 
         let mut update_buffer = Cursor::new(&buffer);
 
-        verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey)?;
+        let signed_metadata =
+            verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey)?;
+        self.validate_signed_metadata(&signed_metadata)?;
 
         Ok(buffer)
+    }
+
+    /// Enforce the updater's metadata policy against the authenticated metadata extracted from a
+    /// verified signature's trusted comment.
+    ///
+    /// This cryptographically binds the (unsigned) manifest to the signed artifact and protects
+    /// against downgrade, freeze and replay attacks:
+    ///
+    /// - the signature must carry authenticated metadata (a `version` and `timestamp`); updates
+    ///   without it are rejected;
+    /// - the authenticated `version` must match the advertised manifest version, so an attacker
+    ///   cannot advertise a high version number while serving an older, validly-signed artifact;
+    /// - the authenticated signing `timestamp` is checked against [`Update::signature_expiration`]
+    ///   to reject stale signatures.
+    fn validate_signed_metadata(&self, signed: &SignedMetadata) -> Result<()> {
+        // The signature must carry both an authenticated version and timestamp. Every artefact signed
+        // by `cargo-packager` does; updates signed without this metadata (an old `cargo-packager`, a
+        // third-party minisign signer, ...) are rejected. Update the `cargo-packager` CLI in your
+        // release pipeline so the metadata is signed.
+        let (Some(signed_version), Some(signed_timestamp)) = (&signed.version, signed.timestamp)
+        else {
+            log::error!(
+                "rejecting update: signature is missing the authenticated metadata (version/timestamp). Sign the update with an up-to-date cargo-packager."
+            );
+            return Err(Error::MissingSignedMetadata);
+        };
+
+        // Version binding: the version advertised by the (unsigned) manifest must match the
+        // authenticated version, so a compromised channel cannot advertise a high version number
+        // while serving an older, validly-signed artefact.
+        let matches = match (
+            Version::parse(signed_version.trim_start_matches('v')),
+            Version::parse(self.version.trim_start_matches('v')),
+        ) {
+            (Ok(signed_v), Ok(advertised_v)) => signed_v == advertised_v,
+            // Fall back to a normalized string comparison if either side is not valid semver.
+            _ => signed_version.trim_start_matches('v') == self.version.trim_start_matches('v'),
+        };
+        if !matches {
+            log::error!(
+                "rejecting update: signed version `{signed_version}` does not match advertised version `{}`",
+                self.version
+            );
+            return Err(Error::SignedVersionMismatch {
+                signed: signed_version.clone(),
+                advertised: self.version.clone(),
+            });
+        }
+
+        // Freshness: reject signatures older than the configured maximum age, guarding against
+        // freeze and replay attacks.
+        if let Some(max_age) = self.signature_expiration {
+            let now = OffsetDateTime::now_utc().unix_timestamp();
+            if now.saturating_sub(signed_timestamp) > max_age.as_secs() as i64 {
+                log::error!(
+                    "rejecting update: signature signed at {signed_timestamp} is older than the configured maximum age of {}s",
+                    max_age.as_secs()
+                );
+                return Err(Error::StaleSignature {
+                    signed_timestamp,
+                    max_age_secs: max_age.as_secs(),
+                });
+            }
+        }
+
+        Ok(())
     }
 
     /// Installs the updater package downloaded by [`Update::download`]
@@ -1179,16 +1299,46 @@ fn extract_path_from_executable(executable_path: &Path) -> Result<PathBuf> {
     Ok(extract_path)
 }
 
-// Validate signature
-// need to be public because its been used
-// by our tests in the bundler
+/// Authenticated metadata extracted from a verified signature's trusted comment.
+///
+/// minisign signs the trusted comment as part of its global signature, so any field parsed here is
+/// cryptographically authenticated once [`verify_signature`] returns successfully.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct SignedMetadata {
+    /// The signing time as a unix timestamp (seconds), if present in the trusted comment.
+    pub timestamp: Option<i64>,
+    /// The authenticated artifact version, if present in the trusted comment.
+    pub version: Option<String>,
+}
+
+/// Parse the (authenticated) trusted comment of a minisign signature.
+///
+/// The trusted comment is a single line of tab-separated `key:value` fields, e.g.
+/// `timestamp:1700000000\tfile:app.tar.gz\tversion:1.2.3`. Unknown fields are ignored so the
+/// format can be extended without breaking older clients.
+fn parse_trusted_comment(comment: &str) -> SignedMetadata {
+    let mut metadata = SignedMetadata::default();
+    for field in comment.split('\t') {
+        if let Some(value) = field.strip_prefix("timestamp:") {
+            metadata.timestamp = value.trim().parse().ok();
+        } else if let Some(value) = field.strip_prefix("version:") {
+            let value = value.trim();
+            if !value.is_empty() {
+                metadata.version = Some(value.to_string());
+            }
+        }
+    }
+    metadata
+}
+
+// Validate signature and return the authenticated metadata from the signature's trusted comment.
 //
 // NOTE: The buffer position is not reset.
 fn verify_signature<R>(
     archive_reader: &mut R,
     release_signature: &str,
     pub_key: &str,
-) -> Result<bool>
+) -> Result<SignedMetadata>
 where
     R: Read,
 {
@@ -1202,9 +1352,9 @@ where
     let mut data = Vec::new();
     archive_reader.read_to_end(&mut data)?;
 
-    // Validate signature or bail out
+    // Validate signature or bail out. This also authenticates the trusted comment.
     public_key.verify(&data, &signature, true)?;
-    Ok(true)
+    Ok(parse_trusted_comment(signature.trusted_comment()))
 }
 
 fn base64_to_string(base64_string: &str) -> Result<String> {
@@ -1213,4 +1363,127 @@ fn base64_to_string(base64_string: &str) -> Result<String> {
         .map_err(|_| Error::SignatureUtf8(base64_string.into()))?
         .to_string();
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn url(s: &str) -> Url {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn parse_trusted_comment_fields() {
+        let meta = parse_trusted_comment("timestamp:1700000000\tfile:app.tar.gz\tversion:1.2.3");
+        assert_eq!(meta.timestamp, Some(1_700_000_000));
+        assert_eq!(meta.version.as_deref(), Some("1.2.3"));
+
+        // legacy comment without a version
+        let legacy = parse_trusted_comment("timestamp:1700000000\tfile:app.tar.gz");
+        assert_eq!(legacy.timestamp, Some(1_700_000_000));
+        assert!(legacy.version.is_none());
+
+        // empty version is treated as absent
+        let empty = parse_trusted_comment("timestamp:1\tfile:app\tversion:");
+        assert!(empty.version.is_none());
+    }
+
+    /// Build a minimal [`Update`] for exercising the metadata validation policy.
+    fn update_for(advertised_version: &str, signature_expiration: Option<Duration>) -> Update {
+        Update {
+            config: Config::default(),
+            body: None,
+            current_version: "0.1.0".into(),
+            version: advertised_version.into(),
+            date: None,
+            target: "linux-x86_64".into(),
+            extract_path: PathBuf::new(),
+            download_url: url("https://example.com/app.tar.gz"),
+            signature: String::new(),
+            timeout: None,
+            headers: HeaderMap::new(),
+            format: UpdateFormat::AppImage,
+            signature_expiration,
+        }
+    }
+
+    #[test]
+    fn signed_version_binding() {
+        let update = update_for("1.2.3", None);
+
+        // matching version (with and without leading `v`) passes
+        assert!(update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: Some("1.2.3".into()),
+            })
+            .is_ok());
+        assert!(update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: Some("v1.2.3".into()),
+            })
+            .is_ok());
+
+        // a mismatching signed version (e.g. old artifact served under a faked high version) fails
+        let err = update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: Some("1.0.0".into()),
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::SignedVersionMismatch { .. }));
+    }
+
+    #[test]
+    fn missing_metadata_always_rejected() {
+        let update = update_for("1.2.3", None);
+
+        // no authenticated metadata at all
+        let err = update
+            .validate_signed_metadata(&SignedMetadata::default())
+            .unwrap_err();
+        assert!(matches!(err, Error::MissingSignedMetadata));
+
+        // version present but no timestamp
+        let err = update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: None,
+                version: Some("1.2.3".into()),
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::MissingSignedMetadata));
+
+        // timestamp present but no version
+        let err = update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: None,
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::MissingSignedMetadata));
+    }
+
+    #[test]
+    fn signature_expiration_enforced() {
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+
+        // a signature within the max age passes
+        assert!(update_for("1.2.3", Some(Duration::from_secs(3600)))
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(now - 60),
+                version: Some("1.2.3".into()),
+            })
+            .is_ok());
+
+        // a stale signature is rejected
+        let err = update_for("1.2.3", Some(Duration::from_secs(3600)))
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(now - 7200),
+                version: Some("1.2.3".into()),
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::StaleSignature { .. }));
+    }
 }
