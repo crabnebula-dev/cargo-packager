@@ -427,7 +427,10 @@ fn rejects_metadata_version_mismatch() {
         .download()
         .expect_err("download must fail because the signed version does not match the manifest");
     assert!(
-        matches!(err, cargo_packager_updater::Error::SignedVersionMismatch { .. }),
+        matches!(
+            err,
+            cargo_packager_updater::Error::SignedVersionMismatch { .. }
+        ),
         "expected SignedVersionMismatch, got: {err:?}"
     );
 }

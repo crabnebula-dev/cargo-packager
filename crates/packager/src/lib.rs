@@ -259,6 +259,7 @@ pub fn package_and_sign(
     signing_config: &SigningConfig,
 ) -> crate::Result<(Vec<PackageOutput>, Vec<PathBuf>)> {
     let mut packages = package(config)?;
-    let signatures = sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
+    let signatures =
+        sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
     Ok((packages, signatures))
 }

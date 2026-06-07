@@ -179,7 +179,8 @@ fn run_cli(cli: Cli) -> Result<()> {
 
         // sign the packages
         if let Some(signing_config) = &signing_config {
-            let s = sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
+            let s =
+                sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
             signatures.extend(s);
         }
 
