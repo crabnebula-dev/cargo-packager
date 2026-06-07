@@ -15,6 +15,7 @@ use std::{
 use serde::Serialize;
 
 const UPDATER_PRIVATE_KEY: &str = include_str!("./dummy.key");
+const UPDATER_PUBLIC_KEY: &str = include_str!("./dummy.pub.key");
 
 #[derive(Serialize)]
 struct PlatformUpdate {
@@ -89,6 +90,7 @@ impl UpdaterFormat {
     }
 }
 
+#[serial_test::serial]
 #[test]
 #[ignore]
 fn update_app() {
@@ -319,4 +321,113 @@ fn update_app() {
             .current_dir(&manifest_dir)
             .output();
     }
+}
+
+// Ensures the version-binding check rejects an update whose (unsigned) manifest advertises a
+// version that does not match the authenticated version embedded in the artifact's signature.
+//
+// We build & sign a real `1.0.0` artifact (whose signature's trusted comment embeds `version:1.0.0`)
+// but serve a manifest that advertises `2.0.0` while pointing at that same `1.0.0` artifact. The
+// signature itself is valid for the bytes, so verification passes, but `download()` must then reject
+// the update with `Error::SignedVersionMismatch` because the signed version (`1.0.0`) differs from
+// the advertised version (`2.0.0`). This is exactly the downgrade vector the version binding defends
+// against (advertise a high version while serving an older, validly-signed artifact).
+#[serial_test::serial]
+#[test]
+#[ignore]
+fn rejects_metadata_version_mismatch() {
+    let target =
+        cargo_packager_updater::target().expect("running updater test in an unsupported platform");
+
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let root_dir = manifest_dir.join("../..").canonicalize().unwrap();
+
+    // build & sign a real 1.0.0 artifact; its signature embeds `version:1.0.0` in the trusted comment
+    let format = UpdaterFormat::default()[0];
+    build_app(&manifest_dir, &root_dir, "1.0.0", &[format]);
+
+    #[cfg(target_os = "linux")]
+    let update_package_path =
+        root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x86_64.AppImage");
+    #[cfg(target_os = "macos")]
+    let update_package_path = root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app.tar.gz");
+    #[cfg(windows)]
+    let update_package_path =
+        root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x64-setup.exe");
+
+    let ext = update_package_path.extension().unwrap().to_str().unwrap();
+    let signature_path = update_package_path.with_extension(format!("{ext}.sig"));
+    let signature = fs::read_to_string(&signature_path)
+        .unwrap_or_else(|_| panic!("failed to read signature file {}", signature_path.display()));
+
+    // bind the listening port before spawning the server thread so the client can't race it
+    let server = tiny_http::Server::http("localhost:3008").expect("failed to start updater server");
+    let update_package = update_package_path.clone();
+    let served_target = target.clone();
+    std::thread::spawn(move || loop {
+        let Ok(request) = server.recv() else {
+            continue;
+        };
+        match request.url() {
+            "/" => {
+                let mut platforms = HashMap::new();
+                platforms.insert(
+                    served_target.clone(),
+                    PlatformUpdate {
+                        signature: signature.clone(),
+                        url: "http://localhost:3008/download",
+                        format: format.name(),
+                    },
+                );
+                // advertise 2.0.0 while serving the 1.0.0 artifact -> version mismatch
+                let body = serde_json::to_vec(&Update {
+                    version: "2.0.0",
+                    date: time::OffsetDateTime::now_utc()
+                        .format(&time::format_description::well_known::Rfc3339)
+                        .unwrap(),
+                    platforms,
+                })
+                .unwrap();
+                let len = body.len();
+                let response = tiny_http::Response::new(
+                    tiny_http::StatusCode(200),
+                    Vec::new(),
+                    std::io::Cursor::new(body),
+                    Some(len),
+                    None,
+                );
+                let _ = request.respond(response);
+            }
+            "/download" => {
+                let _ = request.respond(tiny_http::Response::from_file(
+                    File::open(&update_package).unwrap_or_else(|_| {
+                        panic!("failed to open package {}", update_package.display())
+                    }),
+                ));
+                return;
+            }
+            _ => (),
+        }
+    });
+
+    let config = cargo_packager_updater::Config {
+        endpoints: vec!["http://localhost:3008".parse().unwrap()],
+        pubkey: UPDATER_PUBLIC_KEY.into(),
+        ..Default::default()
+    };
+
+    // current version 1.0.0 < advertised 2.0.0, so an update is offered
+    let update = cargo_packager_updater::check_update("1.0.0".parse().unwrap(), config)
+        .expect("failed to check for update")
+        .expect("expected the server to advertise an update");
+    assert_eq!(update.version, "2.0.0");
+
+    // the signature is valid for the bytes, but the signed version (1.0.0) != advertised (2.0.0)
+    let err = update
+        .download()
+        .expect_err("download must fail because the signed version does not match the manifest");
+    assert!(
+        matches!(err, cargo_packager_updater::Error::SignedVersionMismatch { .. }),
+        "expected SignedVersionMismatch, got: {err:?}"
+    );
 }
