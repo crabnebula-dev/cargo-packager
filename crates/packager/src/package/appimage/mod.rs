@@ -118,7 +118,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     let main_binary_name = config.main_binary_name()?;
     let upcase_app_name = main_binary_name.to_uppercase();
-    let app_dir_path = intermediates_path.join(format!("{}.AppDir", &main_binary_name));
+    let app_dir_path = intermediates_path.join(format!("{}.AppDir", main_binary_name));
     let appimage_filename = format!("{}_{}_{}.AppImage", main_binary_name, config.version, arch);
     let appimage_path = config.out_dir().join(&appimage_filename);
 
