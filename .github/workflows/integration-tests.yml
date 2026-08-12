@@ -44,9 +44,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
       - uses: actions/setup-node@v6
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install
@@ -55,7 +55,7 @@ jobs:
         run: |
           cd bindings/packager/nodejs
           pnpm test
-        timeout-minutes: 30
+        timeout-minutes: 15
       - name: install fuse
         if: matrix.platform == 'ubuntu-latest'
         run: |
@@ -65,4 +65,4 @@ jobs:
         run: |
           cd bindings/updater/nodejs
           pnpm test
-        timeout-minutes: 30
+        timeout-minutes: 15

@@ -97,9 +97,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v6
         if: ${{ !matrix.settings.docker }}
@@ -174,9 +174,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v6
         with:
@@ -206,9 +206,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v6
         with:
@@ -239,9 +239,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v6
         with:
@@ -283,9 +283,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -323,9 +323,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -368,9 +368,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -405,9 +405,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v6
       - run: pnpm install
