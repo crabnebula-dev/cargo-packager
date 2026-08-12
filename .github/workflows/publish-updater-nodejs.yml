@@ -95,9 +95,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v6
         if: ${{ !matrix.settings.docker }}
@@ -174,9 +174,9 @@ jobs:
   #   runs-on: ${{ matrix.settings.host }}
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - uses: actions/setup-node@v4
   #       with:
@@ -205,9 +205,9 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - uses: actions/setup-node@v4
   #       with:
@@ -237,9 +237,9 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - uses: actions/setup-node@v4
   #       with:
@@ -280,9 +280,9 @@ jobs:
   #     - name: List packages
   #       run: ls -R .
   #       shell: bash
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - name: Install dependencies
   #       run: |
@@ -319,9 +319,9 @@ jobs:
   #     - name: List packages
   #       run: ls -R .
   #       shell: bash
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - name: Install dependencies
   #       run: |
@@ -363,9 +363,9 @@ jobs:
   #     - name: List packages
   #       run: ls -R .
   #       shell: bash
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - name: Install dependencies
   #       run: |
@@ -400,9 +400,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v6
       - run: pnpm install
