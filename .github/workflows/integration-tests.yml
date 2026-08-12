@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   test-rust:
-    if: ${{ !startsWith(github.head_ref, 'renovate/') }}
+    #if: ${{ !startsWith(github.head_ref, 'renovate/') }}
     runs-on: ${{ matrix.platform }}
 
     strategy:
