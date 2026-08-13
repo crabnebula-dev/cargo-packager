@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.1",
-    "@tinyhttp/app": "^2.2.1",
+    "@tinyhttp/app": "^3.0.0",
     "@types/node": "^20.8.10",
     "ava": "^6.2.0",
     "execa": "^9.0.0",

@@ -39,7 +39,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
         }
     );
     let app_bundle_file_name = format!("{}.app", config.product_name);
-    let dmg_name = format!("{}.dmg", &package_base_name);
+    let dmg_name = format!("{}.dmg", package_base_name);
     let dmg_path = out_dir.join(&dmg_name);
 
     tracing::info!("Packaging {} ({})", dmg_name, dmg_path.display());

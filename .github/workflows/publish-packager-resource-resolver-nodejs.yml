@@ -95,13 +95,13 @@ jobs:
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: ${{ !matrix.settings.docker }}
       - name: Install
         uses: dtolnay/rust-toolchain@stable
@@ -110,7 +110,7 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry/index/
@@ -133,7 +133,7 @@ jobs:
         shell: bash
       - run: pnpm install
       - name: Setup node x86
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
           node-version: 18
@@ -172,13 +172,13 @@ jobs:
           - "20"
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
@@ -204,13 +204,13 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
@@ -237,13 +237,13 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - name: Install dependencies
@@ -273,7 +273,7 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -283,9 +283,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -313,7 +313,7 @@ jobs:
       - build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -323,9 +323,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -358,7 +358,7 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -368,9 +368,9 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -403,13 +403,13 @@ jobs:
       - test-linux-aarch64-musl-binding
       - test-linux-arm-gnueabihf-binding
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 10
           package_json_file: bindings/resource-resolver/nodejs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
       - run: pnpm install
       - name: Download all artifacts
         uses: actions/download-artifact@v4

@@ -200,19 +200,22 @@ fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<Pat
                     .as_ref()
                     .map(|p| p.as_std_path().to_owned());
             }
-            let targets = package
-                .targets
-                .iter()
-                .filter(|t| t.is_bin())
-                .collect::<Vec<_>>();
-            for target in &targets {
-                config.binaries.push(Binary {
-                    path: target.name.clone().into(),
-                    main: match targets.len() {
-                        1 => true,
-                        _ => target.name == package.name,
-                    },
-                })
+            // Auto-detect binaries if none were explicitly configured
+            if config.binaries.is_empty() {
+                let targets = package
+                    .targets
+                    .iter()
+                    .filter(|t| t.is_bin())
+                    .collect::<Vec<_>>();
+                for target in &targets {
+                    config.binaries.push(Binary {
+                        path: target.name.clone().into(),
+                        main: match targets.len() {
+                            1 => true,
+                            _ => target.name == package.name,
+                        },
+                    })
+                }
             }
             configs.push((
                 Some(package.manifest_path.as_std_path().to_path_buf()),
