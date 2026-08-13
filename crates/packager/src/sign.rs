@@ -36,7 +36,11 @@ pub struct KeyPair {
 /// empty string as the password.
 #[tracing::instrument(level = "trace")]
 pub fn generate_key(password: Option<String>) -> crate::Result<KeyPair> {
-    let minisign::KeyPair { pk, sk } = minisign::KeyPair::generate_encrypted_keypair(password)?;
+    let minisign::KeyPair { pk, sk } = if matches!(&password, Some(p) if p.is_empty()) {
+        minisign::KeyPair::generate_unencrypted_keypair()?
+    } else {
+        minisign::KeyPair::generate_encrypted_keypair(password)?
+    };
 
     let pk_box_str = pk.to_box()?.to_string();
     let sk_box_str = sk.to_box(None)?.to_string();
@@ -62,6 +66,22 @@ pub fn decode_private_key(
     password: Option<&str>,
 ) -> crate::Result<minisign::SecretKey> {
     let decoded_secret = decode_base64(private_key)?;
+
+    // Empty password: bypass into_secret_key() which corrupts unencrypted keys.
+    if matches!(password, Some(p) if p.is_empty()) {
+        let mut lines = decoded_secret.lines();
+        lines.next(); // skip comment line
+        if let Some(encoded_key) = lines.next() {
+            if let Ok(key_bytes) = STANDARD.decode(encoded_key.trim()) {
+                if let Ok(sk) = minisign::SecretKey::from_bytes(&key_bytes) {
+                    if !sk.is_encrypted() {
+                        return Ok(sk);
+                    }
+                }
+            }
+        }
+    }
+
     let sk_box = minisign::SecretKeyBox::from_string(&decoded_secret)?;
     let sk = sk_box.into_secret_key(password.map(Into::into))?;
     Ok(sk)
@@ -189,4 +209,89 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     signature_box_writer.flush()?;
 
     dunce::canonicalize(signature_path).map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Key generated with minisign ≤0.7 + empty password (kdf_alg = "Sc", plaintext data)
+    const LEGACY_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5VU1qSHBMT0E4R0JCVGZzbUMzb3ZXeGpGY1NSdm9OaUxaVTFuajd0T2ZKZ0FBQkFBQUFBQUFBQUFBQUlBQUFBQWlhRnNPUmxKWjBiWnJ6M29Cd0RwOUpqTW1yOFFQK3JTOGdKSi9CajlHZktHajI2ZnprbEM0VUl2MHhGdFdkZWpHc1BpTlJWK2hOTWo0UVZDemMvaFlYVUM4U2twRW9WV1JHenNzUkRKT2RXQ1FCeXlkYUwxelhacmtxOGZJOG1Nb1R6b0VEcWFLVUk9Cg==";
+    const LEGACY_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2Njc0OTE5Mzk2Q0ExODkKUldTSm9XdzVHVWxuUmtJdjB4RnRXZGVqR3NQaU5SVitoTk1qNFFWQ3pjL2hZWFVDOFNrcEVvVlcK";
+
+    // Key generated with minisign 0.9 generate_unencrypted_keypair() (kdf_alg = KDF_NONE)
+    const CURRENT_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUUFBRUl5QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQTRhZUlLZEhNS2lqMmRiNWVDNDdBa1FGTFpEVG5DTGJWNjBUaGVzQTFvTHkvcjJ1U01Oa2JMSjZNRHZYdU83SHEydjJXZnRheEhvNmRDOHhYWVFlZ1lRTDBteWxQanJwNENmTUxZQVo0K2FVZE1Ia2Vtbzlld0c5ZVVzcklGQjhpUlNoVmtJbTFRZFk9Cg==";
+    const CURRENT_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI4MkFDQ0QxMjk4OEE3RTEKUldUaHA0Z3AwY3dxS0o2TUR2WHVPN0hxMnYyV2Z0YXhIbzZkQzh4WFlRZWdZUUwwbXlsUGpycDQK";
+
+    #[test]
+    fn sign_verify_legacy_key() {
+        let sk = decode_private_key(LEGACY_SK, Some("")).unwrap();
+        assert!(!sk.is_encrypted());
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test.txt");
+        fs::write(&path, b"test content").unwrap();
+        let sig_path = sign_file_with_secret_key(&sk, &path).unwrap();
+
+        let pk_str = str::from_utf8(&STANDARD.decode(LEGACY_PK).unwrap())
+            .unwrap()
+            .to_owned();
+        let pk = minisign::PublicKeyBox::from_string(&pk_str)
+            .unwrap()
+            .into_public_key()
+            .unwrap();
+        let sig_str = str::from_utf8(
+            &STANDARD
+                .decode(fs::read_to_string(&sig_path).unwrap())
+                .unwrap(),
+        )
+        .unwrap()
+        .to_owned();
+        let sig_box = minisign::SignatureBox::from_string(&sig_str).unwrap();
+        minisign::verify(
+            &pk,
+            &sig_box,
+            fs::File::open(&path).unwrap(),
+            true,
+            false,
+            false,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn sign_verify_current_key() {
+        let sk = decode_private_key(CURRENT_SK, Some("")).unwrap();
+        assert!(!sk.is_encrypted());
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test.txt");
+        fs::write(&path, b"test content").unwrap();
+        let sig_path = sign_file_with_secret_key(&sk, &path).unwrap();
+
+        let pk_str = str::from_utf8(&STANDARD.decode(CURRENT_PK).unwrap())
+            .unwrap()
+            .to_owned();
+        let pk = minisign::PublicKeyBox::from_string(&pk_str)
+            .unwrap()
+            .into_public_key()
+            .unwrap();
+        let sig_str = str::from_utf8(
+            &STANDARD
+                .decode(fs::read_to_string(&sig_path).unwrap())
+                .unwrap(),
+        )
+        .unwrap()
+        .to_owned();
+        let sig_box = minisign::SignatureBox::from_string(&sig_str).unwrap();
+        minisign::verify(
+            &pk,
+            &sig_box,
+            fs::File::open(&path).unwrap(),
+            true,
+            false,
+            false,
+        )
+        .unwrap();
+    }
 }
