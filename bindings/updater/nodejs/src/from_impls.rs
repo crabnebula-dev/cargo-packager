@@ -47,6 +47,9 @@ impl From<Options> for cargo_packager_updater::Config {
                 .collect(),
             pubkey: value.pubkey,
             windows: value.windows.map(Into::into),
+            dangerous_insecure_transport_protocol: value
+                .dangerous_insecure_transport_protocol
+                .unwrap_or(false),
         }
     }
 }

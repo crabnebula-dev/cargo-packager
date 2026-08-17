@@ -51,6 +51,11 @@ pub struct Options {
     pub headers: Option<HashMap<String, String>>,
     /// Request timeout in milliseconds.
     pub timeout: Option<u32>,
+    /// Allow insecure (plain `http`) update transport in **release** builds. **Dangerous.**
+    ///
+    /// No host is exempt — not even loopback. `http` is allowed in debug builds (with a warning)
+    /// regardless of this option. Defaults to `false`.
+    pub dangerous_insecure_transport_protocol: Option<bool>,
 }
 
 impl Options {
