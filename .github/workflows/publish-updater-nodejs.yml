@@ -148,7 +148,7 @@ jobs:
         if: ${{ !matrix.settings.docker }}
         shell: bash
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bindings-${{ matrix.settings.target }}
           path: bindings/updater/nodejs/${{ env.APP_NAME }}.*.node
@@ -407,7 +407,7 @@ jobs:
       - uses: actions/setup-node@v7
       - run: pnpm install
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: bindings/updater/nodejs/artifacts
       - name: Move artifacts
