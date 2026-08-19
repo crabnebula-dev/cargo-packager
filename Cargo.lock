@@ -1030,7 +1030,7 @@ version = "0.2.3"
 dependencies = [
  "base64 0.23.1",
  "cargo-packager-utils",
- "ctor",
+ "ctor 0.2.9",
  "dirs",
  "dunce",
  "flate2",
@@ -1062,7 +1062,7 @@ name = "cargo-packager-utils"
 version = "0.1.1"
 dependencies = [
  "clap",
- "ctor",
+ "ctor 0.2.9",
  "schemars 1.2.1",
  "serde",
 ]
@@ -1453,6 +1453,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1640,7 +1649,7 @@ dependencies = [
  "cargo-packager",
  "napi",
  "napi-build",
- "napi-derive",
+ "napi-derive 3.6.3",
  "serde_json",
  "tracing",
 ]
@@ -1653,7 +1662,7 @@ dependencies = [
  "dunce",
  "napi",
  "napi-build",
- "napi-derive",
+ "napi-derive 3.6.3",
 ]
 
 [[package]]
@@ -1663,7 +1672,7 @@ dependencies = [
  "cargo-packager-updater",
  "napi",
  "napi-build",
- "napi-derive",
+ "napi-derive 3.6.3",
  "serde_json",
  "time",
 ]
@@ -1775,6 +1784,12 @@ dependencies = [
  "quote",
  "syn 2.0.111",
 ]
+
+[[package]]
+name = "ctor"
+version = "1.0.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "914a755b7c2d4af2bdcff7ce1739e2db9a1b81a9b07123d8015786ae03c0980d"
 
 [[package]]
 name = "ctor-lite"
@@ -5287,8 +5302,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55740c4ae1d8696773c78fdafd5d0e5fe9bc9f1b071c7ba493ba5c413a9184f3"
 dependencies = [
  "bitflags 2.10.0",
- "ctor",
- "napi-derive",
+ "ctor 0.2.9",
+ "napi-derive 2.16.13",
  "napi-sys",
  "once_cell",
  "tokio",
@@ -5308,7 +5323,21 @@ checksum = "7cbe2585d8ac223f7d34f13701434b9d5f4eb9c332cccce8dee57ea18ab8ab0c"
 dependencies = [
  "cfg-if",
  "convert_case 0.6.0",
- "napi-derive-backend",
+ "napi-derive-backend 1.0.75",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.111",
+]
+
+[[package]]
+name = "napi-derive"
+version = "3.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fa55ea69990c90b888e9e77044410e304ce7f35de599dc6d0b5c1923d2e59af"
+dependencies = [
+ "convert_case 0.11.0",
+ "ctor 1.0.13",
+ "napi-derive-backend 6.1.2",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -5324,7 +5353,18 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "regex",
+ "syn 2.0.111",
+]
+
+[[package]]
+name = "napi-derive-backend"
+version = "6.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df4056ac7c18e4438ccf0edaed4340ca0d269278c8ec19284f7b23cb039fd0ae"
+dependencies = [
+ "convert_case 0.11.0",
+ "proc-macro2",
+ "quote",
  "semver",
  "syn 2.0.111",
 ]
@@ -8654,7 +8694,7 @@ dependencies = [
  "anyhow",
  "brotli",
  "cargo_metadata 0.19.2",
- "ctor",
+ "ctor 0.2.9",
  "dunce",
  "glob",
  "html5ever",
