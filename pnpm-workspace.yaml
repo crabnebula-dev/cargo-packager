@@ -1,2 +1,5 @@
 packages:
   - bindings/*/nodejs
+
+overrides:
+  "@mapbox/node-pre-gyp>tar": 7.5.22
