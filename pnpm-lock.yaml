@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@mapbox/node-pre-gyp>tar': 7.5.22
-
 importers:
 
   .:
