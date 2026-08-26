@@ -15,7 +15,7 @@
   },
   "homepage": "https://github.com/crabnebula-dev/cargo-packager#readme",
   "devDependencies": {
-    "electron": "^27.0.3"
+    "electron": "^39.8.10"
   },
   "packager": {
     "outDir": "./dist",
