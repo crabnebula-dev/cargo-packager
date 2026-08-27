@@ -4,7 +4,7 @@ import fs from "fs-extra";
 import path from "path";
 import os from "os";
 import { download as downloadElectron } from "@electron/get";
-import extractZip from "extract-zip";
+import extractZip from "@electron-internal/extract-zip";
 import { Pruner, isModule, normalizePath } from "./prune";
 
 export default async function run(

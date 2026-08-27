@@ -14,6 +14,9 @@ importers:
 
   bindings/packager/nodejs:
     dependencies:
+      '@electron-internal/extract-zip':
+        specifier: ^1.0.5
+        version: 1.0.5
       '@electron/get':
         specifier: ^5.0.0
         version: 5.1.0
@@ -91,6 +94,10 @@ packages:
   '@cto.af/wtf8@0.0.5':
     resolution: {integrity: sha512-LfUFi+Vv4eDzj+XAtR89e3wwjXA/NZjUSwU5NhwbBrLecxPaBYFy3exCuc1j+D4UZeOVdqlsl8G7LmOt18V0tg==}
     engines: {node: '>=20'}
+
+  '@electron-internal/extract-zip@1.0.5':
+    resolution: {integrity: sha512-+bqFCP98pLI0Tt0XQo1TmlXtwjWchISndDOxCkEcIuUgXWpBnLyRI+2DU+mesvnMMX6L1XDqYNA0lXNDHd/yiA==}
+    engines: {node: '>=22.12.0'}
 
   '@electron/get@5.1.0':
     resolution: {integrity: sha512-3kSBtG8ObcTVfXanm5vVJ6UnBLEVmVsRk1M+vGqCuMBV+XLCbJYuWQful+yIy0GQDsSlK0kHEriEHn7SPk4EnA==}
@@ -1098,6 +1105,8 @@ snapshots:
       js-yaml: 4.1.0
 
   '@cto.af/wtf8@0.0.5': {}
+
+  '@electron-internal/extract-zip@1.0.5': {}
 
   '@electron/get@5.1.0':
     dependencies:

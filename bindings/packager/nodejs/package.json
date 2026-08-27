@@ -37,6 +37,7 @@
     "version": "napi version"
   },
   "dependencies": {
+    "@electron-internal/extract-zip": "^1.0.5",
     "@electron/get": "^5.0.0",
     "deepmerge": "^4.3.1",
     "extract-zip": "^2.0.1",
