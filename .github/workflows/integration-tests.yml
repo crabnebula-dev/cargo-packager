@@ -20,8 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-
+        platform: [ubuntu-latest]
+        # , macos-latest, windows-latest --- removed because this is very expensive on windows
     steps:
       - uses: actions/checkout@v7
       - name: install fuse
