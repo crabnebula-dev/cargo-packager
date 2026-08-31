@@ -1,6 +1,6 @@
 ---
-"cargo-packager": minor
-"@crabnebula/packager": minor
+"cargo-packager": patch
+"@crabnebula/packager": patch
 ---
 
 Changed the error message when running the AppImage build script fails.
