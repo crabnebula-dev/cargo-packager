@@ -33,6 +33,7 @@ test("it updates correctly", async (t) => {
       await packageAndSignApp(
         {
           formats: updaterFormats,
+          nsis: { compression: 'off' },
           version,
         },
         {
