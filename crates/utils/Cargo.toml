@@ -8,7 +8,7 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [dependencies]
-ctor = "0.2"
+ctor = { version = "1.0", default-features = false, features = ["std", "proc_macro"] }
 schemars = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
