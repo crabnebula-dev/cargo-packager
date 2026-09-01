@@ -9,7 +9,7 @@ publish = false
 tauri-build = { version = "2.5", features = [] }
 
 [dependencies]
-tauri = { version = "2.9", features = ["devtools"] }
+tauri = { version = "2.11.5", features = ["devtools"] }
 serde.workspace = true
 serde_json.workspace = true
 cargo-packager-updater = { path = "../../crates/updater" }
