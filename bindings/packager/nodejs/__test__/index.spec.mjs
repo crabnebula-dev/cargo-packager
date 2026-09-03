@@ -41,6 +41,11 @@ test("preserves executable file permissions when extracting a ZIP", async (t) =>
   try {
     await extractZip(zipPath, outputDir);
 
+    if (process.platform === "win32") {
+      t.pass();
+      return;
+    }
+
     const stats = await fs.stat(
       path.join(outputDir, "permissions-input", "test.sh"),
     );
