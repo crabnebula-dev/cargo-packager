@@ -4,7 +4,7 @@ import fs from "fs-extra";
 import path from "path";
 import os from "os";
 import { download as downloadElectron } from "@electron/get";
-import extractZip from "extract-zip";
+import extractZip from "./extract";
 import { Pruner, isModule, normalizePath } from "./prune";
 
 export default async function run(
@@ -32,9 +32,7 @@ export default async function run(
 
   const zipPath = await downloadElectron(electronPackageJson.version);
   const zipDir = await fs.mkdtemp(path.join(os.tmpdir(), ".packager-electron"));
-  await extractZip(zipPath, {
-    dir: zipDir,
-  });
+  await extractZip(zipPath, zipDir);
 
   const platformName = os.platform();
   let resources: Resource[] = [];
