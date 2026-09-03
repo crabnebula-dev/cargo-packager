@@ -86,7 +86,7 @@ use std::{
 };
 
 /// A cached version of the current binary using [`ctor`] to cache it before even `main` runs.
-#[ctor]
+#[ctor(unsafe)]
 #[used]
 static STARTING_BINARY: StartingBinary = StartingBinary::new();
 

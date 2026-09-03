@@ -5,7 +5,7 @@
 
 use std::{
     collections::BTreeMap,
-    fs,
+    fs, io,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     process::Command,
@@ -208,6 +208,12 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     Command::new(&sh_file)
         .current_dir(intermediates_path)
         .output_ok()
+        .map_err(|err| {
+            io::Error::other(format!(
+                "Error running '{0}' script: {err}",
+                sh_file.display()
+            ))
+        })
         .map_err(crate::Error::AppImageScriptFailed)?;
 
     Ok(vec![appimage_path])

@@ -32,7 +32,7 @@
     "build:debug": "napi build --platform && pnpm run postbuild",
     "postbuild": "rm -rf ./build && node generate-config-type.js && tsc",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
-    "test": "ava --no-worker-threads",
+    "test": "ava --no-worker-threads --timeout 15m",
     "universal": "napi universal",
     "version": "napi version"
   },
@@ -49,6 +49,7 @@
     "@types/node": "^24.0.0",
     "@types/yauzl": "2.10.3",
     "ava": "^8.0.0",
+    "js-yaml": "^4.3.1",
     "json-schema-to-typescript": "^15.0.0",
     "typescript": "^7.0.0"
   },
