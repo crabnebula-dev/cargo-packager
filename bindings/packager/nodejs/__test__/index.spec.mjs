@@ -1,7 +1,9 @@
 import test from "ava";
 import process from "process";
 import { execSync } from "child_process";
-
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
 import { packageApp } from "../build/index.js";
 
 test("log error", async (t) => {
@@ -19,4 +21,27 @@ test("log error", async (t) => {
     ),
     undefined,
   );
+});
+
+test("preserves executable file permissions when extracting a ZIP", async (t) => {
+  const { extractZip } = await import("../build/plugins/electron/extract.js");
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "extract-permissions-"),
+  );
+  const zipPath = path.resolve("__test__/fixtures/permissions-test.zip");
+  const outputDir = path.join(tempDir, "output");
+
+  await fs.mkdir(outputDir);
+
+  try {
+    await extractZip(zipPath, outputDir);
+
+    const stats = await fs.stat(
+      path.join(outputDir, "permissions-input", "test.sh"),
+    );
+
+    t.is(stats.mode & 0o777, 0o755);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
