@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import { packageApp } from "../build/index.js";
+import { fileURLToPath } from "url";
 
 test("log error", async (t) => {
   process.env.CI = true;
@@ -28,7 +29,11 @@ test("preserves executable file permissions when extracting a ZIP", async (t) =>
   const tempDir = await fs.mkdtemp(
     path.join(os.tmpdir(), "extract-permissions-"),
   );
-  const zipPath = path.resolve("__test__/fixtures/permissions-test.zip");
+  const zipPath = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "fixtures",
+    "permissions-test.zip",
+  );
   const outputDir = path.join(tempDir, "output");
 
   await fs.mkdir(outputDir);
