@@ -44,3 +44,4 @@ flate2 = "1.0"
 
 [dev-dependencies]
 tiny_http = "0.12"
+serial_test = "3"
