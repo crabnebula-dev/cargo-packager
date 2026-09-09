@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-dioxus = { version = "0.7", features = ["desktop"] }
+dioxus = { version = "0.8.0-alpha.1", features = ["desktop"] }
 
 [package.metadata.packager]
 # TODO: Needs https://github.com/crabnebula-dev/cargo-packager/issues/360

@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-wry = "0.53"
+wry = "0.56"
 tao = "0.34"
 
 [package.metadata.packager]
