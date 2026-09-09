@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.9]
+
+- [`06836b2`](https://www.github.com/crabnebula-dev/cargo-packager/commit/06836b2d198573be79abc9b4c25fe8e807e34536) ([#358](https://www.github.com/crabnebula-dev/cargo-packager/pull/358)) Changed the error message when running the AppImage build script fails.
+    It now includes the full path to the build script.
+
 ## \[0.11.8]
 
 - [`6e6a10c`](https://www.github.com/crabnebula-dev/cargo-packager/commit/6e6a10cc1692973293966034dc4b798e3976d094) ([#321](https://www.github.com/crabnebula-dev/cargo-packager/pull/321)) Allow explicitly specifying the Package name for the .deb bundle.
