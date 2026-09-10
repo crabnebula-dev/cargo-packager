@@ -145,8 +145,23 @@ pub fn sign_file<P: AsRef<Path> + Debug>(
     config: &SigningConfig,
     path: P,
 ) -> crate::Result<PathBuf> {
+    sign_file_with_version(config, path, None)
+}
+
+/// Signs a specified file using the specified signing configuration, embedding an authenticated
+/// `version` into the signature's trusted comment.
+///
+/// The version is cryptographically bound to the artifact (minisign signs the trusted comment), so
+/// the updater can reject manifests that advertise a version which does not match the signed one,
+/// defeating downgrade attacks. Passing `None` produces a signature compatible with older releases.
+#[tracing::instrument(level = "trace")]
+pub fn sign_file_with_version<P: AsRef<Path> + Debug>(
+    config: &SigningConfig,
+    path: P,
+    version: Option<&str>,
+) -> crate::Result<PathBuf> {
     let secret_key = decode_private_key(&config.private_key, config.password.as_deref())?;
-    sign_file_with_secret_key(&secret_key, path)
+    sign_file_with_secret_key_and_version(&secret_key, path, version)
 }
 
 /// Signs a specified file using an already decoded secret key.
@@ -155,6 +170,17 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     secret_key: &minisign::SecretKey,
     path: P,
 ) -> crate::Result<PathBuf> {
+    sign_file_with_secret_key_and_version(secret_key, path, None)
+}
+
+/// Signs a specified file using an already decoded secret key, embedding an authenticated `version`
+/// into the signature's trusted comment. See [`sign_file_with_version`].
+#[tracing::instrument(level = "trace")]
+pub fn sign_file_with_secret_key_and_version<P: AsRef<Path> + Debug>(
+    secret_key: &minisign::SecretKey,
+    path: P,
+    version: Option<&str>,
+) -> crate::Result<PathBuf> {
     let path = path.as_ref();
     let signature_path = path.with_additional_extension("sig");
     let signature_path = dunce::simplified(&signature_path);
@@ -162,13 +188,21 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     let mut signature_box_writer = util::create_file(signature_path)?;
     let start = SystemTime::now();
     let since_epoch = start.duration_since(UNIX_EPOCH)?.as_secs();
-    let trusted_comment = format!(
+    let mut trusted_comment = format!(
         "timestamp:{}\tfile:{}",
         since_epoch,
         path.file_name()
             .ok_or_else(|| crate::Error::FailedToExtractFilename(path.to_path_buf()))?
             .to_string_lossy()
     );
+    // Bind the release version into the (authenticated) trusted comment when known. Tabs separate
+    // fields and the version is the last one so the format stays forwards/backwards compatible.
+    if let Some(version) = version {
+        let version = version.trim();
+        if !version.is_empty() {
+            trusted_comment.push_str(&format!("\tversion:{version}"));
+        }
+    }
 
     let file = OpenOptions::new()
         .read(true)

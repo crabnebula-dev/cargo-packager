@@ -57,6 +57,25 @@ pub enum Error {
     /// Temp dir is not on same mount mount. This prevents our updater to rename the AppImage to a temp file.
     #[error("temp directory is not on the same mount point as the AppImage")]
     TempDirNotOnSameMountPoint,
+    /// The authenticated version embedded in the update signature does not match the advertised version.
+    #[error("update metadata mismatch: the signed version `{signed}` does not match the advertised version `{advertised}`. The update may have been tampered with.")]
+    SignedVersionMismatch {
+        /// The version authenticated by the signature's trusted comment.
+        signed: String,
+        /// The version advertised in the (unsigned) update manifest.
+        advertised: String,
+    },
+    /// The update signature does not contain the authenticated metadata required by the updater.
+    #[error("the update signature does not contain the authenticated metadata (version/timestamp) required by the updater")]
+    MissingSignedMetadata,
+    /// The update signature is older than the configured maximum age.
+    #[error("the update signature is stale: it was signed at unix timestamp {signed_timestamp}, which is older than the configured maximum age of {max_age_secs}s")]
+    StaleSignature {
+        /// The authenticated signing timestamp (seconds since the unix epoch).
+        signed_timestamp: i64,
+        /// The configured maximum signature age, in seconds.
+        max_age_secs: u64,
+    },
     /// The `reqwest` crate errors.
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
