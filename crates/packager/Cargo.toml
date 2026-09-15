@@ -60,7 +60,7 @@ tracing-subscriber = { version = "0.3", optional = true, features = [
     "env-filter",
 ] }
 toml = "0.9"
-cargo_metadata = "0.18"
+cargo_metadata = "0.23"
 ureq = { version = "2.10", default-features = false }
 hex = "0.4"
 sha1 = "0.10"
