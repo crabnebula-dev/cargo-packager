@@ -101,6 +101,9 @@ pub enum Error {
     /// Failed to get parent directory of a path
     #[error("Failed to get parent directory of {0}")]
     ParentDirNotFound(PathBuf),
+    /// Failed apply permissions
+    #[error("Failed apply permissions of {0}: {1}")]
+    ApplyPermissions(PathBuf, std::io::Error),
     /// A hook, for example `beforePackagaingCommand`, has failed.
     #[error("{0} `{1}` failed: {2}")]
     HookCommandFailure(String, String, std::io::Error),
