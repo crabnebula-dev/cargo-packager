@@ -76,7 +76,7 @@
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![deny(missing_docs)]
 
-use std::{io::Write, path::PathBuf};
+use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
 
 mod codesign;
 mod error;
@@ -93,10 +93,13 @@ pub mod sign;
 pub use config::{Config, PackageFormat};
 pub use error::{Error, Result};
 use flate2::{write::GzEncoder, Compression};
+use serde::Serialize;
 pub use sign::SigningConfig;
 
 pub use package::{package, PackageOutput};
 use util::PathExt;
+
+use crate::package::PackageOutputSummary;
 
 #[cfg(feature = "cli")]
 fn parse_log_level(verbose: u8) -> tracing::Level {
@@ -225,11 +228,69 @@ pub fn sign_outputs(
             } else {
                 path
             };
-            signatures.push(sign::sign_file(config, path)?);
+
+            let (sig_file, sig) = sign::sign_file(config, path)?;
+
+            // Add signature to package summary
+            if let Some(summary) = &mut package.summary {
+                summary.signature = Some(sig);
+            }
+
+            signatures.push(sig_file);
         }
     }
 
     Ok(signatures)
+}
+
+/// Create a `latest.json` output summarising the built packages
+pub fn summarise_outputs(
+    config: &Config,
+    packages: &mut Vec<PackageOutput>,
+) -> crate::Result<PathBuf> {
+    #[derive(Debug, Clone, Serialize)]
+    struct InnerRemoteRelease {
+        version: String,
+        notes: Option<String>,
+        pub_date: Option<String>,
+        platforms: Option<HashMap<String, PackageOutputSummary>>,
+    }
+
+    //Collect releases
+    let mut platforms = HashMap::with_capacity(packages.len());
+
+    for package in packages {
+        if let Some(summary) = package.summary.clone() {
+            // if summary.signature.is_some() {
+            platforms.insert(summary.platform.clone(), summary);
+            // } else {
+            //     // The signer failed to update the signature field
+            //     tracing::warn!("A package could not be summarized in latest.json because it could not be signed.")
+            // }
+        }
+    }
+
+    // Write latest.json
+    let release = InnerRemoteRelease {
+        version: config.version.clone(),
+        notes: None,
+        pub_date: Some(
+            time::OffsetDateTime::now_utc()
+                .format(&time::format_description::well_known::Rfc3339)
+                .unwrap(),
+        ),
+        platforms: Some(platforms),
+    };
+
+    //Write it to the file
+    let summary_path = config.out_dir().join("latest.json");
+    let summary_file = File::create(summary_path.clone())?;
+
+    serde_json::to_writer_pretty(summary_file, &release)?;
+
+    tracing::info!("Finished summarising at:\n{}", summary_path.display());
+
+    Ok(summary_path)
 }
 
 /// Package an app using the specified config.

@@ -10,7 +10,8 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
 use crate::{
     config::{LogLevel, PackageFormat},
-    init_tracing_subscriber, package, parse_log_level, sign_outputs, util, SigningConfig,
+    init_tracing_subscriber, package, parse_log_level, sign_outputs, summarise_outputs, util,
+    SigningConfig,
 };
 
 mod config;
@@ -137,6 +138,7 @@ fn run_cli(cli: Cli) -> Result<()> {
 
     let mut outputs = Vec::new();
     let mut signatures = Vec::new();
+    let mut summaries = Vec::new();
     for (config_dir, mut config) in configs {
         tracing::trace!(config = ?config);
 
@@ -182,6 +184,9 @@ fn run_cli(cli: Cli) -> Result<()> {
             signatures.extend(s);
         }
 
+        // build summary
+        summaries.push(summarise_outputs(&config, &mut packages)?);
+
         outputs.extend(packages);
     }
 
@@ -189,6 +194,7 @@ fn run_cli(cli: Cli) -> Result<()> {
     let outputs = outputs
         .into_iter()
         .flat_map(|o| o.paths)
+        .chain(summaries.into_iter())
         .collect::<Vec<_>>();
 
     // print information when finished

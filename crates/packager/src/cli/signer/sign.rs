@@ -42,7 +42,7 @@ pub fn command(options: Options) -> Result<()> {
 
     tracing::info!(
         "Signed the file successfully! find the signature at: {}",
-        signature_path.display()
+        signature_path.0.display()
     );
 
     Ok(())
