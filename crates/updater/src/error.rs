@@ -57,6 +57,9 @@ pub enum Error {
     /// Temp dir is not on same mount mount. This prevents our updater to rename the AppImage to a temp file.
     #[error("temp directory is not on the same mount point as the AppImage")]
     TempDirNotOnSameMountPoint,
+    /// An update endpoint or download URL uses an insecure (non-HTTPS) transport.
+    #[error("insecure transport: `{0}` is not an HTTPS URL. Use HTTPS, or explicitly allow insecure transport via `Config::dangerous_insecure_transport_protocol` (http is also allowed in debug builds)")]
+    InsecureTransport(url::Url),
     /// The `reqwest` crate errors.
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),

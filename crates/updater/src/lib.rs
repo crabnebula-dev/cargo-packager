@@ -17,7 +17,8 @@
 //! use cargo_packager_updater::{check_update, Config};
 //!
 //! let config = Config {
-//!   endpoints: vec!["http://myserver.com/updates".parse().unwrap()],
+//!   // Endpoints must use HTTPS in release builds (debug builds may use http).
+//!   endpoints: vec!["https://myserver.com/updates".parse().unwrap()],
 //!   pubkey: "<pubkey here>".into(),
 //!   ..Default::default()
 //! };
@@ -133,6 +134,14 @@
 //! - [`"Passive"`](WindowsUpdateInstallMode::Passive): There will be a small window with a progress bar. The update will be installed without requiring any user interaction. Generally recommended and the default mode.
 //! - [`"BasicUi"`](WindowsUpdateInstallMode::BasicUi): There will be a basic user interface shown which requires user interaction to finish the installation.
 //! - [`"Quiet"`](WindowsUpdateInstallMode::Quiet): There will be no progress feedback to the user. With this mode the installer cannot request admin privileges by itself so it only works in user-wide installations or when your app itself already runs with admin privileges. Generally not recommended.
+//!
+//! ## Transport security
+//!
+//! Update endpoints and download URLs must use HTTPS. Plain `http` is rejected in release builds —
+//! no host is exempt, not even loopback addresses. It is allowed in debug builds to ease local
+//! development (with a warning that it will not work in release), and can be enabled in release for
+//! trusted, isolated networks via [`Config::dangerous_insecure_transport_protocol`]. Redirects that
+//! downgrade from `https` to `http` are refused.
 
 #![deny(missing_docs)]
 
@@ -229,6 +238,18 @@ pub struct Config {
     pub pubkey: String,
     /// The Windows configuration for the updater.
     pub windows: Option<WindowsConfig>,
+    /// Allow the updater to discover, retrieve and download updates over insecure (plain `http`)
+    /// transport in **release** builds.
+    ///
+    /// By default the updater enforces HTTPS for all update endpoints and download URLs and refuses
+    /// to follow redirects that downgrade from `https` to `http`. No host is exempt — not even
+    /// loopback addresses. Plain `http` is allowed in debug builds (with a warning) so local
+    /// development and testing keep working.
+    ///
+    /// Enabling this is **dangerous**: it exposes the update process to network attackers who can
+    /// redirect, replay or substitute update traffic. Only enable it for trusted, isolated networks.
+    #[serde(default)]
+    pub dangerous_insecure_transport_protocol: bool,
 }
 
 /// Supported update format
@@ -416,6 +437,22 @@ impl UpdaterBuilder {
         self
     }
 
+    /// Allow the updater to discover, retrieve and download updates over insecure (plain `http`)
+    /// transport in **release** builds. Equivalent to setting
+    /// [`Config::dangerous_insecure_transport_protocol`].
+    ///
+    /// By default the updater enforces HTTPS for all update endpoints and download URLs and refuses
+    /// to follow redirects that downgrade from `https` to `http`. No host is exempt — not even
+    /// loopback addresses. Plain `http` is allowed in debug builds (with a warning) so local
+    /// development and testing keep working.
+    ///
+    /// Enabling this is **dangerous**: it exposes the update process to network attackers who can
+    /// redirect, replay or substitute update traffic. Only enable it for trusted, isolated networks.
+    pub fn dangerous_insecure_transport_protocol(mut self, allow: bool) -> Self {
+        self.config.dangerous_insecure_transport_protocol = allow;
+        self
+    }
+
     /// Specify custom installer args on Windows.
     pub fn installer_args<I, S>(mut self, args: I) -> Self
     where
@@ -520,6 +557,9 @@ impl Updater {
         let mut remote_release: Option<RemoteRelease> = None;
         let mut last_error: Option<Error> = None;
 
+        let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
+        let client = http_client(insecure_transport_allowed(dangerous_insecure))?;
+
         let version = self.current_version.to_string();
         let version = version.as_bytes();
         const CONTROLS_ADD: &AsciiSet = &CONTROLS.add(b'+');
@@ -546,9 +586,17 @@ impl Updater {
                 .replace("{{arch}}", self.arch)
                 .parse()?;
 
+            // Reject insecure (non-HTTPS) endpoints unless explicitly allowed (debug build or the
+            // `dangerous_insecure_transport_protocol` opt-in).
+            if let Err(err) = ensure_secure_url(&url, dangerous_insecure) {
+                log::error!("skipping insecure update endpoint: {err}");
+                last_error = Some(err);
+                continue;
+            }
+
             log::debug!("checking for updates {url}");
 
-            let mut request = Client::new().get(url).headers(headers.clone());
+            let mut request = client.get(url).headers(headers.clone());
             if let Some(timeout) = self.timeout {
                 request = request.timeout(timeout);
             }
@@ -705,7 +753,12 @@ impl Update {
             );
         }
 
-        let mut request = Client::new()
+        // Reject insecure (non-HTTPS) download URLs unless explicitly allowed (debug build or the
+        // `dangerous_insecure_transport_protocol` opt-in).
+        let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
+        ensure_secure_url(&self.download_url, dangerous_insecure)?;
+
+        let mut request = http_client(insecure_transport_allowed(dangerous_insecure))?
             .get(self.download_url.clone())
             .headers(headers);
         if let Some(timeout) = self.timeout {
@@ -1213,4 +1266,146 @@ fn base64_to_string(base64_string: &str) -> Result<String> {
         .map_err(|_| Error::SignatureUtf8(base64_string.into()))?
         .to_string();
     Ok(result)
+}
+
+/// Build a blocking HTTP client that refuses to follow redirects which downgrade the transport
+/// security or exceed a small redirect budget.
+///
+/// Cross-host HTTPS redirects (e.g. GitHub release downloads served from a different host) are
+/// allowed, but a redirect to a non-HTTPS URL is rejected unless `allow_insecure` is set.
+fn http_client(allow_insecure: bool) -> Result<Client> {
+    let policy = reqwest::redirect::Policy::custom(move |attempt| {
+        if attempt.previous().len() >= 5 {
+            return attempt.error("too many redirects while retrieving update");
+        }
+        if allow_insecure || url_is_secure(attempt.url()) {
+            attempt.follow()
+        } else {
+            attempt.error(
+                "refusing to follow an insecure redirect to a non-HTTPS URL while retrieving update",
+            )
+        }
+    });
+
+    Client::builder().redirect(policy).build().map_err(Into::into)
+}
+
+/// Whether the updater is allowed to use insecure (plain `http`) transport.
+///
+/// Always `true` in debug builds (to keep local development frictionless), otherwise gated behind
+/// the explicit, dangerous [`Config::dangerous_insecure_transport_protocol`] opt-in. Note that no
+/// host is exempt: loopback addresses are treated the same as any other host.
+fn insecure_transport_allowed(dangerous_flag: bool) -> bool {
+    cfg!(debug_assertions) || dangerous_flag
+}
+
+/// How an update URL's transport should be handled.
+#[derive(Debug, PartialEq, Eq)]
+enum TransportDecision {
+    /// The URL is served over a secure transport (`https`).
+    Secure,
+    /// Insecure transport explicitly allowed via `dangerous_insecure_transport_protocol`.
+    AllowedByFlag,
+    /// Insecure transport allowed only because this is a debug build; release builds will reject it.
+    AllowedInDebug,
+    /// Insecure transport, not allowed.
+    Rejected,
+}
+
+/// Classify a URL's transport. Pure (takes the build profile explicitly) so it can be unit-tested
+/// for both debug and release behaviour.
+fn classify_transport(url: &Url, dangerous_flag: bool, is_debug: bool) -> TransportDecision {
+    if url_is_secure(url) {
+        TransportDecision::Secure
+    } else if dangerous_flag {
+        TransportDecision::AllowedByFlag
+    } else if is_debug {
+        TransportDecision::AllowedInDebug
+    } else {
+        TransportDecision::Rejected
+    }
+}
+
+/// Reject a URL that is not served over a secure transport, unless insecure transport is allowed
+/// (debug build or the `dangerous_insecure_transport_protocol` opt-in). Warns when an insecure URL
+/// is only tolerated because this is a debug build.
+fn ensure_secure_url(url: &Url, dangerous_flag: bool) -> Result<()> {
+    match classify_transport(url, dangerous_flag, cfg!(debug_assertions)) {
+        TransportDecision::Secure | TransportDecision::AllowedByFlag => Ok(()),
+        TransportDecision::AllowedInDebug => {
+            log::warn!(
+                "using insecure transport for `{url}`: this is tolerated in debug builds only. \
+                 Release builds will reject it unless `dangerous_insecure_transport_protocol` is enabled."
+            );
+            Ok(())
+        }
+        TransportDecision::Rejected => Err(Error::InsecureTransport(url.clone())),
+    }
+}
+
+/// Whether a URL uses a secure transport. Only `https` is considered secure; no host (not even
+/// loopback) is exempt.
+fn url_is_secure(url: &Url) -> bool {
+    url.scheme() == "https"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn url(s: &str) -> Url {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn secure_url_rules() {
+        // only https is secure; no host (not even loopback) is exempt
+        assert!(url_is_secure(&url("https://example.com/")));
+        assert!(!url_is_secure(&url("http://example.com/")));
+        assert!(!url_is_secure(&url("http://localhost/")));
+        assert!(!url_is_secure(&url("http://127.0.0.1/")));
+        assert!(!url_is_secure(&url("ftp://example.com/")));
+    }
+
+    #[test]
+    fn transport_classification() {
+        use TransportDecision::*;
+
+        // https is always secure, regardless of flag/profile
+        assert_eq!(
+            classify_transport(&url("https://example.com/"), false, false),
+            Secure
+        );
+
+        // the explicit opt-in allows insecure transport in any build
+        assert_eq!(
+            classify_transport(&url("http://example.com/"), true, false),
+            AllowedByFlag
+        );
+
+        // without the flag, debug builds tolerate http (callers warn); release builds reject it
+        assert_eq!(
+            classify_transport(&url("http://example.com/"), false, true),
+            AllowedInDebug
+        );
+        assert_eq!(
+            classify_transport(&url("http://example.com/"), false, false),
+            Rejected
+        );
+
+        // loopback gets no special treatment: rejected in release without the flag
+        assert_eq!(
+            classify_transport(&url("http://localhost/"), false, false),
+            Rejected
+        );
+        assert_eq!(
+            classify_transport(&url("http://127.0.0.1/"), false, false),
+            Rejected
+        );
+        // but the flag allows it, like any other host
+        assert_eq!(
+            classify_transport(&url("http://localhost/"), true, false),
+            AllowedByFlag
+        );
+    }
 }
