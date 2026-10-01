@@ -982,7 +982,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "time",
- "toml 0.9.8",
+ "toml 1.1.6+spec-1.1.0",
  "tracing",
  "tracing-subscriber",
  "ureq",
