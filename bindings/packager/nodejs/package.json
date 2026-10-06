@@ -44,7 +44,7 @@
     "galactus": "^2.0.0"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.1",
+    "@napi-rs/cli": "^3.0.0",
     "@types/fs-extra": "^11.0.3",
     "@types/node": "^24.0.0",
     "ava": "^8.0.0",
