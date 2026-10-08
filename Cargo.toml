@@ -1,11 +1,9 @@
 [workspace]
 members = [
     "crates/*",
-    "examples/*",
     "bindings/*/nodejs",
     "crates/updater/tests/app",
 ]
-exclude = ["examples/deno", "examples/wails", "examples/electron"]
 resolver = "2"
 
 [workspace.package]
