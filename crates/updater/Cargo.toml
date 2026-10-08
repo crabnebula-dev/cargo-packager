@@ -33,7 +33,7 @@ base64 = { workspace = true }
 time = { workspace = true, features = ["parsing", "formatting"] }
 http = "1"
 url = { version = "2", features = ["serde"] }
-minisign-verify = "0.2"
+minisign-verify = "0.3"
 tempfile = "3.12"
 log = "0.4"
 percent-encoding = "2"
