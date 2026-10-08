@@ -22,6 +22,9 @@
     "identifier": "com.electron.example",
     "icons": [
       "electron.png"
-    ]
+    ],
+    "nsis": {
+      "compression": "off"
+    }
   }
 }

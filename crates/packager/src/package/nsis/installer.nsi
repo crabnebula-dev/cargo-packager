@@ -1,5 +1,7 @@
 ; Set the compression algorithm.
-!if "{{compression}}" == ""
+!if "{{compression}}" == "off"
+  SetCompress off
+!else if "{{compression}}" == ""
   SetCompressor /SOLID lzma
 !else
   SetCompressor /SOLID "{{compression}}"
