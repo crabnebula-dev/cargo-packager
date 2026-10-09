@@ -1,10 +1,35 @@
 {
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "rangeStrategy": "replace",
+  "postUpdateOptions": [
+    "pnpmDedupe"
+  ],
   "packageRules": [
     {
       "semanticCommitType": "chore",
-      "matchPackageNames": ["*"]
+      "matchPackageNames": [
+        "*"
+      ],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Group windows-rs crates",
+      "groupName": "windows-rs crates",
+      "matchSourceUrls": [
+        "https://github.com/microsoft/windows-rs"
+      ]
+    },
+    {
+      "description": "Group napi-rs packages",
+      "groupName": "napi-rs packages",
+      "matchPackageNames": [
+        "napi",
+        "napi-build",
+        "napi-derive",
+        "@napi-rs/cli"
+      ]
     }
   ]
 }
