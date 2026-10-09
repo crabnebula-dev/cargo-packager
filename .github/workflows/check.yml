@@ -28,6 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
+        with:
+          version: 12
       - run: pnpm install
       - run: pnpm format:check
 
