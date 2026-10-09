@@ -97,7 +97,6 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v7
         if: ${{ !matrix.settings.docker }}
@@ -402,7 +401,6 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/updater/nodejs
       - uses: actions/setup-node@v7
       - run: pnpm install

@@ -99,7 +99,6 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v7
         if: ${{ !matrix.settings.docker }}
@@ -176,7 +175,6 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v7
         with:
@@ -208,7 +206,6 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v7
         with:
@@ -241,7 +238,6 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v7
         with:
@@ -285,7 +281,6 @@ jobs:
         shell: bash
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -325,7 +320,6 @@ jobs:
         shell: bash
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -370,7 +364,6 @@ jobs:
         shell: bash
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - name: Install dependencies
         run: |
@@ -407,7 +400,6 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: pnpm/action-setup@v6
         with:
-          version: 12
           package_json_file: bindings/resource-resolver/nodejs
       - uses: actions/setup-node@v7
       - run: pnpm install
