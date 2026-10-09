@@ -756,14 +756,29 @@ impl Update {
 
         let mut update_buffer = Cursor::new(&buffer);
 
-        verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey)?;
+        verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey).inspect_err(
+            |err| log::error!("update signature verification failed for {}: {err}", self.version),
+        )?;
+        log::info!("update {} passed signature verification", self.version);
 
         Ok(buffer)
     }
 
     /// Installs the updater package downloaded by [`Update::download`]
     pub fn install(&self, bytes: Vec<u8>) -> Result<()> {
-        self.install_inner(bytes)
+        log::info!("installing update {} ({})", self.version, self.format);
+        match self.install_inner(bytes) {
+            // On Windows the installer is spawned in a separate process and this process exits, so
+            // this success branch is reached on the platforms that install in-process (macOS/Linux).
+            Ok(()) => {
+                log::info!("update {} installed successfully", self.version);
+                Ok(())
+            }
+            Err(err) => {
+                log::error!("failed to install update {}: {err}", self.version);
+                Err(err)
+            }
+        }
     }
 
     /// Downloads and installs the updater package
@@ -791,6 +806,11 @@ impl Update {
     // │── [AppName]_[version]_x64.msi           # Application MSI
     // │── [AppName]_[version]_x64-setup.exe           # NSIS installer
     // └── ...
+    //
+    // NOTE: Unlike the macOS and Linux paths, installation on Windows is performed by spawning the
+    // verified NSIS/WiX installer in a separate process (after which this process exits). Atomicity
+    // and rollback are therefore delegated to that installer rather than handled here; the updater
+    // cannot snapshot and restore the previous installation on its own.
     #[cfg(windows)]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
         use std::{io::Write, os::windows::process::CommandExt, process::Command};
