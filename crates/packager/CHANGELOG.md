@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0]
+
+- [`06836b2`](https://www.github.com/crabnebula-dev/cargo-packager/commit/06836b2d198573be79abc9b4c25fe8e807e34536) ([#358](https://www.github.com/crabnebula-dev/cargo-packager/pull/358)) Changed the error message when running the AppImage build script fails.
+    It now includes the full path to the build script.
+- [`1203e49`](https://www.github.com/crabnebula-dev/cargo-packager/commit/1203e49766ef5bb4e5f8862c16574ffe74f24774) ([#494](https://www.github.com/crabnebula-dev/cargo-packager/pull/494)) Fixed an issue that caused `nsis.compression = "off"` to always fail to build.
+- [`6c709bb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/6c709bbc14791fdb41d263c5ffed9cae51be6114) ([#502](https://www.github.com/crabnebula-dev/cargo-packager/pull/502)) Added the `platform-certs` feature flag to the CLI (enabled by default) to read TLS certificates installed on the system.
+
 ## \[0.11.8]
 
 - [`6e6a10c`](https://www.github.com/crabnebula-dev/cargo-packager/commit/6e6a10cc1692973293966034dc4b798e3976d094) ([#321](https://www.github.com/crabnebula-dev/cargo-packager/pull/321)) Allow explicitly specifying the Package name for the .deb bundle.
