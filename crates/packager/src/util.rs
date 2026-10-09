@@ -152,7 +152,7 @@ pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
         // This is required because ureq does not bind native-tls as the default TLS implementation when rustls is not available.
         // See <https://github.com/crabnebula-dev/cargo-packager/issues/127>
         #[cfg(feature = "native-tls")]
-        let tls_config = tls_config.provider(TlsProvider::NativeTls);
+        let tls_config = tls_config.provider(ureq::tls::TlsProvider::NativeTls);
 
         #[cfg(feature = "platform-certs")]
         let tls_config = tls_config.root_certs(ureq::tls::RootCerts::PlatformVerifier);
