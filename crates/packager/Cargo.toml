@@ -61,7 +61,7 @@ tracing-subscriber = { version = "0.3", optional = true, features = [
 ] }
 toml = "1.0"
 cargo_metadata = "0.23"
-ureq = { version = "2.10", default-features = false }
+ureq = { version = "3.0", default-features = false }
 hex = "0.4"
 sha1 = "0.10"
 sha2 = "0.10"
