@@ -142,21 +142,29 @@ pub fn target_triple() -> crate::Result<String> {
 pub(crate) fn download(url: &str) -> crate::Result<Vec<u8>> {
     tracing::debug!("Downloading {}", url);
 
-    // This is required because ureq does not bind native-tls as the default TLS implementation when rustls is not available.
-    // See <https://github.com/crabnebula-dev/cargo-packager/issues/127>
-    #[cfg(feature = "native-tls")]
-    let agent = ureq::AgentBuilder::new()
-        .tls_connector(std::sync::Arc::new(
-            native_tls::TlsConnector::new().unwrap(),
-        ))
-        .try_proxy_from_env(true)
-        .build();
-    #[cfg(not(feature = "native-tls"))]
-    let agent = ureq::AgentBuilder::new().try_proxy_from_env(true).build();
+    #[allow(unused_mut)]
+    let mut agent = ureq::Agent::config_builder().proxy(ureq::Proxy::try_from_env());
+
+    #[cfg(any(feature = "native-tls", feature = "platform-certs"))]
+    {
+        let tls_config = ureq::tls::TlsConfig::builder();
+
+        // This is required because ureq does not bind native-tls as the default TLS implementation when rustls is not available.
+        // See <https://github.com/crabnebula-dev/cargo-packager/issues/127>
+        #[cfg(feature = "native-tls")]
+        let tls_config = tls_config.provider(TlsProvider::NativeTls);
+
+        #[cfg(feature = "platform-certs")]
+        let tls_config = tls_config.root_certs(ureq::tls::RootCerts::PlatformVerifier);
+
+        agent = agent.tls_config(tls_config.build());
+    }
+
+    let agent: ureq::Agent = agent.build().into();
 
     let response = agent.get(url).call().map_err(Box::new)?;
     let mut bytes = Vec::new();
-    response.into_reader().read_to_end(&mut bytes)?;
+    response.into_body().into_reader().read_to_end(&mut bytes)?;
     Ok(bytes)
 }
 
