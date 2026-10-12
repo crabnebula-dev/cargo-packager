@@ -93,13 +93,13 @@ jobs:
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         if: ${{ !matrix.settings.docker }}
       - name: Install
         uses: dtolnay/rust-toolchain@stable
@@ -108,7 +108,7 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry/index/
@@ -131,10 +131,10 @@ jobs:
         shell: bash
       - run: pnpm install
       - name: Setup node x86
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
-          node-version: 18
+          node-version: 24
           architecture: x86
       - name: Build in docker
         uses: addnab/docker-run-action@v3
@@ -148,7 +148,7 @@ jobs:
         if: ${{ !matrix.settings.docker }}
         shell: bash
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bindings-${{ matrix.settings.target }}
           path: bindings/packager/nodejs/${{ env.APP_NAME }}.*.node
@@ -170,18 +170,18 @@ jobs:
           - "20"
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bindings-${{ matrix.settings.target }}
           path: bindings/packager/nodejs
@@ -204,18 +204,18 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bindings-x86_64-unknown-linux-gnu
           path: bindings/packager/nodejs
@@ -237,13 +237,13 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - name: Install dependencies
@@ -251,7 +251,7 @@ jobs:
           pnpm config set supportedArchitectures.libc "musl"
           pnpm install
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bindings-x86_64-unknown-linux-musl
           path: bindings/packager/nodejs
@@ -273,19 +273,19 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bindings-aarch64-unknown-linux-gnu
           path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
@@ -293,7 +293,7 @@ jobs:
           pnpm config set supportedArchitectures.libc "glibc"
           pnpm install
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
       - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -315,19 +315,19 @@ jobs:
       - build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bindings-aarch64-unknown-linux-musl
           path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
@@ -335,7 +335,7 @@ jobs:
           pnpm config set supportedArchitectures.libc "musl"
           pnpm install
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
       - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -362,26 +362,26 @@ jobs:
           - "20"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bindings-armv7-unknown-linux-gnueabihf
           path: bindings/packager/nodejs
       - name: List packages
         run: ls -R .
         shell: bash
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
       - name: Install dependencies
         run: |
           pnpm config set supportedArchitectures.cpu "arm"
           pnpm install
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm
       - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -408,16 +408,16 @@ jobs:
       - test-linux-aarch64-musl-binding
       - test-linux-arm-gnueabihf-binding
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/packager/nodejs
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
       - run: pnpm install
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: bindings/packager/nodejs/artifacts
       - name: Move artifacts

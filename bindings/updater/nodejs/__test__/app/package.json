@@ -18,13 +18,16 @@
     "@crabnebula/updater": "../.."
   },
   "devDependencies": {
-    "electron": "^35.7.5"
+    "electron": "^44.0.0"
   },
   "packager": {
     "outDir": "./dist",
     "identifier": "com.electron.example",
     "icons": [
       "electron.png"
-    ]
+    ],
+    "nsis": {
+      "compression": "off"
+    }
   }
 }

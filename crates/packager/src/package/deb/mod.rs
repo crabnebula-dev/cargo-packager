@@ -309,7 +309,7 @@ fn generate_control_file(
         .unwrap_or_else(|| AsKebabCase(&config.product_name).to_string());
 
     writeln!(file, "Package: {pkg_name}")?;
-    writeln!(file, "Version: {}", &config.version)?;
+    writeln!(file, "Version: {}", config.version)?;
     writeln!(file, "Architecture: {arch}")?;
     // Installed-Size must be divided by 1024, see https://www.debian.org/doc/debian-policy/ch-controlfields.html#installed-size
     writeln!(file, "Installed-Size: {}", get_size(data_dir)? / 1024)?;

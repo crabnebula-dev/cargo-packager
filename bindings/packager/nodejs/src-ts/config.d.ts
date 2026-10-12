@@ -30,7 +30,8 @@ export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
  */
 export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage" | "pacman";
 /**
- * The possible app categories. Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
+ * The possible app categories.
+ * Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
  */
 export type AppCategory =
   | "Business"
@@ -74,11 +75,12 @@ export type AppCategory =
   | "Video"
   | "Weather";
 /**
- * *macOS-only**. Corresponds to CFBundleTypeRole
+ * **macOS-only**. Corresponds to CFBundleTypeRole
  */
 export type BundleTypeRole = "editor" | "viewer" | "shell" | "qLGenerator" | "none";
 /**
- * A path to a resource (with optional glob pattern) or an object of `src` and `target` paths.
+ * A path to a resource (with optional glob pattern)
+ * or an object of `src` and `target` paths.
  */
 export type Resource =
   | string
@@ -90,13 +92,15 @@ export type Resource =
       /**
        * A relative path from the root of the final package.
        *
-       * If `src` is a glob, this will always be treated as a directory where all globbed files will be placed under.
+       * If `src` is a glob, this will always be treated as a directory
+       * where all globbed files will be placed under.
        */
       target: string;
       [k: string]: unknown;
     };
 /**
- * A list of dependencies specified as either a list of Strings or as a path to a file that lists the dependencies, one per line.
+ * A list of dependencies specified as either a list of Strings
+ * or as a path to a file that lists the dependencies, one per line.
  */
 export type Dependencies = string[] | string;
 /**
@@ -133,15 +137,19 @@ export interface Config {
   /**
    * The JSON schema for the config.
    *
-   * Setting this field has no effect, this just exists so we can parse the JSON correctly when it has `$schema` field set.
+   * Setting this field has no effect, this just exists so
+   * we can parse the JSON correctly when it has `$schema` field set.
    */
   $schema?: string | null;
   /**
-   * The app name, this is just an identifier that could be used to filter which app to package using `--packages` cli arg when there is multiple apps in the workspace or in the same config.
+   * The app name, this is just an identifier that could be used
+   * to filter which app to package using `--packages` cli arg when there is multiple apps in the
+   * workspace or in the same config.
    *
    * This field resembles, the `name` field in `Cargo.toml` or `package.json`
    *
-   * If `unset`, the CLI will try to auto-detect it from `Cargo.toml` or `package.json` otherwise, it will keep it unset.
+   * If `unset`, the CLI will try to auto-detect it from `Cargo.toml` or
+   * `package.json` otherwise, it will keep it unset.
    */
   name?: string | null;
   /**
@@ -161,7 +169,10 @@ export interface Config {
    */
   binaries?: Binary[];
   /**
-   * The application identifier in reverse domain name notation (e.g. `com.packager.example`). This string must be unique across applications since it is used in some system configurations. This string must contain only alphanumeric characters (A-Z, a-z, and 0-9), hyphens (-), and periods (.).
+   * The application identifier in reverse domain name notation (e.g. `com.packager.example`).
+   * This string must be unique across applications since it is used in some system configurations.
+   * This string must contain only alphanumeric characters (A-Z, a-z, and 0-9), hyphens (-),
+   * and periods (.).
    */
   identifier?: string | null;
   /**
@@ -219,7 +230,8 @@ export interface Config {
    */
   authors?: string[] | null;
   /**
-   * The app's publisher. Defaults to the second element in [`Config::identifier`](Config::identifier) string. Currently maps to the Manufacturer property of the Windows Installer.
+   * The app's publisher. Defaults to the second element in [`Config::identifier`](Config::identifier) string.
+   * Currently maps to the Manufacturer property of the Windows Installer.
    */
   publisher?: string | null;
   /**
@@ -247,21 +259,33 @@ export interface Config {
    */
   deepLinkProtocols?: DeepLinkProtocol[] | null;
   /**
-   * The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory or an object of `src` and `target` paths. In the case of using an object, the `src` could be either a glob pattern, path to a file, path to a directory, and the `target` is a path inside the final resources folder in the installed package.
+   * The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory
+   * or an object of `src` and `target` paths. In the case of using an object,
+   * the `src` could be either a glob pattern, path to a file, path to a directory,
+   * and the `target` is a path inside the final resources folder in the installed package.
    *
    * ## Format-specific:
    *
-   * - **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager. - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.
+   * - **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.
+   * - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.
    */
   resources?: Resource[] | null;
   /**
    * Paths to external binaries to add to the package.
    *
-   * The path specified should not include `-<target-triple><.exe>` suffix, it will be auto-added when by the packager when reading these paths, so the actual binary name should have the target platform's target triple appended, as well as `.exe` for Windows.
+   * The path specified should not include `-<target-triple><.exe>` suffix,
+   * it will be auto-added when by the packager when reading these paths,
+   * so the actual binary name should have the target platform's target triple appended,
+   * as well as `.exe` for Windows.
    *
-   * For example, if you're packaging an external binary called `sqlite3`, the packager expects a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux, and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.
+   * For example, if you're packaging an external binary called `sqlite3`, the packager expects
+   * a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux,
+   * and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.
    *
-   * If you are building a universal binary for MacOS, the packager expects your external binary to also be universal, and named after the target triple, e.g. `sqlite3-universal-apple-darwin`. See <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>
+   * If you are building a universal binary for MacOS, the packager expects
+   * your external binary to also be universal, and named after the target triple,
+   * e.g. `sqlite3-universal-apple-darwin`. See
+   * <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>
    */
   externalBinaries?: string[] | null;
   /**
@@ -306,7 +330,8 @@ export interface Config {
  */
 export interface Binary {
   /**
-   * Path to the binary (without `.exe` on Windows). If it's relative, it will be resolved from [`Config::out_dir`].
+   * Path to the binary (without `.exe` on Windows).
+   * If it's relative, it will be resolved from [`Config::out_dir`].
    */
   path: string;
   /**
@@ -335,7 +360,8 @@ export interface FileAssociation {
    */
   name?: string | null;
   /**
-   * The app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS. Defaults to [`BundleTypeRole::Editor`]
+   * The app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS.
+   * Defaults to [`BundleTypeRole::Editor`]
    */
   role?: BundleTypeRole & string;
 }
@@ -369,7 +395,8 @@ export interface WindowsConfig {
    */
   certificateThumbprint?: string | null;
   /**
-   * Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
+   * Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may
+   * use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.
    */
   tsp?: boolean;
   /**
@@ -385,9 +412,13 @@ export interface WindowsConfig {
    */
   allowDowngrades?: boolean;
   /**
-   * Specify a custom command to sign the binaries. This command needs to have a `%1` in it which is just a placeholder for the binary path, which we will detect and replace before calling the command.
+   * Specify a custom command to sign the binaries.
+   * This command needs to have a `%1` in it which is just a placeholder for the binary path,
+   * which we will detect and replace before calling the command.
    *
-   * By Default we use `signtool.exe` which can be found only on Windows so if you are on another platform and want to cross-compile and sign you will need to use another tool like `osslsigncode`.
+   * By Default we use `signtool.exe` which can be found only on Windows so
+   * if you are on another platform and want to cross-compile and sign you will
+   * need to use another tool like `osslsigncode`.
    */
   signCommand?: string | null;
 }
@@ -398,7 +429,10 @@ export interface MacOsConfig {
   /**
    * MacOS frameworks that need to be packaged with the app.
    *
-   * Each string can either be the name of a framework (without the `.framework` extension, e.g. `"SDL2"`), in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`), or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:
+   * Each string can either be the name of a framework (without the `.framework` extension, e.g. `"SDL2"`),
+   * in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`),
+   * or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle
+   * (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:
    *
    * - arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)
    *
@@ -406,7 +440,8 @@ export interface MacOsConfig {
    */
   frameworks?: string[] | null;
   /**
-   * A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`). If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.
+   * A version string indicating the minimum MacOS version that the packaged app supports (e.g. `"10.11"`).
+   * If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.
    */
   minimumSystemVersion?: string | null;
   /**
@@ -470,11 +505,37 @@ export interface DebianConfig {
    *
    * Available variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.
    *
-   * Default file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} {{exec_arg}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```
+   * Default file contents:
+   * ```text
+   * [Desktop Entry]
+   * Categories={{categories}}
+   * {{#if comment}}
+   * Comment={{comment}}
+   * {{/if}}
+   * Exec={{exec}} {{exec_arg}}
+   * Icon={{icon}}
+   * Name={{name}}
+   * Terminal=false
+   * Type=Application
+   * {{#if mime_type}}
+   * MimeType={{mime_type}}
+   * {{/if}}
+   * ```
    *
-   * The `{{exec_arg}}` will be set to: * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given. * The "%F" arg means that your application can be invoked with multiple file paths. * "%U", if at least one [Config::deep_link_protocols] was specified. * The "%U" arg means that your application can be invoked with multiple URLs. * If both [Config::file_associations] and [Config::deep_link_protocols] were specified, the "%U" arg will be used, causing the file paths to be passed to your app as `file://` URLs. * An empty string "" (nothing) if neither are given. * This means that your application will never be invoked with any URLs or file paths.
+   * The `{{exec_arg}}` will be set to:
+   * * "%F", if at least one [Config::file_associations] was specified but no deep link protocols were given.
+   *   * The "%F" arg means that your application can be invoked with multiple file paths.
+   * * "%U", if at least one [Config::deep_link_protocols] was specified.
+   *   * The "%U" arg means that your application can be invoked with multiple URLs.
+   *   * If both [Config::file_associations] and [Config::deep_link_protocols] were specified,
+   *     the "%U" arg will be used, causing the file paths to be passed to your app as `file://` URLs.
+   * * An empty string "" (nothing) if neither are given.
+   *   * This means that your application will never be invoked with any URLs or file paths.
    *
-   * To specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`: ```text Exec={{exec}} %u ```
+   * To specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`:
+   * ```text
+   * Exec={{exec}} %u
+   * ```
    *
    * See more here: <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>.
    */
@@ -484,17 +545,20 @@ export interface DebianConfig {
    */
   section?: string | null;
   /**
-   * Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
+   * Change the priority of the Debian Package. By default, it is set to `optional`.
+   * Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`
    */
   priority?: string | null;
   /**
-   * List of custom files to add to the deb package. Maps a dir/file to a dir/file inside the debian package.
+   * List of custom files to add to the deb package.
+   * Maps a dir/file to a dir/file inside the debian package.
    */
   files?: {
     [k: string]: string;
   } | null;
   /**
-   * Name to use for the `Package` field in the Debian Control file. Defaults to [`Config::product_name`] converted to kebab-case.
+   * Name to use for the `Package` field in the Debian Control file.
+   * Defaults to [`Config::product_name`] converted to kebab-case.
    */
   packageName?: string | null;
 }
@@ -503,27 +567,36 @@ export interface DebianConfig {
  */
 export interface AppImageConfig {
   /**
-   * List of libs that exist in `/usr/lib*` to be include in the final AppImage. The libs will be searched for, using the command `find -L /usr/lib* -name <libname>`
+   * List of libs that exist in `/usr/lib*` to be include in the final AppImage.
+   * The libs will be searched for, using the command
+   * `find -L /usr/lib* -name <libname>`
    */
   libs?: string[] | null;
   /**
-   * List of binary paths to include in the final AppImage. For example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`
+   * List of binary paths to include in the final AppImage.
+   * For example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`
    */
   bins?: string[] | null;
   /**
-   * List of custom files to add to the appimage package. Maps a dir/file to a dir/file inside the appimage package.
+   * List of custom files to add to the appimage package.
+   * Maps a dir/file to a dir/file inside the appimage package.
    */
   files?: {
     [k: string]: string;
   } | null;
   /**
-   * A map of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy) plugin name and its URL to be downloaded and executed while packaing the appimage. For example, if you want to use the [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin, you'd specify `gtk` as the key and its url as the value.
+   * A map of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy)
+   * plugin name and its URL to be downloaded and executed while packaing the appimage.
+   * For example, if you want to use the
+   * [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin,
+   * you'd specify `gtk` as the key and its url as the value.
    */
   linuxdeployPlugins?: {
     [k: string]: string;
   } | null;
   /**
-   * List of globs of libraries to exclude from the final AppImage. For example, to exclude libnss3.so, you'd specify `libnss3*`
+   * List of globs of libraries to exclude from the final AppImage.
+   * For example, to exclude libnss3.so, you'd specify `libnss3*`
    */
   excludedLibs?: string[] | null;
 }
@@ -532,7 +605,8 @@ export interface AppImageConfig {
  */
 export interface PacmanConfig {
   /**
-   * List of custom files to add to the pacman package. Maps a dir/file to a dir/file inside the pacman package.
+   * List of custom files to add to the pacman package.
+   * Maps a dir/file to a dir/file inside the pacman package.
    */
   files?: {
     [k: string]: string;
@@ -550,19 +624,22 @@ export interface PacmanConfig {
    */
   provides?: string[] | null;
   /**
-   * Packages that conflict or cause problems with the app. All these packages and packages providing this item will need to be removed
+   * Packages that conflict or cause problems with the app.
+   * All these packages and packages providing this item will need to be removed
    *
    * See : <https://wiki.archlinux.org/title/PKGBUILD#conflicts>
    */
   conflicts?: string[] | null;
   /**
-   * Only use if this app replaces some obsolete packages. For example, if you rename any package.
+   * Only use if this app replaces some obsolete packages.
+   * For example, if you rename any package.
    *
    * See : <https://wiki.archlinux.org/title/PKGBUILD#replaces>
    */
   replaces?: string[] | null;
   /**
-   * Source of the package to be stored at PKGBUILD. PKGBUILD is a bash script, so version can be referred as ${pkgver}
+   * Source of the package to be stored at PKGBUILD.
+   * PKGBUILD is a bash script, so version can be referred as ${pkgver}
    */
   source?: string[] | null;
 }
@@ -575,11 +652,13 @@ export interface WixConfig {
    */
   languages?: WixLanguage[] | null;
   /**
-   * By default, the packager uses an internal template. This option allows you to define your own wix file.
+   * By default, the packager uses an internal template.
+   * This option allows you to define your own wix file.
    */
   template?: string | null;
   /**
-   * List of merge modules to include in your installer. For example, if you want to include [C++ Redis merge modules]
+   * List of merge modules to include in your installer.
+   * For example, if you want to include [C++ Redis merge modules]
    *
    * [C++ Redis merge modules]: https://wixtoolset.org/docs/v3/howtos/redistributables_and_install_checks/install_vcredist/
    */
@@ -589,9 +668,20 @@ export interface WixConfig {
    */
   fragmentPaths?: string[] | null;
   /**
-   * List of WiX fragments as strings. This is similar to `config.wix.fragments_paths` but is a string so you can define it inline in your config.
+   * List of WiX fragments as strings. This is similar to `config.wix.fragments_paths` but
+   * is a string so you can define it inline in your config.
    *
-   * ```text <?xml version="1.0" encoding="utf-8"?> <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"> <Fragment> <CustomAction Id="OpenNotepad" Directory="INSTALLDIR" Execute="immediate" ExeCommand="cmd.exe /c notepad.exe" Return="check" /> <InstallExecuteSequence> <Custom Action="OpenNotepad" After="InstallInitialize" /> </InstallExecuteSequence> </Fragment> </Wix> ```
+   * ```text
+   * <?xml version="1.0" encoding="utf-8"?>
+   * <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+   * <Fragment>
+   *     <CustomAction Id="OpenNotepad" Directory="INSTALLDIR" Execute="immediate" ExeCommand="cmd.exe /c notepad.exe" Return="check" />
+   *     <InstallExecuteSequence>
+   *         <Custom Action="OpenNotepad" After="InstallInitialize" />
+   *     </InstallExecuteSequence>
+   * </Fragment>
+   * </Wix>
+   * ```
    */
   fragments?: string[] | null;
   /**
@@ -619,13 +709,16 @@ export interface WixConfig {
    */
   mergeRefs?: string[] | null;
   /**
-   * Path to a bitmap file to use as the installation user interface banner. This bitmap will appear at the top of all but the first page of the installer.
+   * Path to a bitmap file to use as the installation user interface banner.
+   * This bitmap will appear at the top of all but the first page of the installer.
    *
    * The required dimensions are 493px × 58px.
    */
   bannerPath?: string | null;
   /**
-   * Path to a bitmap file to use on the installation user interface dialogs. It is used on the welcome and completion dialogs. The required dimensions are 493px × 312px.
+   * Path to a bitmap file to use on the installation user interface dialogs.
+   * It is used on the welcome and completion dialogs.
+   * The required dimensions are 493px × 312px.
    */
   dialogImagePath?: string | null;
   /**
@@ -646,19 +739,33 @@ export interface NsisConfig {
   /**
    * A custom `.nsi` template to use.
    *
-   * See the default template here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
+   * See the default template here
+   * <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
    */
   template?: string | null;
   /**
    * Logic of an NSIS section that will be ran before the install section.
    *
-   * See the available libraries, dlls and global variables here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
+   * See the available libraries, dlls and global variables here
+   * <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>
    *
-   * ### Example ```toml [package.metadata.packager.nsis] preinstall-section = """ ; Setup custom messages LangString webview2AbortError ${LANG_ENGLISH} "Failed to install WebView2! The app can't run without it. Try restarting the installer." LangString webview2DownloadError ${LANG_ARABIC} "خطأ: فشل تنزيل WebView2 - $0"
+   * ### Example
+   * ```toml
+   * [package.metadata.packager.nsis]
+   * preinstall-section = """
+   *     ; Setup custom messages
+   *     LangString webview2AbortError ${LANG_ENGLISH} "Failed to install WebView2! The app can't run without it. Try restarting the installer."
+   *     LangString webview2DownloadError ${LANG_ARABIC} "خطأ: فشل تنزيل WebView2 - $0"
    *
-   * Section PreInstall ; <section logic here> SectionEnd
+   *     Section PreInstall
+   *      ; <section logic here>
+   *     SectionEnd
    *
-   * Section AnotherPreInstall ; <section logic here> SectionEnd """ ```
+   *     Section AnotherPreInstall
+   *      ; <section logic here>
+   *     SectionEnd
+   * """
+   * ```
    */
   preinstallSection?: string | null;
   /**
@@ -682,13 +789,16 @@ export interface NsisConfig {
    */
   installMode?: NSISInstallerMode & string;
   /**
-   * A list of installer languages. By default the OS language is used. If the OS language is not in the list of languages, the first language will be used. To allow the user to select the language, set `display_language_selector` to `true`.
+   * A list of installer languages.
+   * By default the OS language is used. If the OS language is not in the list of languages, the first language will be used.
+   * To allow the user to select the language, set `display_language_selector` to `true`.
    *
    * See <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.
    */
   languages?: string[] | null;
   /**
-   * An key-value pair where the key is the language and the value is the path to a custom `.nsi` file that holds the translated text for cargo-packager's custom messages.
+   * An key-value pair where the key is the language and the
+   * value is the path to a custom `.nsi` file that holds the translated text for cargo-packager's custom messages.
    *
    * See <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.
    *
@@ -698,13 +808,23 @@ export interface NsisConfig {
     [k: string]: string;
   } | null;
   /**
-   * Whether to display a language selector dialog before the installer and uninstaller windows are rendered or not. By default the OS language is selected, with a fallback to the first language in the `languages` array.
+   * Whether to display a language selector dialog before the installer and uninstaller windows are rendered or not.
+   * By default the OS language is selected, with a fallback to the first language in the `languages` array.
    */
   displayLanguageSelector?: boolean;
   /**
-   * List of paths where your app stores data. This options tells the uninstaller to provide the user with an option (disabled by default) whether they want to rmeove your app data or keep it.
+   * List of paths where your app stores data.
+   * This options tells the uninstaller to provide the user with an option
+   * (disabled by default) whether they want to rmeove your app data or keep it.
    *
-   * The path should use a constant from <https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant> in addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your app data in `C:\\Users\\<user>\\AppData\\Local\\<your-company-name>\\<your-product-name>` you'd need to specify ```toml [package.metadata.packager.nsis] appdata-paths = ["$LOCALAPPDATA/$PUBLISHER/$PRODUCTNAME"] ```
+   * The path should use a constant from <https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant>
+   * in addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your
+   * app data in `C:\\Users\\<user>\\AppData\\Local\\<your-company-name>\\<your-product-name>`
+   * you'd need to specify
+   * ```toml
+   * [package.metadata.packager.nsis]
+   * appdata-paths = ["$LOCALAPPDATA/$PUBLISHER/$PRODUCTNAME"]
+   * ```
    */
   appdataPaths?: string[] | null;
 }

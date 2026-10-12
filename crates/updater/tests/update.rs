@@ -38,7 +38,7 @@ fn build_app(cwd: &Path, root_dir: &Path, version: &str, target: &[UpdaterFormat
             "--package",
             "cargo-packager",
             "--",
-            "-vvv",
+            "-v",
             "-f",
            &target.iter().map(|t|t.name()).collect::<Vec<_>>().join(","),
             "-c",
