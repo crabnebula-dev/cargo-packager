@@ -153,7 +153,7 @@ fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<Pat
                 .map_err(Error::FailedToParseJsonConfigCargoToml)?;
 
             if config.name.is_none() {
-                config.name.replace(package.name.clone());
+                config.name.replace(package.name.to_string());
             }
             if config.product_name.is_empty() {
                 config.product_name.clone_from(&package.name);
@@ -212,7 +212,7 @@ fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<Pat
                         path: target.name.clone().into(),
                         main: match targets.len() {
                             1 => true,
-                            _ => target.name == package.name,
+                            _ => target.name == package.name.as_ref(),
                         },
                     })
                 }

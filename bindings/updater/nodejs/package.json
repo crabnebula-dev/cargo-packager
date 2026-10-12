@@ -23,16 +23,16 @@
     "build": "napi build --platform --profile release-size-optimized",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
-    "test": "ava --no-worker-threads --timeout 30m",
+    "test": "ava --no-worker-threads --timeout 15m",
     "universal": "napi universal",
     "version": "napi version"
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.1",
-    "@tinyhttp/app": "^2.2.1",
-    "@types/node": "^20.8.10",
-    "ava": "^6.2.0",
-    "execa": "^9.0.0",
+    "@tinyhttp/app": "^3.0.0",
+    "@types/node": "^24.0.0",
+    "ava": "^8.0.0",
+    "execa": "^10.0.0",
     "@crabnebula/packager": "workspace:"
   },
   "ava": {

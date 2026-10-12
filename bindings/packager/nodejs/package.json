@@ -32,24 +32,25 @@
     "build:debug": "napi build --platform && pnpm run postbuild",
     "postbuild": "rm -rf ./build && node generate-config-type.js && tsc",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
-    "test": "ava --no-worker-threads",
+    "test": "ava --no-worker-threads --timeout 15m",
     "universal": "napi universal",
     "version": "napi version"
   },
   "dependencies": {
-    "@electron/get": "^3.0.0",
+    "@electron/get": "^5.0.0",
     "deepmerge": "^4.3.1",
-    "extract-zip": "^2.0.1",
+    "adm-zip": "^0.6.1",
     "fs-extra": "^11.1.1",
-    "galactus": "^1.0.0"
+    "galactus": "^2.0.0"
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.1",
     "@types/fs-extra": "^11.0.3",
-    "@types/node": "^20.8.10",
-    "ava": "^6.2.0",
-    "json-schema-to-typescript": "^15.0.0",
-    "typescript": "^5.4.5"
+    "@types/node": "^24.0.0",
+    "ava": "^8.0.0",
+    "js-yaml": "^5.4.1",
+    "json-schema-to-typescript": "^16.0.0",
+    "typescript": "^7.0.0"
   },
   "ava": {
     "timeout": "3m"
