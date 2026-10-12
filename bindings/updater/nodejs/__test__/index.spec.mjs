@@ -40,7 +40,7 @@ test("it updates correctly", async (t) => {
           password: "",
         },
         {
-          verbosity: 2,
+          verbosity: 1,
         },
       );
     } catch (e) {
@@ -60,9 +60,9 @@ test("it updates correctly", async (t) => {
 
   const generatedPackages = isWin
     ? [
-        ["nsis", path.join("dist", `ElectronApp_1.0.0_x64-setup.exe`)],
-        ["wix", path.join("dist", `ElectronApp_1.0.0_x64_en-US.msi`)],
-      ]
+      ["nsis", path.join("dist", `ElectronApp_1.0.0_x64-setup.exe`)],
+      ["wix", path.join("dist", `ElectronApp_1.0.0_x64_en-US.msi`)],
+    ]
     : isMac
       ? [["app", path.join("dist", "ElectronApp.app.tar.gz")]]
       : [["appimage", path.join("dist", `electron-app_1.0.0_x86_64.AppImage`)]];
@@ -92,13 +92,12 @@ test("it updates correctly", async (t) => {
     const server = new App()
       .get("/", (_, res) => {
         const platforms = {};
-        const target = `${isWin ? "windows" : isMac ? "macos" : "linux"}-${
-          process.arch === "x64"
+        const target = `${isWin ? "windows" : isMac ? "macos" : "linux"}-${process.arch === "x64"
             ? "x86_64"
             : process.arch === "arm64"
               ? "aarch64"
               : "i686"
-        }`;
+          }`;
         platforms[target] = {
           signature,
           url: "http://localhost:3007/download",
@@ -146,8 +145,7 @@ test("it updates correctly", async (t) => {
         installerArg,
         "-Wait",
         "-ArgumentList",
-        `${isNsis ? "/P" : "/passive"}, ${
-          isNsis ? "/D" : "INSTALLDIR"
+        `${isNsis ? "/P" : "/passive"}, ${isNsis ? "/D" : "INSTALLDIR"
         }=${installDir}`,
       ]);
     }
