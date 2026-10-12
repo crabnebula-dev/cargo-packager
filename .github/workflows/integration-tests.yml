@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  WIX_COMPRESSION_LEVEL: none
+
 jobs:
   test-rust:
     #if: ${{ !startsWith(github.head_ref, 'renovate/') }}
