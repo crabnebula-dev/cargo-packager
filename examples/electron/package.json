@@ -15,13 +15,16 @@
   },
   "homepage": "https://github.com/crabnebula-dev/cargo-packager#readme",
   "devDependencies": {
-    "electron": "^39.8.10"
+    "electron": "^44.6.0"
   },
   "packager": {
     "outDir": "./dist",
     "identifier": "com.electron.example",
     "icons": [
       "electron.png"
-    ]
+    ],
+    "nsis": {
+      "compression": "off"
+    }
   }
 }
