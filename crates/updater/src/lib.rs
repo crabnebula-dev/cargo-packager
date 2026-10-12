@@ -556,13 +556,13 @@ impl Updater {
 
         let mut remote_release: Option<RemoteRelease> = None;
         let mut last_error: Option<Error> = None;
-      
+
         #[cfg(feature = "rustls-tls")]
         if rustls::crypto::CryptoProvider::get_default().is_none() {
             // This can only fail if there is already a default provider which we checked for already.
             let _ = rustls::crypto::ring::default_provider().install_default();
         }
-      
+
         let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
         let client = http_client(insecure_transport_allowed(dangerous_insecure))?;
 
@@ -1318,7 +1318,10 @@ fn http_client(allow_insecure: bool) -> Result<Client> {
         }
     });
 
-    Client::builder().redirect(policy).build().map_err(Into::into)
+    Client::builder()
+        .redirect(policy)
+        .build()
+        .map_err(Into::into)
 }
 
 /// Whether the updater is allowed to use insecure (plain `http`) transport.
