@@ -763,7 +763,12 @@ impl Update {
         let mut update_buffer = Cursor::new(&buffer);
 
         verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey).inspect_err(
-            |err| log::error!("update signature verification failed for {}: {err}", self.version),
+            |err| {
+                log::error!(
+                    "update signature verification failed for {}: {err}",
+                    self.version
+                )
+            },
         )?;
         log::info!("update {} passed signature verification", self.version);
 
