@@ -548,6 +548,12 @@ impl Updater {
 
             log::debug!("checking for updates {url}");
 
+            #[cfg(feature = "rustls-tls")]
+            if rustls::crypto::CryptoProvider::get_default().is_none() {
+                // This can only fail if there is already a default provider which we checked for already.
+                let _ = rustls::crypto::ring::default_provider().install_default();
+            }
+
             let mut request = Client::new().get(url).headers(headers.clone());
             if let Some(timeout) = self.timeout {
                 request = request.timeout(timeout);

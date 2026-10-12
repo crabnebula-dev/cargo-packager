@@ -8,13 +8,14 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [features]
-default = ["rustls-tls"]
+default = ["rustls-tls", "system-proxy"]
 process-relaunch-dangerous-allow-symlink-macos = [
   "cargo-packager-utils/process-relaunch-dangerous-allow-symlink-macos",
 ]
 native-tls = ["reqwest/native-tls"]
 native-tls-vendored = ["reqwest/native-tls-vendored"]
-rustls-tls = ["reqwest/rustls-tls-native-roots"]
+rustls-tls = ["reqwest/rustls-no-provider", "dep:rustls"]
+system-proxy = ["reqwest/system-proxy"]
 
 [dependencies]
 cargo-packager-utils = { version = "0.1.1", path = "../utils" }
@@ -23,6 +24,9 @@ reqwest = { version = "0.13", default-features = false, features = [
   "stream",
   "blocking",
 ] }
+rustls = { version = "0.23", default-features = false, features = [
+  "ring",
+], optional = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
