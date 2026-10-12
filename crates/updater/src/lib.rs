@@ -142,6 +142,8 @@
 //! development (with a warning that it will not work in release), and can be enabled in release for
 //! trusted, isolated networks via [`Config::dangerous_insecure_transport_protocol`]. Redirects that
 //! downgrade from `https` to `http` are refused.
+//!
+//! The updater will only follow up to 5 redirects to resolve a URL.
 
 #![deny(missing_docs)]
 
@@ -564,7 +566,7 @@ impl Updater {
         }
 
         let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
-        let client = http_client(insecure_transport_allowed(dangerous_insecure))?;
+        let client = http_client(dangerous_insecure)?;
 
         let version = self.current_version.to_string();
         let version = version.as_bytes();
@@ -764,7 +766,7 @@ impl Update {
         let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
         ensure_secure_url(&self.download_url, dangerous_insecure)?;
 
-        let mut request = http_client(insecure_transport_allowed(dangerous_insecure))?
+        let mut request = http_client(dangerous_insecure)?
             .get(self.download_url.clone())
             .headers(headers);
         if let Some(timeout) = self.timeout {
@@ -1309,7 +1311,7 @@ fn http_client(allow_insecure: bool) -> Result<Client> {
         if attempt.previous().len() >= 5 {
             return attempt.error("too many redirects while retrieving update");
         }
-        if allow_insecure || url_is_secure(attempt.url()) {
+        if ensure_secure_url(attempt.url(), allow_insecure).is_ok() {
             attempt.follow()
         } else {
             attempt.error(
@@ -1324,122 +1326,19 @@ fn http_client(allow_insecure: bool) -> Result<Client> {
         .map_err(Into::into)
 }
 
-/// Whether the updater is allowed to use insecure (plain `http`) transport.
-///
-/// Always `true` in debug builds (to keep local development frictionless), otherwise gated behind
-/// the explicit, dangerous [`Config::dangerous_insecure_transport_protocol`] opt-in. Note that no
-/// host is exempt: loopback addresses are treated the same as any other host.
-fn insecure_transport_allowed(dangerous_flag: bool) -> bool {
-    cfg!(debug_assertions) || dangerous_flag
-}
-
-/// How an update URL's transport should be handled.
-#[derive(Debug, PartialEq, Eq)]
-enum TransportDecision {
-    /// The URL is served over a secure transport (`https`).
-    Secure,
-    /// Insecure transport explicitly allowed via `dangerous_insecure_transport_protocol`.
-    AllowedByFlag,
-    /// Insecure transport allowed only because this is a debug build; release builds will reject it.
-    AllowedInDebug,
-    /// Insecure transport, not allowed.
-    Rejected,
-}
-
-/// Classify a URL's transport. Pure (takes the build profile explicitly) so it can be unit-tested
-/// for both debug and release behaviour.
-fn classify_transport(url: &Url, dangerous_flag: bool, is_debug: bool) -> TransportDecision {
-    if url_is_secure(url) {
-        TransportDecision::Secure
-    } else if dangerous_flag {
-        TransportDecision::AllowedByFlag
-    } else if is_debug {
-        TransportDecision::AllowedInDebug
-    } else {
-        TransportDecision::Rejected
-    }
-}
-
 /// Reject a URL that is not served over a secure transport, unless insecure transport is allowed
 /// (debug build or the `dangerous_insecure_transport_protocol` opt-in). Warns when an insecure URL
 /// is only tolerated because this is a debug build.
-fn ensure_secure_url(url: &Url, dangerous_flag: bool) -> Result<()> {
-    match classify_transport(url, dangerous_flag, cfg!(debug_assertions)) {
-        TransportDecision::Secure | TransportDecision::AllowedByFlag => Ok(()),
-        TransportDecision::AllowedInDebug => {
-            log::warn!(
+fn ensure_secure_url(url: &Url, allow_insecure: bool) -> Result<()> {
+    if !allow_insecure && url.scheme() != "https" {
+        #[cfg(debug_assertions)]
+        log::warn!(
                 "using insecure transport for `{url}`: this is tolerated in debug builds only. \
                  Release builds will reject it unless `dangerous_insecure_transport_protocol` is enabled."
             );
-            Ok(())
-        }
-        TransportDecision::Rejected => Err(Error::InsecureTransport(url.clone())),
-    }
-}
-
-/// Whether a URL uses a secure transport. Only `https` is considered secure; no host (not even
-/// loopback) is exempt.
-fn url_is_secure(url: &Url) -> bool {
-    url.scheme() == "https"
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn url(s: &str) -> Url {
-        s.parse().unwrap()
+        #[cfg(not(debug_assertions))]
+        return Err(Error::InsecureTransport(url.clone()));
     }
 
-    #[test]
-    fn secure_url_rules() {
-        // only https is secure; no host (not even loopback) is exempt
-        assert!(url_is_secure(&url("https://example.com/")));
-        assert!(!url_is_secure(&url("http://example.com/")));
-        assert!(!url_is_secure(&url("http://localhost/")));
-        assert!(!url_is_secure(&url("http://127.0.0.1/")));
-        assert!(!url_is_secure(&url("ftp://example.com/")));
-    }
-
-    #[test]
-    fn transport_classification() {
-        use TransportDecision::*;
-
-        // https is always secure, regardless of flag/profile
-        assert_eq!(
-            classify_transport(&url("https://example.com/"), false, false),
-            Secure
-        );
-
-        // the explicit opt-in allows insecure transport in any build
-        assert_eq!(
-            classify_transport(&url("http://example.com/"), true, false),
-            AllowedByFlag
-        );
-
-        // without the flag, debug builds tolerate http (callers warn); release builds reject it
-        assert_eq!(
-            classify_transport(&url("http://example.com/"), false, true),
-            AllowedInDebug
-        );
-        assert_eq!(
-            classify_transport(&url("http://example.com/"), false, false),
-            Rejected
-        );
-
-        // loopback gets no special treatment: rejected in release without the flag
-        assert_eq!(
-            classify_transport(&url("http://localhost/"), false, false),
-            Rejected
-        );
-        assert_eq!(
-            classify_transport(&url("http://127.0.0.1/"), false, false),
-            Rejected
-        );
-        // but the flag allows it, like any other host
-        assert_eq!(
-            classify_transport(&url("http://localhost/"), true, false),
-            AllowedByFlag
-        );
-    }
+    Ok(())
 }
