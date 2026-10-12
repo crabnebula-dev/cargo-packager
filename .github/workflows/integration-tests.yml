@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  WIX_COMPRESSION_LEVEL: none
+
 jobs:
   test-rust:
     #if: ${{ !startsWith(github.head_ref, 'renovate/') }}
@@ -50,7 +53,7 @@ jobs:
       - uses: actions/setup-node@v7
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install
-      - run: pnpm build
+      - run: pnpm build:ci
       - name: packager integration tests
         run: |
           cd bindings/packager/nodejs

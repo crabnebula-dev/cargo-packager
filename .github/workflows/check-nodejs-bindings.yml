@@ -46,4 +46,4 @@ jobs:
       - uses: actions/setup-node@v7
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install
-      - run: pnpm build
+      - run: pnpm build:ci
