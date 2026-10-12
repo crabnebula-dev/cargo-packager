@@ -29,7 +29,7 @@
   "scripts": {
     "artifacts": "napi artifacts",
     "build": "napi build --platform --profile release-size-optimized",
-    "build:ci": "napi build --platform --release",
+    "build:ci": "napi build --platform --release && pnpm run postbuild",
     "build:debug": "napi build --platform && pnpm run postbuild",
     "postbuild": "rm -rf ./build && node generate-config-type.js && tsc",
     "prepublishOnly": "napi prepublish -t npm --gh-release-id $RELEASE_ID",
