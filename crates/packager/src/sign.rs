@@ -144,7 +144,7 @@ impl SigningConfig {
 pub fn sign_file<P: AsRef<Path> + Debug>(
     config: &SigningConfig,
     path: P,
-) -> crate::Result<PathBuf> {
+) -> crate::Result<(PathBuf, String)> {
     let secret_key = decode_private_key(&config.private_key, config.password.as_deref())?;
     sign_file_with_secret_key(&secret_key, path)
 }
@@ -154,7 +154,7 @@ pub fn sign_file<P: AsRef<Path> + Debug>(
 pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     secret_key: &minisign::SecretKey,
     path: P,
-) -> crate::Result<PathBuf> {
+) -> crate::Result<(PathBuf, String)> {
     let path = path.as_ref();
     let signature_path = path.with_additional_extension("sig");
     let signature_path = dunce::simplified(&signature_path);
@@ -188,5 +188,9 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     signature_box_writer.write_all(encoded_signature.as_bytes())?;
     signature_box_writer.flush()?;
 
-    dunce::canonicalize(signature_path).map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))
+    Ok((
+        dunce::canonicalize(signature_path)
+            .map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))?,
+        encoded_signature,
+    ))
 }

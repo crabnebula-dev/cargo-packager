@@ -20,6 +20,21 @@ where
     Version::from_str(str.trim_start_matches('v')).map_err(Error::custom)
 }
 
+/// Deserialize UpdateFormat such that an unrecognised update format
+/// returns an Ok(None) rather than erroring out the whole process.
+pub fn parse_update_format<'de, D>(deserializer: D) -> Result<Option<UpdateFormat>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let update_format = UpdateFormat::deserialize(deserializer);
+
+    if let Err(err) = &update_format {
+        log::warn!("Unknown updater format: {:?}", err);
+    }
+
+    Ok(update_format.ok())
+}
+
 impl<'de> Deserialize<'de> for UpdateFormat {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -87,11 +102,27 @@ impl<'de> Deserialize<'de> for RemoteRelease {
                     signature: release.signature.ok_or_else(|| {
                         Error::custom("the `signature` field was not set on the updater response")
                     })?,
-                    format: release.format.ok_or_else(|| {
+                    // We don't want a partial ReleaseManifestPlatform for a Dynamic updater response,
+                    // even though the type says we could
+                    format: Some(release.format.ok_or_else(|| {
                         Error::custom("the `format` field was not set on the updater response")
-                    })?,
+                    })?),
                 })
             },
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::RemoteRelease;
+
+    #[test]
+    fn test() {
+        let res = serde_json::from_str(include_str!("../tests/latest.json")).unwrap();
+        let out = serde_json::from_value::<RemoteRelease>(res);
+
+        dbg!(&out);
+        out.expect("failed to deserialize");
     }
 }
