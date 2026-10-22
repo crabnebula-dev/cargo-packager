@@ -458,7 +458,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let intermediates_path = intermediates_path.join("deb");
     util::create_clean_dir(&intermediates_path)?;
 
-    let deb_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
+    let deb_base_name = format!("{}_{}_{}", config.product_name, config.version, arch);
     let deb_name = format!("{deb_base_name}.deb");
 
     let deb_dir = intermediates_path.join(&deb_base_name);
