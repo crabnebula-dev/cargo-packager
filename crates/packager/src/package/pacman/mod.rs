@@ -31,7 +31,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let intermediates_path = intermediates_path.join("pacman");
     util::create_clean_dir(&intermediates_path)?;
 
-    let package_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
+    let package_base_name = format!("{}_{}_{}", config.product_name, config.version, arch);
     let package_name = format!("{package_base_name}.tar.gz");
 
     let pkg_dir = intermediates_path.join(&package_base_name);

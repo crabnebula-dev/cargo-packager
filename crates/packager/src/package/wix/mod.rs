@@ -486,6 +486,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let manufacturer = config.publisher();
     data.insert("identifier", to_json(identifier));
     data.insert("manufacturer", to_json(manufacturer));
+    // TODO: This should probably use product name (BREAKING CHANGE!)
+    // TODO: Expose this as a config
     let upgrade_code = Uuid::new_v5(
         &Uuid::NAMESPACE_DNS,
         format!("{main_binary_name}.app.x64").as_bytes(),
@@ -744,7 +746,10 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         let msi_output_path = intermediates_path.join("output.msi");
         let msi_path = config.out_dir().join(format!(
             "{}_{}_{}_{}.msi",
-            main_binary_name, config.version, arch, language
+            config.product_name(),
+            config.version,
+            arch,
+            language
         ));
         let msi_path_parent = msi_path
             .parent()
