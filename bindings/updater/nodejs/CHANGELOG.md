@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0]
+
+- [`0a3ea3a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/0a3ea3a089363b7e77dfca238be5bbcf3f4d75f6) ([#434](https://www.github.com/crabnebula-dev/cargo-packager/pull/434)) Enforce secure transport when checking for and downloading updates. Update endpoints and download URLs must now use HTTPS in release builds; no host is exempt (not even loopback addresses). Plain `http` is allowed in debug builds to ease local development, with a warning that it will be rejected in release builds unless explicitly enabled. Redirects that downgrade from `https` to `http` are refused, and the number of followed redirects is capped. Set `Config::dangerousInsecureTransportProtocol` (or `UpdaterBuilder::dangerous_insecure_transport_protocol`) to opt back into insecure transport for trusted, isolated networks. The Node.js bindings expose this as `dangerousInsecureTransportProtocol`.
+
+### Dependencies
+
+- Upgraded to `cargo-packager-updater@0.3.0`
+
 ## \[0.2.3]
 
 - [`d861f1a`](https://www.github.com/crabnebula-dev/cargo-packager/commit/d861f1a6b1dfe585014e04234b33d49b1a895219) ([#356](https://www.github.com/crabnebula-dev/cargo-packager/pull/356)) Pull enhancements from tauri-plugin-updater.
