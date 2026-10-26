@@ -5,7 +5,7 @@
 
 use std::{
     collections::BTreeMap,
-    fs,
+    fs, io,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     process::Command,
@@ -30,7 +30,7 @@ fn donwload_dependencies(
         ),
         (
             format!("linuxdeploy-{linuxdeploy_arch}.AppImage"),
-            format!("https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-{linuxdeploy_arch}.AppImage")
+            format!("https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy-07333c6/linuxdeploy-{linuxdeploy_arch}.AppImage")
         ),
         // This path is incompatible with cross-platform compilation but linuxdeploy doens't support that anyway.
         (
@@ -118,7 +118,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
 
     let main_binary_name = config.main_binary_name()?;
     let upcase_app_name = main_binary_name.to_uppercase();
-    let app_dir_path = intermediates_path.join(format!("{}.AppDir", &main_binary_name));
+    let app_dir_path = intermediates_path.join(format!("{}.AppDir", main_binary_name));
     let appimage_filename = format!("{}_{}_{}.AppImage", main_binary_name, config.version, arch);
     let appimage_path = config.out_dir().join(&appimage_filename);
 
@@ -208,6 +208,12 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     Command::new(&sh_file)
         .current_dir(intermediates_path)
         .output_ok()
+        .map_err(|err| {
+            io::Error::other(format!(
+                "Error running '{0}' script: {err}",
+                sh_file.display()
+            ))
+        })
         .map_err(crate::Error::AppImageScriptFailed)?;
 
     Ok(vec![appimage_path])

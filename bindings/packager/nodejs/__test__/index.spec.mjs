@@ -15,7 +15,7 @@ test("log error", async (t) => {
           ? process.env.PACKAGER_FORMATS.split(",")
           : null,
       },
-      { verbosity: 2 },
+      { verbosity: 1 },
     ),
     undefined,
   );

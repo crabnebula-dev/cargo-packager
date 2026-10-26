@@ -93,13 +93,13 @@ jobs:
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/updater/nodejs
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         if: ${{ !matrix.settings.docker }}
       - name: Install
         uses: dtolnay/rust-toolchain@stable
@@ -108,7 +108,7 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry/index/
@@ -131,10 +131,10 @@ jobs:
         shell: bash
       - run: pnpm install
       - name: Setup node x86
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
-          node-version: 18
+          node-version: 24
           architecture: x86
       - name: Build in docker
         uses: addnab/docker-run-action@v3
@@ -148,7 +148,7 @@ jobs:
         if: ${{ !matrix.settings.docker }}
         shell: bash
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bindings-${{ matrix.settings.target }}
           path: bindings/updater/nodejs/${{ env.APP_NAME }}.*.node
@@ -174,9 +174,9 @@ jobs:
   #   runs-on: ${{ matrix.settings.host }}
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - uses: actions/setup-node@v4
   #       with:
@@ -205,9 +205,9 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - uses: actions/setup-node@v4
   #       with:
@@ -237,9 +237,9 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - uses: actions/setup-node@v4
   #       with:
@@ -280,9 +280,9 @@ jobs:
   #     - name: List packages
   #       run: ls -R .
   #       shell: bash
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - name: Install dependencies
   #       run: |
@@ -319,9 +319,9 @@ jobs:
   #     - name: List packages
   #       run: ls -R .
   #       shell: bash
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - name: Install dependencies
   #       run: |
@@ -363,9 +363,9 @@ jobs:
   #     - name: List packages
   #       run: ls -R .
   #       shell: bash
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/action-setup@v6
   #       with:
-  #         version: latest
+  #         version: 10
   #         package_json_file: bindings/updater/nodejs
   #     - name: Install dependencies
   #       run: |
@@ -398,16 +398,16 @@ jobs:
       # - test-linux-aarch64-musl-binding
       # - test-linux-arm-gnueabihf-binding
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm i -g --force corepack && corepack enable
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: latest
+          version: 12
           package_json_file: bindings/updater/nodejs
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
       - run: pnpm install
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: bindings/updater/nodejs/artifacts
       - name: Move artifacts

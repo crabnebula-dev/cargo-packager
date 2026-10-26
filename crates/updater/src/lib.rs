@@ -17,7 +17,8 @@
 //! use cargo_packager_updater::{check_update, Config};
 //!
 //! let config = Config {
-//!   endpoints: vec!["http://myserver.com/updates".parse().unwrap()],
+//!   // Endpoints must use HTTPS in release builds (debug builds may use http).
+//!   endpoints: vec!["https://myserver.com/updates".parse().unwrap()],
 //!   pubkey: "<pubkey here>".into(),
 //!   ..Default::default()
 //! };
@@ -168,6 +169,16 @@
 //! attacker holding the old key could also sign a malicious release). Recovering from key compromise
 //! requires an out-of-band channel, e.g. shipping a fresh installer through your normal distribution
 //! site.
+//!
+//! ## Transport security
+//!
+//! Update endpoints and download URLs must use HTTPS. Plain `http` is rejected in release builds —
+//! no host is exempt, not even loopback addresses. It is allowed in debug builds to ease local
+//! development (with a warning that it will not work in release), and can be enabled in release for
+//! trusted, isolated networks via [`Config::dangerous_insecure_transport_protocol`]. Redirects that
+//! downgrade from `https` to `http` are refused.
+//!
+//! The updater will only follow up to 5 redirects to resolve a URL.
 
 #![deny(missing_docs)]
 
@@ -264,6 +275,18 @@ pub struct Config {
     pub pubkey: String,
     /// The Windows configuration for the updater.
     pub windows: Option<WindowsConfig>,
+    /// Allow the updater to discover, retrieve and download updates over insecure (plain `http`)
+    /// transport in **release** builds.
+    ///
+    /// By default the updater enforces HTTPS for all update endpoints and download URLs and refuses
+    /// to follow redirects that downgrade from `https` to `http`. No host is exempt — not even
+    /// loopback addresses. Plain `http` is allowed in debug builds (with a warning) so local
+    /// development and testing keep working.
+    ///
+    /// Enabling this is **dangerous**: it exposes the update process to network attackers who can
+    /// redirect, replay or substitute update traffic. Only enable it for trusted, isolated networks.
+    #[serde(default)]
+    pub dangerous_insecure_transport_protocol: bool,
 }
 
 /// Supported update format
@@ -463,6 +486,22 @@ impl UpdaterBuilder {
         self
     }
 
+    /// Allow the updater to discover, retrieve and download updates over insecure (plain `http`)
+    /// transport in **release** builds. Equivalent to setting
+    /// [`Config::dangerous_insecure_transport_protocol`].
+    ///
+    /// By default the updater enforces HTTPS for all update endpoints and download URLs and refuses
+    /// to follow redirects that downgrade from `https` to `http`. No host is exempt — not even
+    /// loopback addresses. Plain `http` is allowed in debug builds (with a warning) so local
+    /// development and testing keep working.
+    ///
+    /// Enabling this is **dangerous**: it exposes the update process to network attackers who can
+    /// redirect, replay or substitute update traffic. Only enable it for trusted, isolated networks.
+    pub fn dangerous_insecure_transport_protocol(mut self, allow: bool) -> Self {
+        self.config.dangerous_insecure_transport_protocol = allow;
+        self
+    }
+
     /// Specify custom installer args on Windows.
     pub fn installer_args<I, S>(mut self, args: I) -> Self
     where
@@ -569,6 +608,15 @@ impl Updater {
         let mut remote_release: Option<RemoteRelease> = None;
         let mut last_error: Option<Error> = None;
 
+        #[cfg(feature = "rustls-tls")]
+        if rustls::crypto::CryptoProvider::get_default().is_none() {
+            // This can only fail if there is already a default provider which we checked for already.
+            let _ = rustls::crypto::ring::default_provider().install_default();
+        }
+
+        let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
+        let client = http_client(dangerous_insecure)?;
+
         let version = self.current_version.to_string();
         let version = version.as_bytes();
         const CONTROLS_ADD: &AsciiSet = &CONTROLS.add(b'+');
@@ -595,9 +643,17 @@ impl Updater {
                 .replace("{{arch}}", self.arch)
                 .parse()?;
 
+            // Reject insecure (non-HTTPS) endpoints unless explicitly allowed (debug build or the
+            // `dangerous_insecure_transport_protocol` opt-in).
+            if let Err(err) = ensure_secure_url(&url, dangerous_insecure) {
+                log::error!("skipping insecure update endpoint: {err}");
+                last_error = Some(err);
+                continue;
+            }
+
             log::debug!("checking for updates {url}");
 
-            let mut request = Client::new().get(url).headers(headers.clone());
+            let mut request = client.get(url).headers(headers.clone());
             if let Some(timeout) = self.timeout {
                 request = request.timeout(timeout);
             }
@@ -757,7 +813,12 @@ impl Update {
             );
         }
 
-        let mut request = Client::new()
+        // Reject insecure (non-HTTPS) download URLs unless explicitly allowed (debug build or the
+        // `dangerous_insecure_transport_protocol` opt-in).
+        let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
+        ensure_secure_url(&self.download_url, dangerous_insecure)?;
+
+        let mut request = http_client(dangerous_insecure)?
             .get(self.download_url.clone())
             .headers(headers);
         if let Some(timeout) = self.timeout {
@@ -809,8 +870,15 @@ impl Update {
         let mut update_buffer = Cursor::new(&buffer);
 
         let signed_metadata =
-            verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey)?;
+            verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey)
+                .inspect_err(|err| {
+                    log::error!(
+                        "update signature verification failed for {}: {err}",
+                        self.version
+                    )
+                })?;
         self.validate_signed_metadata(&signed_metadata)?;
+        log::info!("update {} passed signature verification", self.version);
 
         Ok(buffer)
     }
@@ -883,7 +951,19 @@ impl Update {
 
     /// Installs the updater package downloaded by [`Update::download`]
     pub fn install(&self, bytes: Vec<u8>) -> Result<()> {
-        self.install_inner(bytes)
+        log::info!("installing update {} ({})", self.version, self.format);
+        match self.install_inner(bytes) {
+            // On Windows the installer is spawned in a separate process and this process exits, so
+            // this success branch is reached on the platforms that install in-process (macOS/Linux).
+            Ok(()) => {
+                log::info!("update {} installed successfully", self.version);
+                Ok(())
+            }
+            Err(err) => {
+                log::error!("failed to install update {}: {err}", self.version);
+                Err(err)
+            }
+        }
     }
 
     /// Downloads and installs the updater package
@@ -911,6 +991,11 @@ impl Update {
     // │── [AppName]_[version]_x64.msi           # Application MSI
     // │── [AppName]_[version]_x64-setup.exe           # NSIS installer
     // └── ...
+    //
+    // NOTE: Unlike the macOS and Linux paths, installation on Windows is performed by spawning the
+    // verified NSIS/WiX installer in a separate process (after which this process exits). Atomicity
+    // and rollback are therefore delegated to that installer rather than handled here; the updater
+    // cannot snapshot and restore the previous installation on its own.
     #[cfg(windows)]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
         use std::{io::Write, os::windows::process::CommandExt, process::Command};
@@ -1363,6 +1448,48 @@ fn base64_to_string(base64_string: &str) -> Result<String> {
         .map_err(|_| Error::SignatureUtf8(base64_string.into()))?
         .to_string();
     Ok(result)
+}
+
+/// Build a blocking HTTP client that refuses to follow redirects which downgrade the transport
+/// security or exceed a small redirect budget.
+///
+/// Cross-host HTTPS redirects (e.g. GitHub release downloads served from a different host) are
+/// allowed, but a redirect to a non-HTTPS URL is rejected unless `allow_insecure` is set.
+fn http_client(allow_insecure: bool) -> Result<Client> {
+    let policy = reqwest::redirect::Policy::custom(move |attempt| {
+        if attempt.previous().len() >= 5 {
+            return attempt.error("too many redirects while retrieving update");
+        }
+        if ensure_secure_url(attempt.url(), allow_insecure).is_ok() {
+            attempt.follow()
+        } else {
+            attempt.error(
+                "refusing to follow an insecure redirect to a non-HTTPS URL while retrieving update",
+            )
+        }
+    });
+
+    Client::builder()
+        .redirect(policy)
+        .build()
+        .map_err(Into::into)
+}
+
+/// Reject a URL that is not served over a secure transport, unless insecure transport is allowed
+/// (debug build or the `dangerous_insecure_transport_protocol` opt-in). Warns when an insecure URL
+/// is only tolerated because this is a debug build.
+fn ensure_secure_url(url: &Url, allow_insecure: bool) -> Result<()> {
+    if !allow_insecure && url.scheme() != "https" {
+        #[cfg(debug_assertions)]
+        log::warn!(
+                "using insecure transport for `{url}`: this is tolerated in debug builds only. \
+                 Release builds will reject it unless `dangerous_insecure_transport_protocol` is enabled."
+            );
+        #[cfg(not(debug_assertions))]
+        return Err(Error::InsecureTransport(url.clone()));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

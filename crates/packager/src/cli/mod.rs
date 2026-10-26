@@ -40,7 +40,7 @@ pub(crate) struct Cli {
     verbose: u8,
     /// Disables logging
     #[clap(short, long, global = true)]
-    quite: bool,
+    quiet: bool,
 
     /// The package fromats to build.
     #[clap(short, long, value_enum, value_delimiter = ',')]
@@ -153,7 +153,7 @@ fn run_cli(cli: Cli) -> Result<()> {
             config.target_triple.replace(target_triple.clone());
         }
 
-        if config.log_level.is_none() && !cli.quite {
+        if config.log_level.is_none() && !cli.quiet {
             let level = match parse_log_level(cli.verbose) {
                 tracing::Level::ERROR => LogLevel::Error,
                 tracing::Level::WARN => LogLevel::Warn,
@@ -257,7 +257,7 @@ where
         })
     })?;
 
-    if !cli.quite {
+    if !cli.quiet {
         init_tracing_subscriber(cli.verbose);
         if std::env::var_os("CARGO_TERM_COLOR").is_none() {
             std::env::set_var("CARGO_TERM_COLOR", "always");

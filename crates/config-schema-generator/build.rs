@@ -11,7 +11,8 @@ use std::{
 };
 
 pub fn main() -> Result<(), Box<dyn Error>> {
-    let schema = schemars::schema_for!(cargo_packager::Config);
+    let generator = schemars::generate::SchemaSettings::draft07().into_generator();
+    let schema = generator.into_root_schema_for::<cargo_packager::Config>();
     let schema_str = serde_json::to_string_pretty(&schema).unwrap();
     let crate_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?);
     for path in [

@@ -53,6 +53,11 @@ pub struct Options {
     pub timeout: Option<u32>,
     /// Reject updates whose authenticated signing timestamp is older than this many milliseconds.
     pub signature_expiration: Option<u32>,
+    /// Allow insecure (plain `http`) update transport in **release** builds. **Dangerous.**
+    ///
+    /// No host is exempt — not even loopback. `http` is allowed in debug builds (with a warning)
+    /// regardless of this option. Defaults to `false`.
+    pub dangerous_insecure_transport_protocol: Option<bool>,
 }
 
 impl Options {

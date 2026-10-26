@@ -76,6 +76,9 @@ pub enum Error {
         /// The configured maximum signature age, in seconds.
         max_age_secs: u64,
     },
+    /// An update endpoint or download URL uses an insecure (non-HTTPS) transport.
+    #[error("insecure transport: `{0}` is not an HTTPS URL. Use HTTPS, or explicitly allow insecure transport via `Config::dangerous_insecure_transport_protocol` (http is also allowed in debug builds)")]
+    InsecureTransport(url::Url),
     /// The `reqwest` crate errors.
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),

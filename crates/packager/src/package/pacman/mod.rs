@@ -4,6 +4,8 @@
 
 use super::deb;
 use crate::{config::Config, package::Context, util, Error};
+use base16ct::HexDisplay;
+use digest_io::IoWrapper;
 use heck::AsKebabCase;
 use sha2::{Digest, Sha512};
 use std::{
@@ -127,9 +129,9 @@ fn generate_pkgbuild_file(
     // Generate SHA512 sum of the package
     let mut sha_file =
         File::open(package_path).map_err(|e| Error::IoWithPath(package_path.to_path_buf(), e))?;
-    let mut sha512 = Sha512::new();
+    let mut sha512 = IoWrapper(Sha512::new());
     io::copy(&mut sha_file, &mut sha512)?;
-    let sha_hash = sha512.finalize();
+    let sha_hash = HexDisplay(&sha512.0.finalize());
 
     writeln!(file, "sha512sums=(\"{sha_hash:x}\")")?;
     writeln!(
