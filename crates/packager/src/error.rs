@@ -228,6 +228,9 @@ pub enum Error {
     /// Signing keys generation error.
     #[error("aborted key generation, {0} already exists and force overrwite wasnot desired.")]
     SigningKeyExists(PathBuf),
+    /// The version to embed in a signature contains a tab or newline.
+    #[error("the app version {0:?} cannot be signed because it contains a tab or newline")]
+    InvalidSigningVersion(String),
     /// Failed to extract external binary filename
     #[error("Failed to extract filename from {0}")]
     FailedToExtractFilename(PathBuf),
