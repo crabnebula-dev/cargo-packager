@@ -182,6 +182,16 @@ pub fn sign_file_with_secret_key_and_version<P: AsRef<Path> + Debug>(
     version: Option<&str>,
 ) -> crate::Result<PathBuf> {
     let path = path.as_ref();
+
+    // The trusted comment is a single line of tab separated fields, so a version carrying either
+    // separator would inject fields or produce a signature the updater cannot parse back.
+    let version = version.map(str::trim).filter(|v| !v.is_empty());
+    if let Some(version) = version {
+        if version.contains(['\t', '\r', '\n']) {
+            return Err(Error::InvalidSigningVersion(version.to_string()));
+        }
+    }
+
     let signature_path = path.with_additional_extension("sig");
     let signature_path = dunce::simplified(&signature_path);
 
@@ -198,10 +208,7 @@ pub fn sign_file_with_secret_key_and_version<P: AsRef<Path> + Debug>(
     // Bind the release version into the (authenticated) trusted comment when known. Tabs separate
     // fields and the version is the last one so the format stays forwards/backwards compatible.
     if let Some(version) = version {
-        let version = version.trim();
-        if !version.is_empty() {
-            trusted_comment.push_str(&format!("\tversion:{version}"));
-        }
+        trusted_comment.push_str(&format!("\tversion:{version}"));
     }
 
     let file = OpenOptions::new()
@@ -223,4 +230,54 @@ pub fn sign_file_with_secret_key_and_version<P: AsRef<Path> + Debug>(
     signature_box_writer.flush()?;
 
     dunce::canonicalize(signature_path).map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn trusted_comment(signature_path: &Path) -> String {
+        let encoded = fs::read_to_string(signature_path).unwrap();
+        let decoded = String::from_utf8(STANDARD.decode(encoded).unwrap()).unwrap();
+        minisign::SignatureBox::from_string(&decoded)
+            .unwrap()
+            .trusted_comment()
+            .unwrap()
+    }
+
+    #[test]
+    fn embeds_version_in_trusted_comment() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("app.tar.gz");
+        fs::write(&path, b"app").unwrap();
+        let secret_key = minisign::KeyPair::generate_unencrypted_keypair()
+            .unwrap()
+            .sk;
+
+        let signature_path =
+            sign_file_with_secret_key_and_version(&secret_key, &path, Some(" 1.2.3\n")).unwrap();
+        let comment = trusted_comment(&signature_path);
+        assert!(comment.starts_with("timestamp:"));
+        assert!(comment.ends_with("\tfile:app.tar.gz\tversion:1.2.3"));
+
+        let signature_path = sign_file_with_secret_key(&secret_key, &path).unwrap();
+        assert!(!trusted_comment(&signature_path).contains("version:"));
+    }
+
+    #[test]
+    fn rejects_version_that_breaks_the_trusted_comment() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("app.tar.gz");
+        fs::write(&path, b"app").unwrap();
+        let secret_key = minisign::KeyPair::generate_unencrypted_keypair()
+            .unwrap()
+            .sk;
+
+        for version in ["1.0.0\ttimestamp:0", "1.0.0\nmalicious", "1.0.0\rmalicious"] {
+            let err = sign_file_with_secret_key_and_version(&secret_key, &path, Some(version))
+                .unwrap_err();
+            assert!(matches!(err, Error::InvalidSigningVersion(_)));
+        }
+        assert!(!path.with_additional_extension("sig").exists());
+    }
 }
