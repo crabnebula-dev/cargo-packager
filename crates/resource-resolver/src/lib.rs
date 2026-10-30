@@ -60,6 +60,7 @@ pub fn current_format() -> crate::Result<PackageFormat> {
         Some("deb") => Ok(PackageFormat::Deb),
         Some("appimage") => Ok(PackageFormat::AppImage),
         Some("pacman") => Ok(PackageFormat::Pacman),
+        Some("rpm") => Ok(PackageFormat::Rpm),
         _ => Err(Error::UnkownPackageFormat),
     }
 }
@@ -89,7 +90,7 @@ pub fn resources_dir(package_format: PackageFormat) -> Result<PathBuf> {
                 .ok_or_else(|| Error::ParentNotFound(exe.clone()))?;
             Ok(exe_dir.to_path_buf())
         }
-        PackageFormat::Deb | PackageFormat::Pacman => {
+        PackageFormat::Deb | PackageFormat::Pacman | PackageFormat::Rpm => {
             let exe = current_exe()?;
             let exe_name = exe.file_name().unwrap().to_string_lossy();
 

@@ -45,6 +45,8 @@ pub enum PackageFormat {
     AppImage,
     /// The Linux Pacman package (.tar.gz and PKGBUILD)
     Pacman,
+    /// The Linux RPM package (.rpm).
+    Rpm,
 }
 
 impl Display for PackageFormat {
@@ -55,7 +57,7 @@ impl Display for PackageFormat {
 
 impl PackageFormat {
     /// Maps a short name to a [PackageFormat].
-    /// Possible values are "deb", "pacman", "appimage", "dmg", "app", "wix", "nsis".
+    /// Possible values are "deb", "pacman", "rpm", "appimage", "dmg", "app", "wix", "nsis".
     pub fn from_short_name(name: &str) -> Option<PackageFormat> {
         // Other types we may eventually want to support: apk.
         match name {
@@ -65,6 +67,7 @@ impl PackageFormat {
             "nsis" => Some(PackageFormat::Nsis),
             "deb" => Some(PackageFormat::Deb),
             "appimage" => Some(PackageFormat::AppImage),
+            "rpm" => Some(PackageFormat::Rpm),
             _ => None,
         }
     }
@@ -83,6 +86,7 @@ impl PackageFormat {
             PackageFormat::Deb => "deb",
             PackageFormat::AppImage => "appimage",
             PackageFormat::Pacman => "pacman",
+            PackageFormat::Rpm => "rpm",
         }
     }
 
@@ -90,7 +94,7 @@ impl PackageFormat {
     ///
     /// - **macOS**: App, Dmg
     /// - **Windows**: Nsis, Wix
-    /// - **Linux**: Deb, AppImage, Pacman
+    /// - **Linux**: Deb, AppImage, Pacman, Rpm
     pub fn platform_all() -> &'static [PackageFormat] {
         &[
             #[cfg(target_os = "macos")]
@@ -125,6 +129,14 @@ impl PackageFormat {
                 target_os = "openbsd"
             ))]
             PackageFormat::Pacman,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Rpm,
         ]
     }
 
@@ -132,7 +144,7 @@ impl PackageFormat {
     ///
     /// - **macOS**: App, Dmg
     /// - **Windows**: Nsis
-    /// - **Linux**: Deb, AppImage, Pacman
+    /// - **Linux**: Deb, AppImage, Pacman, Rpm
     pub fn platform_default() -> &'static [PackageFormat] {
         &[
             #[cfg(target_os = "macos")]
@@ -165,6 +177,14 @@ impl PackageFormat {
                 target_os = "openbsd"
             ))]
             PackageFormat::Pacman,
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Rpm,
         ]
     }
 
@@ -186,6 +206,7 @@ impl PackageFormat {
             PackageFormat::Deb => 0,
             PackageFormat::AppImage => 0,
             PackageFormat::Pacman => 0,
+            PackageFormat::Rpm => 0,
             PackageFormat::Dmg => 1,
         }
     }
