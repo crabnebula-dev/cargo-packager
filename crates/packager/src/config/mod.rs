@@ -233,6 +233,70 @@ pub struct DebianConfig {
     pub package_name: Option<String>,
 }
 
+/// Linux RPM package configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct RpmConfig {
+    /// SPDX license identifier for the packaged application.
+    pub license: Option<String>,
+    /// RPM package dependencies (Requires entries).
+    pub depends: Option<Dependencies>,
+    /// Additional files to install into the package, mapped from source to destination.
+    pub files: Option<HashMap<String, String>>,
+    /// Name to use for the RPM package. Defaults to product name in kebab-case.
+    #[serde(alias = "package-name", alias = "package_name")]
+    pub package_name: Option<String>,
+}
+
+impl RpmConfig {
+    /// Creates a new RPM configuration.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set RPM dependencies.
+    pub fn depends<I, S>(mut self, depends: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.depends = Some(Dependencies::List(
+            depends.into_iter().map(Into::into).collect(),
+        ));
+        self
+    }
+
+    /// Set the SPDX license identifier for the RPM metadata.
+    pub fn license<S: Into<String>>(mut self, license: S) -> Self {
+        self.license = Some(license.into());
+        self
+    }
+
+    /// Set custom files to add to the RPM, mapping source paths to package paths.
+    pub fn files<I, S, T>(mut self, files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, T)>,
+        S: Into<String>,
+        T: Into<String>,
+    {
+        self.files = Some(
+            files
+                .into_iter()
+                .map(|(src, dest)| (src.into(), dest.into()))
+                .collect(),
+        );
+        self
+    }
+
+    /// Set the RPM package name.
+    pub fn package_name<S: Into<String>>(mut self, name: S) -> Self {
+        self.package_name = Some(name.into());
+        self
+    }
+}
+
 impl DebianConfig {
     /// Creates a new [`DebianConfig`].
     pub fn new() -> Self {
@@ -1710,7 +1774,7 @@ pub struct Config {
     /// ## Format-specific:
     ///
     /// - **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.
-    /// - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.
+    /// - **[PackageFormat::Deb] / [PackageFormat::Rpm]**: The resources are placed in `usr/lib` of the package.
     pub resources: Option<Vec<Resource>>,
     /// Paths to external binaries to add to the package.
     ///
@@ -1741,6 +1805,8 @@ pub struct Config {
     pub appimage: Option<AppImageConfig>,
     /// Pacman configuration.
     pub pacman: Option<PacmanConfig>,
+    /// RPM-specific configuration.
+    pub rpm: Option<RpmConfig>,
     /// WiX configuration.
     pub wix: Option<WixConfig>,
     /// Nsis configuration.
@@ -1793,6 +1859,11 @@ impl Config {
     /// Returns the [pacman](Config::pacman) specific configuration.
     pub fn pacman(&self) -> Option<&PacmanConfig> {
         self.pacman.as_ref()
+    }
+
+    /// Returns the RPM-specific configuration.
+    pub fn rpm(&self) -> Option<&RpmConfig> {
+        self.rpm.as_ref()
     }
 
     /// Returns the [dmg](Config::dmg) specific configuration.

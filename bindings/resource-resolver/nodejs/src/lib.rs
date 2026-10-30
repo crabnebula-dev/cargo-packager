@@ -18,6 +18,8 @@ pub enum PackageFormat {
     Deb,
     /// The Linux AppImage package (.AppImage).
     AppImage,
+    /// The Linux RPM package (.rpm).
+    Rpm,
 }
 
 impl From<PackageFormat> for ResolverPackageFormat {
@@ -29,6 +31,7 @@ impl From<PackageFormat> for ResolverPackageFormat {
             PackageFormat::Nsis => ResolverPackageFormat::Nsis,
             PackageFormat::Deb => ResolverPackageFormat::Deb,
             PackageFormat::AppImage => ResolverPackageFormat::AppImage,
+            PackageFormat::Rpm => ResolverPackageFormat::Rpm,
         }
     }
 }

@@ -207,7 +207,7 @@
       }
     },
     "resources": {
-      "description": "The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory\nor an object of `src` and `target` paths. In the case of using an object,\nthe `src` could be either a glob pattern, path to a file, path to a directory,\nand the `target` is a path inside the final resources folder in the installed package.\n\n## Format-specific:\n\n- **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.\n- **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.",
+      "description": "The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory\nor an object of `src` and `target` paths. In the case of using an object,\nthe `src` could be either a glob pattern, path to a file, path to a directory,\nand the `target` is a path inside the final resources folder in the installed package.\n\n## Format-specific:\n\n- **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.\n- **[PackageFormat::Deb] / [PackageFormat::Rpm]**: The resources are placed in `usr/lib` of the package.",
       "type": [
         "array",
         "null"
@@ -286,6 +286,17 @@
       "anyOf": [
         {
           "$ref": "#/definitions/PacmanConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rpm": {
+      "description": "RPM-specific configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RpmConfig"
         },
         {
           "type": "null"
@@ -453,6 +464,11 @@
           "description": "The Linux Pacman package (.tar.gz and PKGBUILD)",
           "type": "string",
           "const": "pacman"
+        },
+        {
+          "description": "The Linux RPM package (.rpm).",
+          "type": "string",
+          "const": "rpm"
         }
       ]
     },
@@ -970,6 +986,48 @@
           "items": {
             "type": "string"
           }
+        }
+      },
+      "additionalProperties": false
+    },
+    "RpmConfig": {
+      "description": "Linux RPM package configuration.",
+      "type": "object",
+      "properties": {
+        "license": {
+          "description": "SPDX license identifier for the packaged application.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "depends": {
+          "description": "RPM package dependencies (Requires entries).",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Dependencies"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "files": {
+          "description": "Additional files to install into the package, mapped from source to destination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "packageName": {
+          "description": "Name to use for the RPM package. Defaults to product name in kebab-case.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false
