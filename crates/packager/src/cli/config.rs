@@ -29,7 +29,7 @@ impl Config {
     }
 }
 
-fn find_nearset_pkg_name(path: &Path) -> Result<Option<String>> {
+fn find_nearest_pkg_name(path: &Path) -> Result<Option<String>> {
     // `path` is the config file itself, not the dir, so the manifests are
     // looked for next to it: using the file as the working directory fails
     // with `ERROR_DIRECTORY` (os error 267) on Windows and `ENOTDIR` elsewhere.
@@ -99,7 +99,7 @@ fn parse_config_file<P: AsRef<Path> + Debug>(path: P) -> Result<Vec<(Option<Path
         if config.name.is_none() {
             // and config wasn't passed using `--config` cli arg
             if let Some(path) = &path {
-                let name = find_nearset_pkg_name(path)?;
+                let name = find_nearest_pkg_name(path)?;
                 config.name = name;
             }
         }
@@ -270,7 +270,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn find_nearset_pkg_name_reads_the_manifest_next_to_the_config_file() {
+    fn find_nearest_pkg_name_reads_the_manifest_next_to_the_config_file() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(
             dir.path().join("Cargo.toml"),
@@ -280,36 +280,36 @@ mod tests {
         let config = dir.path().join("Packager.toml");
         fs::write(&config, "out_dir = \"dist\"\n").unwrap();
 
-        let name = find_nearset_pkg_name(&config).unwrap();
+        let name = find_nearest_pkg_name(&config).unwrap();
 
         assert_eq!(name, Some("my-app".to_string()));
     }
 
     #[test]
-    fn find_nearset_pkg_name_leaves_the_working_directory_alone() {
+    fn find_nearest_pkg_name_leaves_the_working_directory_alone() {
         let dir = tempfile::tempdir().unwrap();
         let config = dir.path().join("Packager.toml");
         fs::write(&config, "out_dir = \"dist\"\n").unwrap();
         let cwd = std::env::current_dir().unwrap();
 
-        assert_eq!(find_nearset_pkg_name(&config).unwrap(), None);
+        assert_eq!(find_nearest_pkg_name(&config).unwrap(), None);
         assert_eq!(std::env::current_dir().unwrap(), cwd);
     }
 
     #[test]
-    fn find_nearset_pkg_name_reads_package_json_when_there_is_no_cargo_manifest() {
+    fn find_nearest_pkg_name_reads_package_json_when_there_is_no_cargo_manifest() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join("package.json"), r#"{"name":"my-node-app"}"#).unwrap();
         let config = dir.path().join("Packager.json");
         fs::write(&config, "{}").unwrap();
 
-        let name = find_nearset_pkg_name(&config).unwrap();
+        let name = find_nearest_pkg_name(&config).unwrap();
 
         assert_eq!(name, Some("my-node-app".to_string()));
     }
 
     #[test]
-    fn find_nearset_pkg_name_falls_back_to_package_json() {
+    fn find_nearest_pkg_name_falls_back_to_package_json() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(
             dir.path().join("Cargo.toml"),
@@ -320,7 +320,7 @@ mod tests {
         let config = dir.path().join("Packager.toml");
         fs::write(&config, "{}").unwrap();
 
-        let name = find_nearset_pkg_name(&config).unwrap();
+        let name = find_nearest_pkg_name(&config).unwrap();
 
         assert_eq!(name, Some("my-node-app".to_string()));
     }
