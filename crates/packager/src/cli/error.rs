@@ -44,6 +44,9 @@ pub enum Error {
     /// TOML Config parsing error.
     #[error("Failed to parse config at {0}: {1}")]
     FailedToParseTomlConfigFromPath(PathBuf, Box<toml::de::Error>),
+    /// The config file path carries no parent directory.
+    #[error("Failed to get the parent directory of {0}")]
+    ParentDirNotFound(PathBuf),
     /// I/O errors with path.
     #[error("I/O Error ({0}): {1}")]
     IoWithPath(PathBuf, std::io::Error),

@@ -30,12 +30,12 @@ impl Config {
 }
 
 fn find_nearset_pkg_name(path: &Path) -> Result<Option<String>> {
-    // `path` is the config file, so the package manifests are searched next to
-    // it, not in it: using the file as the working directory fails with
-    // `ERROR_DIRECTORY` (os error 267) on Windows and `ENOTDIR` elsewhere.
-    // A bare file name has an empty parent, which `join` resolves against the
-    // current directory.
-    let dir = path.parent().unwrap_or(Path::new("."));
+    // `path` is the config file itself, not the dir, so the manifests are
+    // looked for next to it: using the file as the working directory fails
+    // with `ERROR_DIRECTORY` (os error 267) on Windows and `ENOTDIR` elsewhere.
+    let dir = path
+        .parent()
+        .ok_or_else(|| Error::ParentDirNotFound(path.to_path_buf()))?;
 
     if let Ok(contents) = fs::read_to_string(dir.join("Cargo.toml")) {
         let toml = toml::from_str::<toml::Table>(&contents)
