@@ -35,7 +35,7 @@ fn find_nearset_pkg_name(path: &Path) -> Result<Option<String>> {
     // with `ERROR_DIRECTORY` (os error 267) on Windows and `ENOTDIR` elsewhere.
     let dir = path
         .parent()
-        .ok_or_else(|| Error::ParentDirNotFound(path.to_path_buf()))?;
+        .ok_or_else(|| crate::Error::ParentDirNotFound(path.to_path_buf()))?;
 
     if let Ok(contents) = fs::read_to_string(dir.join("Cargo.toml")) {
         let toml = toml::from_str::<toml::Table>(&contents)
