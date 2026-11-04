@@ -68,14 +68,6 @@ pub enum Error {
     /// The update signature does not contain the authenticated metadata required by the updater.
     #[error("the update signature does not contain the authenticated metadata (version/timestamp) required by the updater")]
     MissingSignedMetadata,
-    /// The update signature is older than the configured maximum age.
-    #[error("the update signature is stale: it was signed at unix timestamp {signed_timestamp}, which is older than the configured maximum age of {max_age_secs}s")]
-    StaleSignature {
-        /// The authenticated signing timestamp (seconds since the unix epoch).
-        signed_timestamp: i64,
-        /// The configured maximum signature age, in seconds.
-        max_age_secs: u64,
-    },
     /// An update endpoint or download URL uses an insecure (non-HTTPS) transport.
     #[error("insecure transport: `{0}` is not an HTTPS URL. Use HTTPS, or explicitly allow insecure transport via `Config::dangerous_insecure_transport_protocol` (http is also allowed in debug builds)")]
     InsecureTransport(url::Url),
