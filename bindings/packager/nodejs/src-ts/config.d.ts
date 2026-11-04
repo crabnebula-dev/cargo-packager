@@ -28,7 +28,7 @@ export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
 /**
  * Types of supported packages by [`cargo-packager`](https://docs.rs/cargo-packager).
  */
-export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage" | "pacman";
+export type PackageFormat = "all" | "default" | "app" | "dmg" | "wix" | "nsis" | "deb" | "appimage" | "pacman" | "rpm";
 /**
  * The possible app categories.
  * Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.
@@ -267,7 +267,7 @@ export interface Config {
    * ## Format-specific:
    *
    * - **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.
-   * - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.
+   * - **[PackageFormat::Deb] / [PackageFormat::Rpm]**: The resources are placed in `usr/lib` of the package.
    */
   resources?: Resource[] | null;
   /**
@@ -312,6 +312,8 @@ export interface Config {
    * Pacman configuration.
    */
   pacman?: PacmanConfig | null;
+  /** RPM-specific configuration. */
+  rpm?: RpmConfig | null;
   /**
    * WiX configuration.
    */
@@ -642,6 +644,17 @@ export interface PacmanConfig {
    * PKGBUILD is a bash script, so version can be referred as ${pkgver}
    */
   source?: string[] | null;
+}
+/** Linux RPM package configuration. */
+export interface RpmConfig {
+  /** SPDX license identifier for the packaged application. */
+  license?: string | null;
+  /** RPM package dependencies (Requires entries). */
+  depends?: Dependencies | null;
+  /** Additional files, mapped from source paths to package paths. */
+  files?: { [k: string]: string } | null;
+  /** RPM package name. Defaults to product name in kebab-case. */
+  packageName?: string | null;
 }
 /**
  * The wix format configuration

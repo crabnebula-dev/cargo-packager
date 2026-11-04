@@ -111,3 +111,4 @@ features = ["Win32_System_SystemInformation", "Win32_System_Diagnostics_Debug"]
 md5 = "0.8"
 heck = "0.5"
 ar = "0.9"
+rpm = "0.30"

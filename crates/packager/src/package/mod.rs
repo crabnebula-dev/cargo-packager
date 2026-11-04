@@ -36,6 +36,14 @@ mod nsis;
     target_os = "openbsd"
 ))]
 mod pacman;
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd"
+))]
+mod rpm;
 #[cfg(windows)]
 mod wix;
 
@@ -146,6 +154,14 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
                 target_os = "openbsd"
             ))]
             PackageFormat::Pacman => pacman::package(&ctx),
+            #[cfg(any(
+                target_os = "linux",
+                target_os = "dragonfly",
+                target_os = "freebsd",
+                target_os = "netbsd",
+                target_os = "openbsd"
+            ))]
+            PackageFormat::Rpm => rpm::package(&ctx),
 
             _ => {
                 tracing::warn!("ignoring {}", format.short_name());

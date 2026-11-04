@@ -18,6 +18,7 @@
 //!   - Debian package (.deb)
 //!   - AppImage (.AppImage)
 //!   - Pacman (.tar.gz and PKGBUILD)
+//!   - RPM (.rpm)
 //! - Windows
 //!   - NSIS (.exe)
 //!   - MSI using WiX Toolset (.msi)
