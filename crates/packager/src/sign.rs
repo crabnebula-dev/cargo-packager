@@ -36,11 +36,7 @@ pub struct KeyPair {
 /// empty string as the password.
 #[tracing::instrument(level = "trace")]
 pub fn generate_key(password: Option<String>) -> crate::Result<KeyPair> {
-    let minisign::KeyPair { pk, sk } = if matches!(&password, Some(p) if p.is_empty()) {
-        minisign::KeyPair::generate_unencrypted_keypair()?
-    } else {
-        minisign::KeyPair::generate_encrypted_keypair(password)?
-    };
+    let minisign::KeyPair { pk, sk } = minisign::KeyPair::generate_encrypted_keypair(password)?;
 
     let pk_box_str = pk.to_box()?.to_string();
     let sk_box_str = sk.to_box(None)?.to_string();
@@ -68,6 +64,8 @@ pub fn decode_private_key(
     let decoded_secret = decode_base64(private_key)?;
 
     // Empty password: bypass into_secret_key() which corrupts unencrypted keys.
+    // Only needed for keys generated on minisign >=0.7.4,<=0.8.0 which is exactly
+    // what cargo-packager used since the addition of the updater.
     if matches!(password, Some(p) if p.is_empty()) {
         let mut lines = decoded_secret.lines();
         lines.next(); // skip comment line
@@ -306,8 +304,8 @@ mod tests {
     const LEGACY_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2Njc0OTE5Mzk2Q0ExODkKUldTSm9XdzVHVWxuUmtJdjB4RnRXZGVqR3NQaU5SVitoTk1qNFFWQ3pjL2hZWFVDOFNrcEVvVlcK";
 
     // Key generated with minisign 0.9 generate_unencrypted_keypair() (kdf_alg = KDF_NONE)
-    const CURRENT_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUUFBRUl5QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQTRhZUlLZEhNS2lqMmRiNWVDNDdBa1FGTFpEVG5DTGJWNjBUaGVzQTFvTHkvcjJ1U01Oa2JMSjZNRHZYdU83SHEydjJXZnRheEhvNmRDOHhYWVFlZ1lRTDBteWxQanJwNENmTUxZQVo0K2FVZE1Ia2Vtbzlld0c5ZVVzcklGQjhpUlNoVmtJbTFRZFk9Cg==";
-    const CURRENT_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI4MkFDQ0QxMjk4OEE3RTEKUldUaHA0Z3AwY3dxS0o2TUR2WHVPN0hxMnYyV2Z0YXhIbzZkQzh4WFlRZWdZUUwwbXlsUGpycDQK";
+    const CURRENT_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5ektRMXdrc1FaZm91QWxPK1UrY2M1MDZ1Q2dNbXVDZHZDOWVvUDFyWkt1QUFBQkFBQUFBQUFBQUFBQUlBQUFBQVNxNzlzZks2MmRDVjFETkJrNjBVK0pweVZYalFvdXhXWVFTWGVKc0FLL0tPMys3UVBqZDRDcUhMTktHTG94VENOc3E3MFhXTU5KbW5sclpWc01tTExGS2NCNkxZdjJQSy9sdGFEOWxWRDBySmtDSndnS1V6R2FTSWhNaFFRblJENHA0eVQvaGNKQm89Cg==";
+    const CURRENT_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFFMjJCNDBENjc4QkE2OTcKUldTWHBvdG5EYlFpcm5QOVZsWTVkZkNwOWlhK0IraFhybGFsM3VidjhlOHlRLzFEc2N6RkFwakwK";
 
     #[test]
     fn sign_verify_legacy_key() {
