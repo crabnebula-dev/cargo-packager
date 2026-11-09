@@ -5,14 +5,14 @@
   "type": "object",
   "properties": {
     "$schema": {
-      "description": "The JSON schema for the config.\n\nSetting this field has no effect, this just exists so we can parse the JSON correctly when it has `$schema` field set.",
+      "description": "The JSON schema for the config.\n\nSetting this field has no effect, this just exists so\nwe can parse the JSON correctly when it has `$schema` field set.",
       "type": [
         "string",
         "null"
       ]
     },
     "name": {
-      "description": "The app name, this is just an identifier that could be used to filter which app to package using `--packages` cli arg when there is multiple apps in the workspace or in the same config.\n\nThis field resembles, the `name` field in `Cargo.toml` or `package.json`\n\nIf `unset`, the CLI will try to auto-detect it from `Cargo.toml` or `package.json` otherwise, it will keep it unset.",
+      "description": "The app name, this is just an identifier that could be used\nto filter which app to package using `--packages` cli arg when there is multiple apps in the\nworkspace or in the same config.\n\nThis field resembles, the `name` field in `Cargo.toml` or `package.json`\n\nIf `unset`, the CLI will try to auto-detect it from `Cargo.toml` or\n`package.json` otherwise, it will keep it unset.",
       "type": [
         "string",
         "null"
@@ -20,29 +20,29 @@
     },
     "enabled": {
       "description": "Whether this config is enabled or not. Defaults to `true`.",
-      "default": true,
-      "type": "boolean"
+      "type": "boolean",
+      "default": true
     },
     "productName": {
       "description": "The package's product name, for example \"My Awesome App\".",
-      "default": "",
-      "type": "string"
+      "type": "string",
+      "default": ""
     },
     "version": {
       "description": "The package's version.",
-      "default": "",
-      "type": "string"
+      "type": "string",
+      "default": ""
     },
     "binaries": {
       "description": "The binaries to package.",
-      "default": [],
       "type": "array",
       "items": {
         "$ref": "#/definitions/Binary"
-      }
+      },
+      "default": []
     },
     "identifier": {
-      "description": "The application identifier in reverse domain name notation (e.g. `com.packager.example`). This string must be unique across applications since it is used in some system configurations. This string must contain only alphanumeric characters (A-Z, a-z, and 0-9), hyphens (-), and periods (.).",
+      "description": "The application identifier in reverse domain name notation (e.g. `com.packager.example`).\nThis string must be unique across applications since it is used in some system configurations.\nThis string must contain only alphanumeric characters (A-Z, a-z, and 0-9), hyphens (-),\nand periods (.).",
       "type": [
         "string",
         "null"
@@ -94,16 +94,16 @@
     },
     "outDir": {
       "description": "The directory where the generated packages will be placed.\n\nIf [`Config::binaries_dir`] is not set, this is also where the [`Config::binaries`] exist.",
-      "default": "",
-      "type": "string"
+      "type": "string",
+      "default": ""
     },
     "binariesDir": {
       "description": "The directory where the [`Config::binaries`] exist.\n\nDefaults to [`Config::out_dir`].",
-      "default": null,
       "type": [
         "string",
         "null"
-      ]
+      ],
+      "default": null
     },
     "targetTriple": {
       "description": "The target triple we are packaging for.\n\nDefaults to the current OS target triple.",
@@ -135,17 +135,17 @@
     },
     "authors": {
       "description": "The package's authors.",
-      "default": null,
       "type": [
         "array",
         "null"
       ],
       "items": {
         "type": "string"
-      }
+      },
+      "default": null
     },
     "publisher": {
-      "description": "The app's publisher. Defaults to the second element in [`Config::identifier`](Config::identifier) string. Currently maps to the Manufacturer property of the Windows Installer.",
+      "description": "The app's publisher. Defaults to the second element in [`Config::identifier`](Config::identifier) string.\nCurrently maps to the Manufacturer property of the Windows Installer.",
       "type": [
         "string",
         "null"
@@ -207,7 +207,7 @@
       }
     },
     "resources": {
-      "description": "The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory or an object of `src` and `target` paths. In the case of using an object, the `src` could be either a glob pattern, path to a file, path to a directory, and the `target` is a path inside the final resources folder in the installed package.\n\n## Format-specific:\n\n- **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager. - **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.",
+      "description": "The app's resources to package. This a list of either a glob pattern, path to a file, path to a directory\nor an object of `src` and `target` paths. In the case of using an object,\nthe `src` could be either a glob pattern, path to a file, path to a directory,\nand the `target` is a path inside the final resources folder in the installed package.\n\n## Format-specific:\n\n- **[PackageFormat::Nsis] / [PackageFormat::Wix]**: The resources are placed next to the executable in the root of the packager.\n- **[PackageFormat::Deb]**: The resources are placed in `usr/lib` of the package.",
       "type": [
         "array",
         "null"
@@ -217,7 +217,7 @@
       }
     },
     "externalBinaries": {
-      "description": "Paths to external binaries to add to the package.\n\nThe path specified should not include `-<target-triple><.exe>` suffix, it will be auto-added when by the packager when reading these paths, so the actual binary name should have the target platform's target triple appended, as well as `.exe` for Windows.\n\nFor example, if you're packaging an external binary called `sqlite3`, the packager expects a binary named `sqlite3-x86_64-unknown-linux-gnu` on linux, and `sqlite3-x86_64-pc-windows-gnu.exe` on windows.\n\nIf you are building a universal binary for MacOS, the packager expects your external binary to also be universal, and named after the target triple, e.g. `sqlite3-universal-apple-darwin`. See <https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>",
+      "description": "Paths to external binaries to add to the package.\n\nThe path specified should not include `-<target-triple><.exe>` suffix,\nit will be auto-added when by the packager when reading these paths,\nso the actual binary name should have the target platform's target triple appended,\nas well as `.exe` for Windows.\n\nFor example, if you're packaging an external binary called `sqlite3`, the packager expects\na binary named `sqlite3-x86_64-unknown-linux-gnu` on linux,\nand `sqlite3-x86_64-pc-windows-gnu.exe` on windows.\n\nIf you are building a universal binary for MacOS, the packager expects\nyour external binary to also be universal, and named after the target triple,\ne.g. `sqlite3-universal-apple-darwin`. See\n<https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary>",
       "type": [
         "array",
         "null"
@@ -331,21 +331,21 @@
     "Binary": {
       "description": "A binary to package within the final package.",
       "type": "object",
-      "required": [
-        "path"
-      ],
       "properties": {
         "path": {
-          "description": "Path to the binary (without `.exe` on Windows). If it's relative, it will be resolved from [`Config::out_dir`].",
+          "description": "Path to the binary (without `.exe` on Windows).\nIf it's relative, it will be resolved from [`Config::out_dir`].",
           "type": "string"
         },
         "main": {
           "description": "Whether this is the main binary or not",
-          "default": false,
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "path"
+      ]
     },
     "HookCommand": {
       "description": "Describes a shell command to be executed when a CLI hook is triggered.",
@@ -357,9 +357,6 @@
         {
           "description": "Run the given script with custom options.",
           "type": "object",
-          "required": [
-            "script"
-          ],
           "properties": {
             "script": {
               "description": "The script to execute.",
@@ -372,7 +369,10 @@
                 "null"
               ]
             }
-          }
+          },
+          "required": [
+            "script"
+          ]
         }
       ]
     },
@@ -382,37 +382,27 @@
         {
           "description": "The \"error\" level.\n\nDesignates very serious errors.",
           "type": "string",
-          "enum": [
-            "error"
-          ]
+          "const": "error"
         },
         {
           "description": "The \"warn\" level.\n\nDesignates hazardous situations.",
           "type": "string",
-          "enum": [
-            "warn"
-          ]
+          "const": "warn"
         },
         {
           "description": "The \"info\" level.\n\nDesignates useful information.",
           "type": "string",
-          "enum": [
-            "info"
-          ]
+          "const": "info"
         },
         {
           "description": "The \"debug\" level.\n\nDesignates lower priority information.",
           "type": "string",
-          "enum": [
-            "debug"
-          ]
+          "const": "debug"
         },
         {
           "description": "The \"trace\" level.\n\nDesignates very low priority, often extremely verbose, information.",
           "type": "string",
-          "enum": [
-            "trace"
-          ]
+          "const": "trace"
         }
       ]
     },
@@ -422,70 +412,52 @@
         {
           "description": "All available package formats for the current platform.\n\nSee [`PackageFormat::platform_all`]",
           "type": "string",
-          "enum": [
-            "all"
-          ]
+          "const": "all"
         },
         {
           "description": "The default list of package formats for the current platform.\n\nSee [`PackageFormat::platform_default`]",
           "type": "string",
-          "enum": [
-            "default"
-          ]
+          "const": "default"
         },
         {
           "description": "The macOS application bundle (.app).",
           "type": "string",
-          "enum": [
-            "app"
-          ]
+          "const": "app"
         },
         {
           "description": "The macOS DMG package (.dmg).",
           "type": "string",
-          "enum": [
-            "dmg"
-          ]
+          "const": "dmg"
         },
         {
           "description": "The Microsoft Software Installer (.msi) through WiX Toolset.",
           "type": "string",
-          "enum": [
-            "wix"
-          ]
+          "const": "wix"
         },
         {
           "description": "The NSIS installer (.exe).",
           "type": "string",
-          "enum": [
-            "nsis"
-          ]
+          "const": "nsis"
         },
         {
           "description": "The Linux Debian package (.deb).",
           "type": "string",
-          "enum": [
-            "deb"
-          ]
+          "const": "deb"
         },
         {
           "description": "The Linux AppImage package (.AppImage).",
           "type": "string",
-          "enum": [
-            "appimage"
-          ]
+          "const": "appimage"
         },
         {
           "description": "The Linux Pacman package (.tar.gz and PKGBUILD)",
           "type": "string",
-          "enum": [
-            "pacman"
-          ]
+          "const": "pacman"
         }
       ]
     },
     "AppCategory": {
-      "description": "The possible app categories. Corresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.",
+      "description": "The possible app categories.\nCorresponds to `LSApplicationCategoryType` on macOS and the GNOME desktop categories on Debian.",
       "type": "string",
       "enum": [
         "Business",
@@ -533,9 +505,6 @@
     "FileAssociation": {
       "description": "A file association configuration.",
       "type": "object",
-      "required": [
-        "extensions"
-      ],
       "properties": {
         "extensions": {
           "description": "File extensions to associate with this app. e.g. 'png'",
@@ -566,7 +535,7 @@
           ]
         },
         "role": {
-          "description": "The app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS. Defaults to [`BundleTypeRole::Editor`]",
+          "description": "The app's role with respect to the type. Maps to `CFBundleTypeRole` on macOS.\nDefaults to [`BundleTypeRole::Editor`]",
           "default": "editor",
           "allOf": [
             {
@@ -575,54 +544,44 @@
           ]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "extensions"
+      ]
     },
     "BundleTypeRole": {
-      "description": "*macOS-only**. Corresponds to CFBundleTypeRole",
+      "description": "**macOS-only**. Corresponds to CFBundleTypeRole",
       "oneOf": [
         {
           "description": "CFBundleTypeRole.Editor. Files can be read and edited.",
           "type": "string",
-          "enum": [
-            "editor"
-          ]
+          "const": "editor"
         },
         {
           "description": "CFBundleTypeRole.Viewer. Files can be read.",
           "type": "string",
-          "enum": [
-            "viewer"
-          ]
+          "const": "viewer"
         },
         {
           "description": "CFBundleTypeRole.Shell",
           "type": "string",
-          "enum": [
-            "shell"
-          ]
+          "const": "shell"
         },
         {
           "description": "CFBundleTypeRole.QLGenerator",
           "type": "string",
-          "enum": [
-            "qLGenerator"
-          ]
+          "const": "qLGenerator"
         },
         {
           "description": "CFBundleTypeRole.None",
           "type": "string",
-          "enum": [
-            "none"
-          ]
+          "const": "none"
         }
       ]
     },
     "DeepLinkProtocol": {
       "description": "Deep link protocol",
       "type": "object",
-      "required": [
-        "schemes"
-      ],
       "properties": {
         "schemes": {
           "description": "URL schemes to associate with this app without `://`. For example `my-app`",
@@ -648,32 +607,35 @@
           ]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "schemes"
+      ]
     },
     "Resource": {
-      "description": "A path to a resource (with optional glob pattern) or an object of `src` and `target` paths.",
+      "description": "A path to a resource (with optional glob pattern)\nor an object of `src` and `target` paths.",
       "anyOf": [
         {
           "description": "Supports glob patterns",
           "type": "string"
         },
         {
-          "description": "An object descriping the src file or directory and its target location in the final package.",
+          "description": "An object descriping the src file or directory\nand its target location in the final package.",
           "type": "object",
-          "required": [
-            "src",
-            "target"
-          ],
           "properties": {
             "src": {
               "description": "The src file or directory, supports glob patterns.",
               "type": "string"
             },
             "target": {
-              "description": "A relative path from the root of the final package.\n\nIf `src` is a glob, this will always be treated as a directory where all globbed files will be placed under.",
+              "description": "A relative path from the root of the final package.\n\nIf `src` is a glob, this will always be treated as a directory\nwhere all globbed files will be placed under.",
               "type": "string"
             }
-          }
+          },
+          "required": [
+            "src",
+            "target"
+          ]
         }
       ]
     },
@@ -696,9 +658,9 @@
           ]
         },
         "tsp": {
-          "description": "Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may use a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.",
-          "default": false,
-          "type": "boolean"
+          "description": "Whether to use Time-Stamp Protocol (TSP, a.k.a. RFC 3161) for the timestamp server. Your code signing provider may\nuse a TSP timestamp server, like e.g. SSL.com does. If so, enable TSP by setting to true.",
+          "type": "boolean",
+          "default": false
         },
         "timestampUrl": {
           "description": "Server to use during timestamping.",
@@ -709,11 +671,11 @@
         },
         "allowDowngrades": {
           "description": "Whether to validate a second app installation, blocking the user from installing an older version if set to `false`.\n\nFor instance, if `1.2.1` is installed, the user won't be able to install app version `1.2.0` or `1.1.5`.\n\nThe default value of this flag is `true`.",
-          "default": true,
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "signCommand": {
-          "description": "Specify a custom command to sign the binaries. This command needs to have a `%1` in it which is just a placeholder for the binary path, which we will detect and replace before calling the command.\n\nBy Default we use `signtool.exe` which can be found only on Windows so if you are on another platform and want to cross-compile and sign you will need to use another tool like `osslsigncode`.",
+          "description": "Specify a custom command to sign the binaries.\nThis command needs to have a `%1` in it which is just a placeholder for the binary path,\nwhich we will detect and replace before calling the command.\n\nBy Default we use `signtool.exe` which can be found only on Windows so\nif you are on another platform and want to cross-compile and sign you will\nneed to use another tool like `osslsigncode`.",
           "type": [
             "string",
             "null"
@@ -727,7 +689,7 @@
       "type": "object",
       "properties": {
         "frameworks": {
-          "description": "MacOS frameworks that need to be packaged with the app.\n\nEach string can either be the name of a framework (without the `.framework` extension, e.g. `\"SDL2\"`), in which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`), or a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle (under `Foobar.app/Contents/Frameworks/`); you are still responsible for:\n\n- arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)\n\n- embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath \"@executable_path/../Frameworks\" path/to/binary` after compiling)",
+          "description": "MacOS frameworks that need to be packaged with the app.\n\nEach string can either be the name of a framework (without the `.framework` extension, e.g. `\"SDL2\"`),\nin which case we will search for that framework in the standard install locations (`~/Library/Frameworks/`, `/Library/Frameworks/`, and `/Network/Library/Frameworks/`),\nor a path to a specific framework bundle (e.g. `./data/frameworks/SDL2.framework`).  Note that this setting just makes cargo-packager copy the specified frameworks into the OS X app bundle\n(under `Foobar.app/Contents/Frameworks/`); you are still responsible for:\n\n- arranging for the compiled binary to link against those frameworks (e.g. by emitting lines like `cargo:rustc-link-lib=framework=SDL2` from your `build.rs` script)\n\n- embedding the correct rpath in your binary (e.g. by running `install_name_tool -add_rpath \"@executable_path/../Frameworks\" path/to/binary` after compiling)",
           "type": [
             "array",
             "null"
@@ -737,7 +699,7 @@
           }
         },
         "minimumSystemVersion": {
-          "description": "A version string indicating the minimum MacOS version that the packaged app supports (e.g. `\"10.11\"`). If you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.",
+          "description": "A version string indicating the minimum MacOS version that the packaged app supports (e.g. `\"10.11\"`).\nIf you are using this config field, you may also want have your `build.rs` script emit `cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.11`.",
           "type": [
             "string",
             "null"
@@ -797,8 +759,8 @@
         },
         "backgroundApp": {
           "description": "Whether this is a background application. If true, the app will not appear in the Dock.\n\nSets the `LSUIElement` flag in the macOS plist file.",
-          "default": false,
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         }
       },
       "additionalProperties": false
@@ -809,8 +771,8 @@
       "properties": {
         "generateDesktopEntry": {
           "description": "Flag to indicate if desktop entry should be generated.",
-          "default": true,
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         }
       },
       "additionalProperties": false
@@ -831,7 +793,7 @@
           ]
         },
         "desktopTemplate": {
-          "description": "Path to a custom desktop file Handlebars template.\n\nAvailable variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.\n\nDefault file contents: ```text [Desktop Entry] Categories={{categories}} {{#if comment}} Comment={{comment}} {{/if}} Exec={{exec}} {{exec_arg}} Icon={{icon}} Name={{name}} Terminal=false Type=Application {{#if mime_type}} MimeType={{mime_type}} {{/if}} ```\n\nThe `{{exec_arg}}` will be set to: * \"%F\", if at least one [Config::file_associations] was specified but no deep link protocols were given. * The \"%F\" arg means that your application can be invoked with multiple file paths. * \"%U\", if at least one [Config::deep_link_protocols] was specified. * The \"%U\" arg means that your application can be invoked with multiple URLs. * If both [Config::file_associations] and [Config::deep_link_protocols] were specified, the \"%U\" arg will be used, causing the file paths to be passed to your app as `file://` URLs. * An empty string \"\" (nothing) if neither are given. * This means that your application will never be invoked with any URLs or file paths.\n\nTo specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`: ```text Exec={{exec}} %u ```\n\nSee more here: <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>.",
+          "description": "Path to a custom desktop file Handlebars template.\n\nAvailable variables: `categories`, `comment` (optional), `exec`, `icon` and `name`.\n\nDefault file contents:\n```text\n[Desktop Entry]\nCategories={{categories}}\n{{#if comment}}\nComment={{comment}}\n{{/if}}\nExec={{exec}} {{exec_arg}}\nIcon={{icon}}\nName={{name}}\nTerminal=false\nType=Application\n{{#if mime_type}}\nMimeType={{mime_type}}\n{{/if}}\n```\n\nThe `{{exec_arg}}` will be set to:\n* \"%F\", if at least one [Config::file_associations] was specified but no deep link protocols were given.\n  * The \"%F\" arg means that your application can be invoked with multiple file paths.\n* \"%U\", if at least one [Config::deep_link_protocols] was specified.\n  * The \"%U\" arg means that your application can be invoked with multiple URLs.\n  * If both [Config::file_associations] and [Config::deep_link_protocols] were specified,\n    the \"%U\" arg will be used, causing the file paths to be passed to your app as `file://` URLs.\n* An empty string \"\" (nothing) if neither are given.\n  * This means that your application will never be invoked with any URLs or file paths.\n\nTo specify a custom `exec_arg`, just use plaintext directly instead of `{{exec_arg}}`:\n```text\nExec={{exec}} %u\n```\n\nSee more here: <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>.",
           "type": [
             "string",
             "null"
@@ -845,14 +807,14 @@
           ]
         },
         "priority": {
-          "description": "Change the priority of the Debian Package. By default, it is set to `optional`. Recognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`",
+          "description": "Change the priority of the Debian Package. By default, it is set to `optional`.\nRecognized Priorities as of now are :  `required`, `important`, `standard`, `optional`, `extra`",
           "type": [
             "string",
             "null"
           ]
         },
         "files": {
-          "description": "List of custom files to add to the deb package. Maps a dir/file to a dir/file inside the debian package.",
+          "description": "List of custom files to add to the deb package.\nMaps a dir/file to a dir/file inside the debian package.",
           "type": [
             "object",
             "null"
@@ -862,7 +824,7 @@
           }
         },
         "packageName": {
-          "description": "Name to use for the `Package` field in the Debian Control file. Defaults to [`Config::product_name`] converted to kebab-case.",
+          "description": "Name to use for the `Package` field in the Debian Control file.\nDefaults to [`Config::product_name`] converted to kebab-case.",
           "type": [
             "string",
             "null"
@@ -872,7 +834,7 @@
       "additionalProperties": false
     },
     "Dependencies": {
-      "description": "A list of dependencies specified as either a list of Strings or as a path to a file that lists the dependencies, one per line.",
+      "description": "A list of dependencies specified as either a list of Strings\nor as a path to a file that lists the dependencies, one per line.",
       "anyOf": [
         {
           "description": "The list of dependencies provided directly as a vector of Strings.",
@@ -882,7 +844,7 @@
           }
         },
         {
-          "description": "A path to the file containing the list of dependences, formatted as one per line: ```text libc6 libxcursor1 libdbus-1-3 libasyncns0 ... ```",
+          "description": "A path to the file containing the list of dependences, formatted as one per line:\n```text\nlibc6\nlibxcursor1\nlibdbus-1-3\nlibasyncns0\n...\n```",
           "type": "string"
         }
       ]
@@ -892,7 +854,7 @@
       "type": "object",
       "properties": {
         "libs": {
-          "description": "List of libs that exist in `/usr/lib*` to be include in the final AppImage. The libs will be searched for, using the command `find -L /usr/lib* -name <libname>`",
+          "description": "List of libs that exist in `/usr/lib*` to be include in the final AppImage.\nThe libs will be searched for, using the command\n`find -L /usr/lib* -name <libname>`",
           "type": [
             "array",
             "null"
@@ -902,7 +864,7 @@
           }
         },
         "bins": {
-          "description": "List of binary paths to include in the final AppImage. For example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`",
+          "description": "List of binary paths to include in the final AppImage.\nFor example, if you want `xdg-open`, you'd specify `/usr/bin/xdg-open`",
           "type": [
             "array",
             "null"
@@ -912,7 +874,7 @@
           }
         },
         "files": {
-          "description": "List of custom files to add to the appimage package. Maps a dir/file to a dir/file inside the appimage package.",
+          "description": "List of custom files to add to the appimage package.\nMaps a dir/file to a dir/file inside the appimage package.",
           "type": [
             "object",
             "null"
@@ -922,7 +884,7 @@
           }
         },
         "linuxdeployPlugins": {
-          "description": "A map of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy) plugin name and its URL to be downloaded and executed while packaing the appimage. For example, if you want to use the [`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin, you'd specify `gtk` as the key and its url as the value.",
+          "description": "A map of [`linuxdeploy`](https://github.com/linuxdeploy/linuxdeploy)\nplugin name and its URL to be downloaded and executed while packaing the appimage.\nFor example, if you want to use the\n[`gtk`](https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh) plugin,\nyou'd specify `gtk` as the key and its url as the value.",
           "type": [
             "object",
             "null"
@@ -932,7 +894,7 @@
           }
         },
         "excludedLibs": {
-          "description": "List of globs of libraries to exclude from the final AppImage. For example, to exclude libnss3.so, you'd specify `libnss3*`",
+          "description": "List of globs of libraries to exclude from the final AppImage.\nFor example, to exclude libnss3.so, you'd specify `libnss3*`",
           "type": [
             "array",
             "null"
@@ -949,7 +911,7 @@
       "type": "object",
       "properties": {
         "files": {
-          "description": "List of custom files to add to the pacman package. Maps a dir/file to a dir/file inside the pacman package.",
+          "description": "List of custom files to add to the pacman package.\nMaps a dir/file to a dir/file inside the pacman package.",
           "type": [
             "object",
             "null"
@@ -980,7 +942,7 @@
           }
         },
         "conflicts": {
-          "description": "Packages that conflict or cause problems with the app. All these packages and packages providing this item will need to be removed\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#conflicts>",
+          "description": "Packages that conflict or cause problems with the app.\nAll these packages and packages providing this item will need to be removed\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#conflicts>",
           "type": [
             "array",
             "null"
@@ -990,7 +952,7 @@
           }
         },
         "replaces": {
-          "description": "Only use if this app replaces some obsolete packages. For example, if you rename any package.\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#replaces>",
+          "description": "Only use if this app replaces some obsolete packages.\nFor example, if you rename any package.\n\nSee : <https://wiki.archlinux.org/title/PKGBUILD#replaces>",
           "type": [
             "array",
             "null"
@@ -1000,7 +962,7 @@
           }
         },
         "source": {
-          "description": "Source of the package to be stored at PKGBUILD. PKGBUILD is a bash script, so version can be referred as ${pkgver}",
+          "description": "Source of the package to be stored at PKGBUILD.\nPKGBUILD is a bash script, so version can be referred as ${pkgver}",
           "type": [
             "array",
             "null"
@@ -1027,14 +989,14 @@
           }
         },
         "template": {
-          "description": "By default, the packager uses an internal template. This option allows you to define your own wix file.",
+          "description": "By default, the packager uses an internal template.\nThis option allows you to define your own wix file.",
           "type": [
             "string",
             "null"
           ]
         },
         "mergeModules": {
-          "description": "List of merge modules to include in your installer. For example, if you want to include [C++ Redis merge modules]\n\n[C++ Redis merge modules]: https://wixtoolset.org/docs/v3/howtos/redistributables_and_install_checks/install_vcredist/",
+          "description": "List of merge modules to include in your installer.\nFor example, if you want to include [C++ Redis merge modules]\n\n[C++ Redis merge modules]: https://wixtoolset.org/docs/v3/howtos/redistributables_and_install_checks/install_vcredist/",
           "type": [
             "array",
             "null"
@@ -1054,7 +1016,7 @@
           }
         },
         "fragments": {
-          "description": "List of WiX fragments as strings. This is similar to `config.wix.fragments_paths` but is a string so you can define it inline in your config.\n\n```text <?xml version=\"1.0\" encoding=\"utf-8\"?> <Wix xmlns=\"http://schemas.microsoft.com/wix/2006/wi\"> <Fragment> <CustomAction Id=\"OpenNotepad\" Directory=\"INSTALLDIR\" Execute=\"immediate\" ExeCommand=\"cmd.exe /c notepad.exe\" Return=\"check\" /> <InstallExecuteSequence> <Custom Action=\"OpenNotepad\" After=\"InstallInitialize\" /> </InstallExecuteSequence> </Fragment> </Wix> ```",
+          "description": "List of WiX fragments as strings. This is similar to `config.wix.fragments_paths` but\nis a string so you can define it inline in your config.\n\n```text\n<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<Wix xmlns=\"http://schemas.microsoft.com/wix/2006/wi\">\n<Fragment>\n    <CustomAction Id=\"OpenNotepad\" Directory=\"INSTALLDIR\" Execute=\"immediate\" ExeCommand=\"cmd.exe /c notepad.exe\" Return=\"check\" />\n    <InstallExecuteSequence>\n        <Custom Action=\"OpenNotepad\" After=\"InstallInitialize\" />\n    </InstallExecuteSequence>\n</Fragment>\n</Wix>\n```",
           "type": [
             "array",
             "null"
@@ -1124,14 +1086,14 @@
           }
         },
         "bannerPath": {
-          "description": "Path to a bitmap file to use as the installation user interface banner. This bitmap will appear at the top of all but the first page of the installer.\n\nThe required dimensions are 493px × 58px.",
+          "description": "Path to a bitmap file to use as the installation user interface banner.\nThis bitmap will appear at the top of all but the first page of the installer.\n\nThe required dimensions are 493px × 58px.",
           "type": [
             "string",
             "null"
           ]
         },
         "dialogImagePath": {
-          "description": "Path to a bitmap file to use on the installation user interface dialogs. It is used on the welcome and completion dialogs. The required dimensions are 493px × 312px.",
+          "description": "Path to a bitmap file to use on the installation user interface dialogs.\nIt is used on the welcome and completion dialogs.\nThe required dimensions are 493px × 312px.",
           "type": [
             "string",
             "null"
@@ -1139,8 +1101,8 @@
         },
         "fipsCompliant": {
           "description": "Enables FIPS compliant algorithms.",
-          "default": false,
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         }
       },
       "additionalProperties": false
@@ -1155,9 +1117,6 @@
         {
           "description": "Custom wix language.",
           "type": "object",
-          "required": [
-            "identifier"
-          ],
           "properties": {
             "identifier": {
               "description": "Idenitifier of this language, for example `en-US`",
@@ -1170,7 +1129,10 @@
                 "null"
               ]
             }
-          }
+          },
+          "required": [
+            "identifier"
+          ]
         }
       ]
     },
@@ -1190,14 +1152,14 @@
           ]
         },
         "template": {
-          "description": "A custom `.nsi` template to use.\n\nSee the default template here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>",
+          "description": "A custom `.nsi` template to use.\n\nSee the default template here\n<https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>",
           "type": [
             "string",
             "null"
           ]
         },
         "preinstallSection": {
-          "description": "Logic of an NSIS section that will be ran before the install section.\n\nSee the available libraries, dlls and global variables here <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>\n\n### Example ```toml [package.metadata.packager.nsis] preinstall-section = \"\"\" ; Setup custom messages LangString webview2AbortError ${LANG_ENGLISH} \"Failed to install WebView2! The app can't run without it. Try restarting the installer.\" LangString webview2DownloadError ${LANG_ARABIC} \"خطأ: فشل تنزيل WebView2 - $0\"\n\nSection PreInstall ; <section logic here> SectionEnd\n\nSection AnotherPreInstall ; <section logic here> SectionEnd \"\"\" ```",
+          "description": "Logic of an NSIS section that will be ran before the install section.\n\nSee the available libraries, dlls and global variables here\n<https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/package/nsis/installer.nsi>\n\n### Example\n```toml\n[package.metadata.packager.nsis]\npreinstall-section = \"\"\"\n    ; Setup custom messages\n    LangString webview2AbortError ${LANG_ENGLISH} \"Failed to install WebView2! The app can't run without it. Try restarting the installer.\"\n    LangString webview2DownloadError ${LANG_ARABIC} \"خطأ: فشل تنزيل WebView2 - $0\"\n\n    Section PreInstall\n     ; <section logic here>\n    SectionEnd\n\n    Section AnotherPreInstall\n     ; <section logic here>\n    SectionEnd\n\"\"\"\n```",
           "type": [
             "string",
             "null"
@@ -1234,7 +1196,7 @@
           ]
         },
         "languages": {
-          "description": "A list of installer languages. By default the OS language is used. If the OS language is not in the list of languages, the first language will be used. To allow the user to select the language, set `display_language_selector` to `true`.\n\nSee <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.",
+          "description": "A list of installer languages.\nBy default the OS language is used. If the OS language is not in the list of languages, the first language will be used.\nTo allow the user to select the language, set `display_language_selector` to `true`.\n\nSee <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.",
           "type": [
             "array",
             "null"
@@ -1244,7 +1206,7 @@
           }
         },
         "customLanguageFiles": {
-          "description": "An key-value pair where the key is the language and the value is the path to a custom `.nsi` file that holds the translated text for cargo-packager's custom messages.\n\nSee <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.\n\n**Note**: the key must be a valid NSIS language and it must be added to [`NsisConfig`]languages array,",
+          "description": "An key-value pair where the key is the language and the\nvalue is the path to a custom `.nsi` file that holds the translated text for cargo-packager's custom messages.\n\nSee <https://github.com/crabnebula-dev/cargo-packager/blob/main/crates/packager/src/nsis/languages/English.nsh> for an example `.nsi` file.\n\n**Note**: the key must be a valid NSIS language and it must be added to [`NsisConfig`]languages array,",
           "type": [
             "object",
             "null"
@@ -1254,20 +1216,20 @@
           }
         },
         "displayLanguageSelector": {
-          "description": "Whether to display a language selector dialog before the installer and uninstaller windows are rendered or not. By default the OS language is selected, with a fallback to the first language in the `languages` array.",
-          "default": false,
-          "type": "boolean"
+          "description": "Whether to display a language selector dialog before the installer and uninstaller windows are rendered or not.\nBy default the OS language is selected, with a fallback to the first language in the `languages` array.",
+          "type": "boolean",
+          "default": false
         },
         "appdataPaths": {
-          "description": "List of paths where your app stores data. This options tells the uninstaller to provide the user with an option (disabled by default) whether they want to rmeove your app data or keep it.\n\nThe path should use a constant from <https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant> in addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your app data in `C:\\\\Users\\\\<user>\\\\AppData\\\\Local\\\\<your-company-name>\\\\<your-product-name>` you'd need to specify ```toml [package.metadata.packager.nsis] appdata-paths = [\"$LOCALAPPDATA/$PUBLISHER/$PRODUCTNAME\"] ```",
-          "default": null,
+          "description": "List of paths where your app stores data.\nThis options tells the uninstaller to provide the user with an option\n(disabled by default) whether they want to rmeove your app data or keep it.\n\nThe path should use a constant from <https://nsis.sourceforge.io/Docs/Chapter4.html#varconstant>\nin addition to `$IDENTIFIER`, `$PUBLISHER` and `$PRODUCTNAME`, for example, if you store your\napp data in `C:\\\\Users\\\\<user>\\\\AppData\\\\Local\\\\<your-company-name>\\\\<your-product-name>`\nyou'd need to specify\n```toml\n[package.metadata.packager.nsis]\nappdata-paths = [\"$LOCALAPPDATA/$PUBLISHER/$PRODUCTNAME\"]\n```",
           "type": [
             "array",
             "null"
           ],
           "items": {
             "type": "string"
-          }
+          },
+          "default": null
         }
       },
       "additionalProperties": false
@@ -1278,30 +1240,22 @@
         {
           "description": "ZLIB uses the deflate algorithm, it is a quick and simple method. With the default compression level it uses about 300 KB of memory.",
           "type": "string",
-          "enum": [
-            "zlib"
-          ]
+          "const": "zlib"
         },
         {
           "description": "BZIP2 usually gives better compression ratios than ZLIB, but it is a bit slower and uses more memory. With the default compression level it uses about 4 MB of memory.",
           "type": "string",
-          "enum": [
-            "bzip2"
-          ]
+          "const": "bzip2"
         },
         {
           "description": "LZMA (default) is a new compression method that gives very good compression ratios. The decompression speed is high (10-20 MB/s on a 2 GHz CPU), the compression speed is lower. The memory size that will be used for decompression is the dictionary size plus a few KBs, the default is 8 MB.",
           "type": "string",
-          "enum": [
-            "lzma"
-          ]
+          "const": "lzma"
         },
         {
           "description": "Disable compression.",
           "type": "string",
-          "enum": [
-            "off"
-          ]
+          "const": "off"
         }
       ]
     },
@@ -1311,23 +1265,17 @@
         {
           "description": "Default mode for the installer.\n\nInstall the app by default in a directory that doesn't require Administrator access.\n\nInstaller metadata will be saved under the `HKCU` registry path.",
           "type": "string",
-          "enum": [
-            "currentUser"
-          ]
+          "const": "currentUser"
         },
         {
-          "description": "Install the app by default in the `Program Files` folder directory requires Administrator access for the installation.\n\nInstaller metadata will be saved under the `HKLM` registry path.",
+          "description": "Install the app by default in the `Program Files` folder directory requires Administrator\naccess for the installation.\n\nInstaller metadata will be saved under the `HKLM` registry path.",
           "type": "string",
-          "enum": [
-            "perMachine"
-          ]
+          "const": "perMachine"
         },
         {
-          "description": "Combines both modes and allows the user to choose at install time whether to install for the current user or per machine. Note that this mode will require Administrator access even if the user wants to install it for the current user only.\n\nInstaller metadata will be saved under the `HKLM` or `HKCU` registry path based on the user's choice.",
+          "description": "Combines both modes and allows the user to choose at install time\nwhether to install for the current user or per machine. Note that this mode\nwill require Administrator access even if the user wants to install it for the current user only.\n\nInstaller metadata will be saved under the `HKLM` or `HKCU` registry path based on the user's choice.",
           "type": "string",
-          "enum": [
-            "both"
-          ]
+          "const": "both"
         }
       ]
     },
@@ -1392,48 +1340,48 @@
     "Position": {
       "description": "Position coordinates struct.",
       "type": "object",
-      "required": [
-        "x",
-        "y"
-      ],
       "properties": {
         "x": {
           "description": "X coordinate.",
           "type": "integer",
           "format": "uint32",
-          "minimum": 0.0
+          "minimum": 0
         },
         "y": {
           "description": "Y coordinate.",
           "type": "integer",
           "format": "uint32",
-          "minimum": 0.0
+          "minimum": 0
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ]
     },
     "Size": {
       "description": "Size struct.",
       "type": "object",
-      "required": [
-        "height",
-        "width"
-      ],
       "properties": {
         "width": {
           "description": "Width.",
           "type": "integer",
           "format": "uint32",
-          "minimum": 0.0
+          "minimum": 0
         },
         "height": {
           "description": "Height.",
           "type": "integer",
           "format": "uint32",
-          "minimum": 0.0
+          "minimum": 0
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height"
+      ]
     }
   }
 }

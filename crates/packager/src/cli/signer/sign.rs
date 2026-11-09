@@ -18,6 +18,12 @@ pub struct Options {
     /// The password for the private key.
     #[clap(long, env = "CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD")]
     password: Option<String>,
+    /// The app version the file is released as.
+    ///
+    /// It is embedded in the signature and the updater rejects updates whose
+    /// advertised version does not match it.
+    #[clap(long)]
+    app_version: String,
     /// The file to be signed.
     file: PathBuf,
 }
@@ -38,7 +44,8 @@ pub fn command(options: Options) -> Result<()> {
         private_key,
         password: Some(options.password.unwrap_or_default()),
     };
-    let signature_path = crate::sign::sign_file(&config, options.file)?;
+    let signature_path =
+        crate::sign::sign_file_with_version(&config, options.file, Some(&options.app_version))?;
 
     tracing::info!(
         "Signed the file successfully! find the signature at: {}",

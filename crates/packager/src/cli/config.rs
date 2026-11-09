@@ -29,34 +29,37 @@ impl Config {
     }
 }
 
-fn find_nearset_pkg_name(path: &Path) -> Result<Option<String>> {
-    fn find_nearset_pkg_name_inner() -> Result<Option<String>> {
-        if let Ok(contents) = fs::read_to_string("Cargo.toml") {
-            let toml = toml::from_str::<toml::Table>(&contents)
-                .map_err(|e| Error::FailedToParseCargoToml(Box::new(e)))?;
+fn find_nearest_pkg_name(path: &Path) -> Result<Option<String>> {
+    // `path` is the config file itself, not the dir, so the manifests are
+    // looked for next to it: using the file as the working directory fails
+    // with `ERROR_DIRECTORY` (os error 267) on Windows and `ENOTDIR` elsewhere.
+    let dir = path
+        .parent()
+        .ok_or_else(|| crate::Error::ParentDirNotFound(path.to_path_buf()))?;
 
-            if let Some(name) = toml.get("package").and_then(|p| p.get("name")) {
-                return Ok(Some(name.to_string()));
-            }
+    if let Ok(contents) = fs::read_to_string(dir.join("Cargo.toml")) {
+        let toml = toml::from_str::<toml::Table>(&contents)
+            .map_err(|e| Error::FailedToParseCargoToml(Box::new(e)))?;
+
+        if let Some(name) = toml
+            .get("package")
+            .and_then(|p| p.get("name"))
+            .and_then(|n| n.as_str())
+        {
+            return Ok(Some(name.to_string()));
         }
-
-        if let Ok(contents) = fs::read("package.json") {
-            let json = serde_json::from_slice::<serde_json::Value>(&contents)
-                .map_err(Error::FailedToParsePacakgeJson)?;
-
-            if let Some(name) = json.get("name") {
-                return Ok(Some(name.to_string()));
-            }
-        }
-
-        Ok(None)
     }
 
-    let cwd = std::env::current_dir()?;
-    std::env::set_current_dir(path).map_err(|e| Error::IoWithPath(path.to_path_buf(), e))?;
-    let res = find_nearset_pkg_name_inner();
-    std::env::set_current_dir(&cwd).map_err(|e| Error::IoWithPath(cwd, e))?;
-    res
+    if let Ok(contents) = fs::read(dir.join("package.json")) {
+        let json = serde_json::from_slice::<serde_json::Value>(&contents)
+            .map_err(Error::FailedToParsePacakgeJson)?;
+
+        if let Some(name) = json.get("name").and_then(|n| n.as_str()) {
+            return Ok(Some(name.to_string()));
+        }
+    }
+
+    Ok(None)
 }
 
 #[tracing::instrument(level = "trace")]
@@ -96,7 +99,7 @@ fn parse_config_file<P: AsRef<Path> + Debug>(path: P) -> Result<Vec<(Option<Path
         if config.name.is_none() {
             // and config wasn't passed using `--config` cli arg
             if let Some(path) = &path {
-                let name = find_nearset_pkg_name(path)?;
+                let name = find_nearest_pkg_name(path)?;
                 config.name = name;
             }
         }
@@ -153,7 +156,7 @@ fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<Pat
                 .map_err(Error::FailedToParseJsonConfigCargoToml)?;
 
             if config.name.is_none() {
-                config.name.replace(package.name.clone());
+                config.name.replace(package.name.to_string());
             }
             if config.product_name.is_empty() {
                 config.product_name.clone_from(&package.name);
@@ -212,7 +215,7 @@ fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<Pat
                         path: target.name.clone().into(),
                         main: match targets.len() {
                             1 => true,
-                            _ => target.name == package.name,
+                            _ => target.name == package.name.as_ref(),
                         },
                     })
                 }
@@ -260,4 +263,82 @@ pub fn detect_configs(cli: &super::Cli) -> Result<Vec<(Option<PathBuf>, Config)>
     };
 
     Ok(configs)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_nearest_pkg_name_reads_the_manifest_next_to_the_config_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("Cargo.toml"),
+            "[package]\nname = \"my-app\"\nversion = \"0.1.0\"\n",
+        )
+        .unwrap();
+        let config = dir.path().join("Packager.toml");
+        fs::write(&config, "out_dir = \"dist\"\n").unwrap();
+
+        let name = find_nearest_pkg_name(&config).unwrap();
+
+        assert_eq!(name, Some("my-app".to_string()));
+    }
+
+    #[test]
+    fn find_nearest_pkg_name_leaves_the_working_directory_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = dir.path().join("Packager.toml");
+        fs::write(&config, "out_dir = \"dist\"\n").unwrap();
+        let cwd = std::env::current_dir().unwrap();
+
+        assert_eq!(find_nearest_pkg_name(&config).unwrap(), None);
+        assert_eq!(std::env::current_dir().unwrap(), cwd);
+    }
+
+    #[test]
+    fn find_nearest_pkg_name_reads_package_json_when_there_is_no_cargo_manifest() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("package.json"), r#"{"name":"my-node-app"}"#).unwrap();
+        let config = dir.path().join("Packager.json");
+        fs::write(&config, "{}").unwrap();
+
+        let name = find_nearest_pkg_name(&config).unwrap();
+
+        assert_eq!(name, Some("my-node-app".to_string()));
+    }
+
+    #[test]
+    fn find_nearest_pkg_name_falls_back_to_package_json() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("Cargo.toml"),
+            "[workspace]\nmembers = [\"app\"]\n",
+        )
+        .unwrap();
+        fs::write(dir.path().join("package.json"), r#"{"name":"my-node-app"}"#).unwrap();
+        let config = dir.path().join("Packager.toml");
+        fs::write(&config, "{}").unwrap();
+
+        let name = find_nearest_pkg_name(&config).unwrap();
+
+        assert_eq!(name, Some("my-node-app".to_string()));
+    }
+
+    #[test]
+    fn parse_config_file_fills_the_package_name_from_the_manifest() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("Cargo.toml"),
+            "[package]\nname = \"my-app\"\nversion = \"0.1.0\"\n",
+        )
+        .unwrap();
+        let config_path = dir.path().join("Packager.toml");
+        fs::write(&config_path, "product_name = \"My App\"\n").unwrap();
+
+        let configs = parse_config_file(&config_path).unwrap();
+
+        assert_eq!(configs.len(), 1);
+        assert_eq!(configs[0].1.name(), "my-app");
+    }
 }
