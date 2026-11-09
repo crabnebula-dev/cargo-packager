@@ -299,11 +299,11 @@ mod tests {
         assert!(!path.with_additional_extension("sig").exists());
     }
 
-    // Key generated with minisign ≤0.7 + empty password (kdf_alg = "Sc", plaintext data)
+    // Key generated with minisign >=0.7.4,<=0.8.0 + empty password (kdf_alg = "Sc", plaintext data)
     const LEGACY_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5VU1qSHBMT0E4R0JCVGZzbUMzb3ZXeGpGY1NSdm9OaUxaVTFuajd0T2ZKZ0FBQkFBQUFBQUFBQUFBQUlBQUFBQWlhRnNPUmxKWjBiWnJ6M29Cd0RwOUpqTW1yOFFQK3JTOGdKSi9CajlHZktHajI2ZnprbEM0VUl2MHhGdFdkZWpHc1BpTlJWK2hOTWo0UVZDemMvaFlYVUM4U2twRW9WV1JHenNzUkRKT2RXQ1FCeXlkYUwxelhacmtxOGZJOG1Nb1R6b0VEcWFLVUk9Cg==";
     const LEGACY_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2Njc0OTE5Mzk2Q0ExODkKUldTSm9XdzVHVWxuUmtJdjB4RnRXZGVqR3NQaU5SVitoTk1qNFFWQ3pjL2hZWFVDOFNrcEVvVlcK";
 
-    // Key generated with minisign 0.9 generate_unencrypted_keypair() (kdf_alg = KDF_NONE)
+    // Key generated with minisign 0.9 + empty password (kdf_alg = KDF_NONE)
     const CURRENT_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5ektRMXdrc1FaZm91QWxPK1UrY2M1MDZ1Q2dNbXVDZHZDOWVvUDFyWkt1QUFBQkFBQUFBQUFBQUFBQUlBQUFBQVNxNzlzZks2MmRDVjFETkJrNjBVK0pweVZYalFvdXhXWVFTWGVKc0FLL0tPMys3UVBqZDRDcUhMTktHTG94VENOc3E3MFhXTU5KbW5sclpWc01tTExGS2NCNkxZdjJQSy9sdGFEOWxWRDBySmtDSndnS1V6R2FTSWhNaFFRblJENHA0eVQvaGNKQm89Cg==";
     const CURRENT_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFFMjJCNDBENjc4QkE2OTcKUldTWHBvdG5EYlFpcm5QOVZsWTVkZkNwOWlhK0IraFhybGFsM3VidjhlOHlRLzFEc2N6RkFwakwK";
 
