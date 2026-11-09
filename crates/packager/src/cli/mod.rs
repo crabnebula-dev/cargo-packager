@@ -123,6 +123,12 @@ fn run_cli(cli: Cli) -> Result<()> {
         })
         .transpose()?;
 
+    let cli_binaries_dir = cli
+        .binaries_dir
+        .as_ref()
+        .map(|p| dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e)))
+        .transpose()?;
+
     let private_key = match cli.private_key {
         Some(path) if PathBuf::from(&path).exists() => Some(
             fs::read_to_string(&path).map_err(|e| Error::IoWithPath(PathBuf::from(&path), e))?,
@@ -142,6 +148,10 @@ fn run_cli(cli: Cli) -> Result<()> {
 
         if let Some(dir) = &cli_out_dir {
             config.out_dir.clone_from(dir)
+        }
+
+        if let Some(dir) = &cli_binaries_dir {
+            config.binaries_dir.replace(dir.clone());
         }
 
         if let Some(formats) = &cli.formats {
