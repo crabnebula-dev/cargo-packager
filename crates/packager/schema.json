@@ -326,7 +326,7 @@
       ]
     },
     "endpoint": {
-      "description": "When set, a summary `latest.json` build artefact will be generated which can be hosted alongside other build artefacts as an endpoint for the updater, including meta data about the version and URL's to point at each of the other build artefacts.\n\nSpecifically, this URL specifies where these build artefacts are hosted. For example, a using Github Releases: `https://github.com/org/repo/releases/download/v{{version}}/{{artefact}}`\n\nEach endpoint optionally could have `{{version}}` or `{{artefact}}` which will be detected and replaced with the appropriate value\n\n- `{{version}}`: The version of the app which is being packaged - `{{artefact}}`: The file name of the particular build artefact One URL is produced per build artefact.",
+      "description": "When set, a summary `latest.json` build artefact will be generated which can be\nhosted alongside other build artefacts as an endpoint for the updater, including\nmeta data about the version and URL's to point at each of the other build artefacts.\n\nSpecifically, this URL specifies where these build artefacts are hosted. For example,\na using Github Releases: `https://github.com/org/repo/releases/download/v{{version}}/{{artefact}}`\n\nEach endpoint optionally could have `{{version}}` or `{{artefact}}`\nwhich will be detected and replaced with the appropriate value\n\n- `{{version}}`: The version of the app which is being packaged\n- `{{artefact}}`: The file name of the particular build artefact\n    One URL is produced per build artefact.",
       "type": [
         "string",
         "null"
