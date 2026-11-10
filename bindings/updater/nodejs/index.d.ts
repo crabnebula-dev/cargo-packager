@@ -35,6 +35,13 @@ export interface Options {
   headers?: Record<string, string>
   /** Request timeout in milliseconds. */
   timeout?: number
+  /**
+   * Allow insecure (plain `http`) update transport in release builds. Dangerous.
+   *
+   * No host is exempt — not even loopback. `http` is allowed in debug builds (with a warning)
+   * regardless of this option. Defaults to `false`.
+   */
+  dangerousInsecureTransportProtocol?: boolean
 }
 /** Supported update format */
 export const enum UpdateFormat {

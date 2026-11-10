@@ -17,7 +17,8 @@
 //! use cargo_packager_updater::{check_update, Config};
 //!
 //! let config = Config {
-//!   endpoints: vec!["http://myserver.com/updates".parse().unwrap()],
+//!   // Endpoints must use HTTPS in release builds (debug builds may use http).
+//!   endpoints: vec!["https://myserver.com/updates".parse().unwrap()],
 //!   pubkey: "<pubkey here>".into(),
 //!   ..Default::default()
 //! };
@@ -133,6 +134,48 @@
 //! - [`"Passive"`](WindowsUpdateInstallMode::Passive): There will be a small window with a progress bar. The update will be installed without requiring any user interaction. Generally recommended and the default mode.
 //! - [`"BasicUi"`](WindowsUpdateInstallMode::BasicUi): There will be a basic user interface shown which requires user interaction to finish the installation.
 //! - [`"Quiet"`](WindowsUpdateInstallMode::Quiet): There will be no progress feedback to the user. With this mode the installer cannot request admin privileges by itself so it only works in user-wide installations or when your app itself already runs with admin privileges. Generally not recommended.
+//!
+//! ## Update authenticity and anti-rollback
+//!
+//! Every update artefact is verified against the configured [`Config::pubkey`] before installation.
+//! The updater also **requires** that the signature carries authenticated metadata — a `version` and
+//! `timestamp` embedded in the minisign trusted comment — and checks that the version advertised by
+//! the (unsigned) manifest matches the signed version, so a compromised distribution channel cannot
+//! advertise a high version number while serving an older, validly-signed artefact. Updates whose
+//! signatures lack this metadata are rejected.
+//!
+//! Every artefact signed by an up-to-date `cargo-packager` carries this metadata, so make sure the
+//! `cargo-packager` CLI in your release pipeline is current. Artefacts signed without it (a
+//! third-party minisign signer, or an old `cargo-packager`) cannot be installed.
+//!
+//! ## Rotating the signing key
+//!
+//! The trust anchor is the [`Config::pubkey`] compiled into your application. Because that public
+//! key travels inside the application binary, rotating it is just another update:
+//!
+//! 1. Generate a new key pair.
+//! 2. Build a new release that embeds the **new** public key in its updater [`Config`].
+//! 3. Sign that release with your **old** private key.
+//!
+//! Clients still running the previous version verify the new release with the old public key they
+//! already trust, install it, and from then on trust the new key — so subsequent releases must be
+//! signed with the new private key. Keep the old private key available until enough of your fleet has
+//! migrated.
+//!
+//! This planned-rotation flow does not, by itself, recover from a *compromised* private key (an
+//! attacker holding the old key could also sign a malicious release). Recovering from key compromise
+//! requires an out-of-band channel, e.g. shipping a fresh installer through your normal distribution
+//! site.
+//!
+//! ## Transport security
+//!
+//! Update endpoints and download URLs must use HTTPS. Plain `http` is rejected in release builds —
+//! no host is exempt, not even loopback addresses. It is allowed in debug builds to ease local
+//! development (with a warning that it will not work in release), and can be enabled in release for
+//! trusted, isolated networks via [`Config::dangerous_insecure_transport_protocol`]. Redirects that
+//! downgrade from `https` to `http` are refused.
+//!
+//! The updater will only follow up to 5 redirects to resolve a URL.
 
 #![deny(missing_docs)]
 
@@ -229,6 +272,18 @@ pub struct Config {
     pub pubkey: String,
     /// The Windows configuration for the updater.
     pub windows: Option<WindowsConfig>,
+    /// Allow the updater to discover, retrieve and download updates over insecure (plain `http`)
+    /// transport in **release** builds.
+    ///
+    /// By default the updater enforces HTTPS for all update endpoints and download URLs and refuses
+    /// to follow redirects that downgrade from `https` to `http`. No host is exempt — not even
+    /// loopback addresses. Plain `http` is allowed in debug builds (with a warning) so local
+    /// development and testing keep working.
+    ///
+    /// Enabling this is **dangerous**: it exposes the update process to network attackers who can
+    /// redirect, replay or substitute update traffic. Only enable it for trusted, isolated networks.
+    #[serde(default)]
+    pub dangerous_insecure_transport_protocol: bool,
 }
 
 /// Supported update format
@@ -418,6 +473,22 @@ impl UpdaterBuilder {
         self
     }
 
+    /// Allow the updater to discover, retrieve and download updates over insecure (plain `http`)
+    /// transport in **release** builds. Equivalent to setting
+    /// [`Config::dangerous_insecure_transport_protocol`].
+    ///
+    /// By default the updater enforces HTTPS for all update endpoints and download URLs and refuses
+    /// to follow redirects that downgrade from `https` to `http`. No host is exempt — not even
+    /// loopback addresses. Plain `http` is allowed in debug builds (with a warning) so local
+    /// development and testing keep working.
+    ///
+    /// Enabling this is **dangerous**: it exposes the update process to network attackers who can
+    /// redirect, replay or substitute update traffic. Only enable it for trusted, isolated networks.
+    pub fn dangerous_insecure_transport_protocol(mut self, allow: bool) -> Self {
+        self.config.dangerous_insecure_transport_protocol = allow;
+        self
+    }
+
     /// Specify custom installer args on Windows.
     pub fn installer_args<I, S>(mut self, args: I) -> Self
     where
@@ -522,6 +593,15 @@ impl Updater {
         let mut remote_release: Option<RemoteRelease> = None;
         let mut last_error: Option<Error> = None;
 
+        #[cfg(feature = "rustls-tls")]
+        if rustls::crypto::CryptoProvider::get_default().is_none() {
+            // This can only fail if there is already a default provider which we checked for already.
+            let _ = rustls::crypto::ring::default_provider().install_default();
+        }
+
+        let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
+        let client = http_client(dangerous_insecure)?;
+
         let version = self.current_version.to_string();
         let version = version.as_bytes();
         const CONTROLS_ADD: &AsciiSet = &CONTROLS.add(b'+');
@@ -548,9 +628,17 @@ impl Updater {
                 .replace("{{arch}}", self.arch)
                 .parse()?;
 
+            // Reject insecure (non-HTTPS) endpoints unless explicitly allowed (debug build or the
+            // `dangerous_insecure_transport_protocol` opt-in).
+            if let Err(err) = ensure_secure_url(&url, dangerous_insecure) {
+                log::error!("skipping insecure update endpoint: {err}");
+                last_error = Some(err);
+                continue;
+            }
+
             log::debug!("checking for updates {url}");
 
-            let mut request = Client::new().get(url).headers(headers.clone());
+            let mut request = client.get(url).headers(headers.clone());
             if let Some(timeout) = self.timeout {
                 request = request.timeout(timeout);
             }
@@ -708,7 +796,12 @@ impl Update {
             );
         }
 
-        let mut request = Client::new()
+        // Reject insecure (non-HTTPS) download URLs unless explicitly allowed (debug build or the
+        // `dangerous_insecure_transport_protocol` opt-in).
+        let dangerous_insecure = self.config.dangerous_insecure_transport_protocol;
+        ensure_secure_url(&self.download_url, dangerous_insecure)?;
+
+        let mut request = http_client(dangerous_insecure)?
             .get(self.download_url.clone())
             .headers(headers);
         if let Some(timeout) = self.timeout {
@@ -759,14 +852,82 @@ impl Update {
 
         let mut update_buffer = Cursor::new(&buffer);
 
-        verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey)?;
+        let signed_metadata =
+            verify_signature(&mut update_buffer, &self.signature, &self.config.pubkey)
+                .inspect_err(|err| {
+                    log::error!(
+                        "update signature verification failed for {}: {err}",
+                        self.version
+                    )
+                })?;
+        self.validate_signed_metadata(&signed_metadata)?;
+        log::info!("update {} passed signature verification", self.version);
 
         Ok(buffer)
     }
 
+    /// Enforce the updater's metadata policy against the authenticated metadata extracted from a
+    /// verified signature's trusted comment.
+    ///
+    /// This cryptographically binds the (unsigned) manifest to the signed artifact and protects
+    /// against downgrade attacks:
+    ///
+    /// - the signature must carry authenticated metadata (a `version` and `timestamp`); updates
+    ///   without it are rejected;
+    /// - the authenticated `version` must match the advertised manifest version, so an attacker
+    ///   cannot advertise a high version number while serving an older, validly-signed artifact.
+    fn validate_signed_metadata(&self, signed: &SignedMetadata) -> Result<()> {
+        // The signature must carry both an authenticated version and timestamp. Every artefact signed
+        // by `cargo-packager` does; updates signed without this metadata (an old `cargo-packager`, a
+        // third-party minisign signer, ...) are rejected. Update the `cargo-packager` CLI in your
+        // release pipeline so the metadata is signed.
+        let (Some(signed_version), Some(_)) = (&signed.version, signed.timestamp) else {
+            log::error!(
+                "rejecting update: signature is missing the authenticated metadata (version/timestamp). Sign the update with an up-to-date cargo-packager."
+            );
+            return Err(Error::MissingSignedMetadata);
+        };
+
+        // Version binding: the version advertised by the (unsigned) manifest must match the
+        // authenticated version, so a compromised channel cannot advertise a high version number
+        // while serving an older, validly-signed artefact.
+        let matches = match (
+            Version::parse(signed_version.trim_start_matches('v')),
+            Version::parse(self.version.trim_start_matches('v')),
+        ) {
+            (Ok(signed_v), Ok(advertised_v)) => signed_v == advertised_v,
+            // Fall back to a normalized string comparison if either side is not valid semver.
+            _ => signed_version.trim_start_matches('v') == self.version.trim_start_matches('v'),
+        };
+        if !matches {
+            log::error!(
+                "rejecting update: signed version `{signed_version}` does not match advertised version `{}`",
+                self.version
+            );
+            return Err(Error::SignedVersionMismatch {
+                signed: signed_version.clone(),
+                advertised: self.version.clone(),
+            });
+        }
+
+        Ok(())
+    }
+
     /// Installs the updater package downloaded by [`Update::download`]
     pub fn install(&self, bytes: Vec<u8>) -> Result<()> {
-        self.install_inner(bytes)
+        log::info!("installing update {} ({})", self.version, self.format);
+        match self.install_inner(bytes) {
+            // On Windows the installer is spawned in a separate process and this process exits, so
+            // this success branch is reached on the platforms that install in-process (macOS/Linux).
+            Ok(()) => {
+                log::info!("update {} installed successfully", self.version);
+                Ok(())
+            }
+            Err(err) => {
+                log::error!("failed to install update {}: {err}", self.version);
+                Err(err)
+            }
+        }
     }
 
     /// Downloads and installs the updater package
@@ -794,6 +955,11 @@ impl Update {
     // │── [AppName]_[version]_x64.msi           # Application MSI
     // │── [AppName]_[version]_x64-setup.exe           # NSIS installer
     // └── ...
+    //
+    // NOTE: Unlike the macOS and Linux paths, installation on Windows is performed by spawning the
+    // verified NSIS/WiX installer in a separate process (after which this process exits). Atomicity
+    // and rollback are therefore delegated to that installer rather than handled here; the updater
+    // cannot snapshot and restore the previous installation on its own.
     #[cfg(windows)]
     fn install_inner(&self, bytes: Vec<u8>) -> Result<()> {
         use std::{io::Write, os::windows::process::CommandExt, process::Command};
@@ -1182,16 +1348,46 @@ fn extract_path_from_executable(executable_path: &Path) -> Result<PathBuf> {
     Ok(extract_path)
 }
 
-// Validate signature
-// need to be public because its been used
-// by our tests in the bundler
+/// Authenticated metadata extracted from a verified signature's trusted comment.
+///
+/// minisign signs the trusted comment as part of its global signature, so any field parsed here is
+/// cryptographically authenticated once [`verify_signature`] returns successfully.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct SignedMetadata {
+    /// The signing time as a unix timestamp (seconds), if present in the trusted comment.
+    pub timestamp: Option<i64>,
+    /// The authenticated artifact version, if present in the trusted comment.
+    pub version: Option<String>,
+}
+
+/// Parse the (authenticated) trusted comment of a minisign signature.
+///
+/// The trusted comment is a single line of tab-separated `key:value` fields, e.g.
+/// `timestamp:1700000000\tfile:app.tar.gz\tversion:1.2.3`. Unknown fields are ignored so the
+/// format can be extended without breaking older clients.
+fn parse_trusted_comment(comment: &str) -> SignedMetadata {
+    let mut metadata = SignedMetadata::default();
+    for field in comment.split('\t') {
+        if let Some(value) = field.strip_prefix("timestamp:") {
+            metadata.timestamp = value.trim().parse().ok();
+        } else if let Some(value) = field.strip_prefix("version:") {
+            let value = value.trim();
+            if !value.is_empty() {
+                metadata.version = Some(value.to_string());
+            }
+        }
+    }
+    metadata
+}
+
+// Validate signature and return the authenticated metadata from the signature's trusted comment.
 //
 // NOTE: The buffer position is not reset.
 fn verify_signature<R>(
     archive_reader: &mut R,
     release_signature: &str,
     pub_key: &str,
-) -> Result<bool>
+) -> Result<SignedMetadata>
 where
     R: Read,
 {
@@ -1205,9 +1401,9 @@ where
     let mut data = Vec::new();
     archive_reader.read_to_end(&mut data)?;
 
-    // Validate signature or bail out
+    // Validate signature or bail out. This also authenticates the trusted comment.
     public_key.verify(&data, &signature, true)?;
-    Ok(true)
+    Ok(parse_trusted_comment(signature.trusted_comment()))
 }
 
 fn base64_to_string(base64_string: &str) -> Result<String> {
@@ -1216,4 +1412,146 @@ fn base64_to_string(base64_string: &str) -> Result<String> {
         .map_err(|_| Error::SignatureUtf8(base64_string.into()))?
         .to_string();
     Ok(result)
+}
+
+/// Build a blocking HTTP client that refuses to follow redirects which downgrade the transport
+/// security or exceed a small redirect budget.
+///
+/// Cross-host HTTPS redirects (e.g. GitHub release downloads served from a different host) are
+/// allowed, but a redirect to a non-HTTPS URL is rejected unless `allow_insecure` is set.
+fn http_client(allow_insecure: bool) -> Result<Client> {
+    let policy = reqwest::redirect::Policy::custom(move |attempt| {
+        if attempt.previous().len() >= 5 {
+            return attempt.error("too many redirects while retrieving update");
+        }
+        if ensure_secure_url(attempt.url(), allow_insecure).is_ok() {
+            attempt.follow()
+        } else {
+            attempt.error(
+                "refusing to follow an insecure redirect to a non-HTTPS URL while retrieving update",
+            )
+        }
+    });
+
+    Client::builder()
+        .redirect(policy)
+        .build()
+        .map_err(Into::into)
+}
+
+/// Reject a URL that is not served over a secure transport, unless insecure transport is allowed
+/// (debug build or the `dangerous_insecure_transport_protocol` opt-in). Warns when an insecure URL
+/// is only tolerated because this is a debug build.
+fn ensure_secure_url(url: &Url, allow_insecure: bool) -> Result<()> {
+    if !allow_insecure && url.scheme() != "https" {
+        #[cfg(debug_assertions)]
+        log::warn!(
+                "using insecure transport for `{url}`: this is tolerated in debug builds only. \
+                 Release builds will reject it unless `dangerous_insecure_transport_protocol` is enabled."
+            );
+        #[cfg(not(debug_assertions))]
+        return Err(Error::InsecureTransport(url.clone()));
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn url(s: &str) -> Url {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn parse_trusted_comment_fields() {
+        let meta = parse_trusted_comment("timestamp:1700000000\tfile:app.tar.gz\tversion:1.2.3");
+        assert_eq!(meta.timestamp, Some(1_700_000_000));
+        assert_eq!(meta.version.as_deref(), Some("1.2.3"));
+
+        // legacy comment without a version
+        let legacy = parse_trusted_comment("timestamp:1700000000\tfile:app.tar.gz");
+        assert_eq!(legacy.timestamp, Some(1_700_000_000));
+        assert!(legacy.version.is_none());
+
+        // empty version is treated as absent
+        let empty = parse_trusted_comment("timestamp:1\tfile:app\tversion:");
+        assert!(empty.version.is_none());
+    }
+
+    /// Build a minimal [`Update`] for exercising the metadata validation policy.
+    fn update_for(advertised_version: &str) -> Update {
+        Update {
+            config: Config::default(),
+            body: None,
+            current_version: "0.1.0".into(),
+            version: advertised_version.into(),
+            date: None,
+            target: "linux-x86_64".into(),
+            extract_path: PathBuf::new(),
+            download_url: url("https://example.com/app.tar.gz"),
+            signature: String::new(),
+            timeout: None,
+            headers: HeaderMap::new(),
+            format: UpdateFormat::AppImage,
+        }
+    }
+
+    #[test]
+    fn signed_version_binding() {
+        let update = update_for("1.2.3");
+
+        // matching version (with and without leading `v`) passes
+        assert!(update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: Some("1.2.3".into()),
+            })
+            .is_ok());
+        assert!(update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: Some("v1.2.3".into()),
+            })
+            .is_ok());
+
+        // a mismatching signed version (e.g. old artifact served under a faked high version) fails
+        let err = update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: Some("1.0.0".into()),
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::SignedVersionMismatch { .. }));
+    }
+
+    #[test]
+    fn missing_metadata_always_rejected() {
+        let update = update_for("1.2.3");
+
+        // no authenticated metadata at all
+        let err = update
+            .validate_signed_metadata(&SignedMetadata::default())
+            .unwrap_err();
+        assert!(matches!(err, Error::MissingSignedMetadata));
+
+        // version present but no timestamp
+        let err = update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: None,
+                version: Some("1.2.3".into()),
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::MissingSignedMetadata));
+
+        // timestamp present but no version
+        let err = update
+            .validate_signed_metadata(&SignedMetadata {
+                timestamp: Some(1),
+                version: None,
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::MissingSignedMetadata));
+    }
 }

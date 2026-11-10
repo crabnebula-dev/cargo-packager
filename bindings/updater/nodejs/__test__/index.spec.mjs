@@ -40,7 +40,7 @@ test("it updates correctly", async (t) => {
           password: "",
         },
         {
-          verbosity: 2,
+          verbosity: 1,
         },
       );
     } catch (e) {
