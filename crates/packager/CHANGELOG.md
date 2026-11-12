@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.12.0]
+
+- [`06836b2`](https://www.github.com/crabnebula-dev/cargo-packager/commit/06836b2d198573be79abc9b4c25fe8e807e34536) ([#358](https://www.github.com/crabnebula-dev/cargo-packager/pull/358)) Changed the error message when running the AppImage build script fails.
+    It now includes the full path to the build script.
+- [`a72a13e`](https://www.github.com/crabnebula-dev/cargo-packager/commit/a72a13e5db0a395a3d774fe6f2c27452a7ed87f1) ([#519](https://www.github.com/crabnebula-dev/cargo-packager/pull/519)) Fixed the `--binaries-dir` CLI option being ignored; it now overrides `binaries-dir` from the configuration.
+- [`fbb65fa`](https://www.github.com/crabnebula-dev/cargo-packager/commit/fbb65fac1c7efab1b14e2349a496ba8139ef5c53) ([#511](https://www.github.com/crabnebula-dev/cargo-packager/pull/511)) Fixed `--config` failing with `os error 267` on Windows. The package name is now
+    looked up next to the config file instead of using the config file itself as the
+    working directory, and is taken as an unquoted string.
+- [`1203e49`](https://www.github.com/crabnebula-dev/cargo-packager/commit/1203e49766ef5bb4e5f8862c16574ffe74f24774) ([#494](https://www.github.com/crabnebula-dev/cargo-packager/pull/494)) Fixed an issue that caused `nsis.compression = "off"` to always fail to build.
+- [`afee437`](https://www.github.com/crabnebula-dev/cargo-packager/commit/afee4376807d5f62ad2efde07fae3a295e8209ed) ([#521](https://www.github.com/crabnebula-dev/cargo-packager/pull/521)) Fixed NSIS uninstaller leaving associations registered: it iterated `association.ext` instead of `association.extensions`.
+- [`dca37a2`](https://www.github.com/crabnebula-dev/cargo-packager/commit/dca37a20e64132d799401c6b0d30304186ef3563) ([#506](https://www.github.com/crabnebula-dev/cargo-packager/pull/506)) Fixed a typo in the `--quiet` CLI flag (was `--quite`).
+- [`49f3ec1`](https://www.github.com/crabnebula-dev/cargo-packager/commit/49f3ec10a3e17871b92d0511b85012ff2f8e9993) ([#435](https://www.github.com/crabnebula-dev/cargo-packager/pull/435)) Record the app version in the trusted comment of update signatures, binding each signed package to the version it is released as. `cargo packager signer sign` now requires `--app-version`. Library users should sign with `package_and_sign` or the new `sign_outputs_with_version` / `sign_file_with_version` functions. Versions containing a tab or newline are rejected.
+- [`6c709bb`](https://www.github.com/crabnebula-dev/cargo-packager/commit/6c709bbc14791fdb41d263c5ffed9cae51be6114) ([#502](https://www.github.com/crabnebula-dev/cargo-packager/pull/502)) Added the `platform-certs` feature flag to the CLI (enabled by default) to read TLS certificates installed on the system.
+- [`d3a520e`](https://www.github.com/crabnebula-dev/cargo-packager/commit/d3a520ef0e3ddc4325cefa982ed5fd7322484354) ([#509](https://www.github.com/crabnebula-dev/cargo-packager/pull/509)) Updated `linuxdeploy` to [`07333c6`](https://github.com/tauri-apps/binary-releases/releases/tag/linuxdeploy-07333c6).
+
 ## \[0.11.8]
 
 - [`6e6a10c`](https://www.github.com/crabnebula-dev/cargo-packager/commit/6e6a10cc1692973293966034dc4b798e3976d094) ([#321](https://www.github.com/crabnebula-dev/cargo-packager/pull/321)) Allow explicitly specifying the Package name for the .deb bundle.
