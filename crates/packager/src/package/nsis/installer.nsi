@@ -596,7 +596,7 @@ Section Uninstall
 
   ; Delete app associations
   {{#each file_associations as |association| ~}}
-    {{#each association.ext as |ext| ~}}
+    {{#each association.extensions as |ext| ~}}
       !insertmacro APP_UNASSOCIATE "{{ext}}" "{{or association.name ext}}"
     {{/each}}
   {{/each}}
