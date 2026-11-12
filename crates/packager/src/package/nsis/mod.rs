@@ -250,6 +250,40 @@ fn unescape_dollar_sign(
     Ok(())
 }
 
+#[tracing::instrument(level = "trace")]
+fn installer_template(custom_template_path: Option<&Path>) -> crate::Result<Handlebars<'static>> {
+    let mut handlebars = Handlebars::new();
+    handlebars.register_helper("or", Box::new(handlebars_or));
+    handlebars.register_helper("association-description", Box::new(association_description));
+    handlebars.register_helper("unescape_newlines", Box::new(unescape_newlines));
+    handlebars.register_helper("unescape_dollar_sign", Box::new(unescape_dollar_sign));
+    handlebars.register_escape_fn(|s| {
+        let mut output = String::new();
+        for c in s.chars() {
+            match c {
+                '\"' => output.push_str("$\\\""),
+                '$' => output.push_str("$$"),
+                '`' => output.push_str("$\\`"),
+                '\n' => output.push_str("$\\n"),
+                '\t' => output.push_str("$\\t"),
+                '\r' => output.push_str("$\\r"),
+                _ => output.push(c),
+            }
+        }
+        output
+    });
+    if let Some(path) = custom_template_path {
+        handlebars
+            .register_template_string("installer.nsi", fs::read_to_string(path)?)
+            .map_err(Box::new)?;
+    } else {
+        handlebars
+            .register_template_string("installer.nsi", include_str!("./installer.nsi"))
+            .map_err(Box::new)?;
+    }
+    Ok(handlebars)
+}
+
 fn add_build_number_if_needed(version_str: &str) -> crate::Result<String> {
     let version = semver::Version::parse(version_str)?;
     if !version.build.is_empty() {
@@ -510,35 +544,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
         generate_estimated_size(main_binary_path, resources.keys().chain(binaries.keys()))?;
     data.insert("estimated_size", to_json(estimated_size));
 
-    let mut handlebars = Handlebars::new();
-    handlebars.register_helper("or", Box::new(handlebars_or));
-    handlebars.register_helper("association-description", Box::new(association_description));
-    handlebars.register_helper("unescape_newlines", Box::new(unescape_newlines));
-    handlebars.register_helper("unescape_dollar_sign", Box::new(unescape_dollar_sign));
-    handlebars.register_escape_fn(|s| {
-        let mut output = String::new();
-        for c in s.chars() {
-            match c {
-                '\"' => output.push_str("$\\\""),
-                '$' => output.push_str("$$"),
-                '`' => output.push_str("$\\`"),
-                '\n' => output.push_str("$\\n"),
-                '\t' => output.push_str("$\\t"),
-                '\r' => output.push_str("$\\r"),
-                _ => output.push(c),
-            }
-        }
-        output
-    });
-    if let Some(path) = custom_template_path {
-        handlebars
-            .register_template_string("installer.nsi", fs::read_to_string(path)?)
-            .map_err(Box::new)?;
-    } else {
-        handlebars
-            .register_template_string("installer.nsi", include_str!("./installer.nsi"))
-            .map_err(Box::new)?;
-    }
+    let handlebars = installer_template(custom_template_path.as_deref())?;
 
     write_ut16_le_with_bom(
         intermediates_path.join("FileAssociation.nsh"),
@@ -641,4 +647,29 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     }
 
     build_nsis_app_installer(ctx, &nsis_toolset_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::FileAssociation;
+
+    #[test]
+    fn installer_registers_and_uninstaller_removes_every_file_association() {
+        let associations = vec![
+            FileAssociation::new(["foo", "bar"]).name("MyApp.Foo"),
+            FileAssociation::new(["baz"]),
+        ];
+        let data = BTreeMap::from([("file_associations", to_json(&associations))]);
+
+        let script = installer_template(None)
+            .unwrap()
+            .render("installer.nsi", &data)
+            .unwrap();
+
+        for (ext, name) in [("foo", "MyApp.Foo"), ("bar", "MyApp.Foo"), ("baz", "baz")] {
+            assert!(script.contains(&format!(r#"!insertmacro APP_ASSOCIATE "{ext}" "{name}""#)));
+            assert!(script.contains(&format!(r#"!insertmacro APP_UNASSOCIATE "{ext}" "{name}""#)));
+        }
+    }
 }
