@@ -370,6 +370,8 @@ fn get_and_extract_nsis(
 
 #[tracing::instrument(level = "trace", skip(ctx))]
 fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Vec<PathBuf>> {
+    tracing::debug!(current_dir = ?std::env::current_dir(), "working directory");
+
     let Context {
         config,
         intermediates_path,
