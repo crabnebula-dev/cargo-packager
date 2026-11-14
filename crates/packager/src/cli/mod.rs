@@ -10,7 +10,7 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
 use crate::{
     config::{LogLevel, PackageFormat},
-    init_tracing_subscriber, package, parse_log_level, sign_outputs, sign_outputs_with_version,
+    init_tracing_subscriber, package, parse_log_level, sign_outputs_with_version,
     summarise_outputs, util, SigningConfig,
 };
 
@@ -193,6 +193,8 @@ fn run_cli(cli: Cli) -> Result<()> {
             let s =
                 sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
             signatures.extend(s);
+        } else {
+            tracing::debug!("skipping signing step because signing_config was not found");
         }
 
         // build summary

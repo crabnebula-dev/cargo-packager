@@ -248,6 +248,10 @@ pub fn sign_outputs_with_version(
 
             // Add signature to package summary
             if let Some(summary) = &mut package.summary {
+                tracing::debug!(
+                    summary.platform,
+                    "setting the signature of this packages' output summary (for latest.json)"
+                );
                 summary.signature = Some(sig);
             }
 
