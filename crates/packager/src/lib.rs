@@ -276,12 +276,14 @@ pub fn summarise_outputs(
 
     for package in packages {
         if let Some(summary) = package.summary.clone() {
-            // if summary.signature.is_some() {
+            if summary.signature.is_none() {
+                tracing::warn!(
+                    summary.platform,
+                    "package summary is missing its' signature"
+                );
+            }
+
             platforms.insert(summary.platform.clone(), summary);
-            // } else {
-            //     // The signer failed to update the signature field
-            //     tracing::warn!("A package could not be summarized in latest.json because it could not be signed.")
-            // }
         }
     }
 
