@@ -10,7 +10,8 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand};
 
 use crate::{
     config::{LogLevel, PackageFormat},
-    init_tracing_subscriber, package, parse_log_level, sign_outputs, util, SigningConfig,
+    init_tracing_subscriber, package, parse_log_level, sign_outputs_with_version, util,
+    SigningConfig,
 };
 
 mod config;
@@ -123,6 +124,12 @@ fn run_cli(cli: Cli) -> Result<()> {
         })
         .transpose()?;
 
+    let cli_binaries_dir = cli
+        .binaries_dir
+        .as_ref()
+        .map(|p| dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e)))
+        .transpose()?;
+
     let private_key = match cli.private_key {
         Some(path) if PathBuf::from(&path).exists() => Some(
             fs::read_to_string(&path).map_err(|e| Error::IoWithPath(PathBuf::from(&path), e))?,
@@ -142,6 +149,10 @@ fn run_cli(cli: Cli) -> Result<()> {
 
         if let Some(dir) = &cli_out_dir {
             config.out_dir.clone_from(dir)
+        }
+
+        if let Some(dir) = &cli_binaries_dir {
+            config.binaries_dir.replace(dir.clone());
         }
 
         if let Some(formats) = &cli.formats {
@@ -178,7 +189,8 @@ fn run_cli(cli: Cli) -> Result<()> {
 
         // sign the packages
         if let Some(signing_config) = &signing_config {
-            let s = sign_outputs(signing_config, &mut packages)?;
+            let s =
+                sign_outputs_with_version(signing_config, &mut packages, Some(&config.version))?;
             signatures.extend(s);
         }
 

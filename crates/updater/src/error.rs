@@ -57,6 +57,17 @@ pub enum Error {
     /// Temp dir is not on same mount mount. This prevents our updater to rename the AppImage to a temp file.
     #[error("temp directory is not on the same mount point as the AppImage")]
     TempDirNotOnSameMountPoint,
+    /// The authenticated version embedded in the update signature does not match the advertised version.
+    #[error("update metadata mismatch: the signed version `{signed}` does not match the advertised version `{advertised}`. The update may have been tampered with.")]
+    SignedVersionMismatch {
+        /// The version authenticated by the signature's trusted comment.
+        signed: String,
+        /// The version advertised in the (unsigned) update manifest.
+        advertised: String,
+    },
+    /// The update signature does not contain the authenticated metadata required by the updater.
+    #[error("the update signature does not contain the authenticated metadata (version/timestamp) required by the updater")]
+    MissingSignedMetadata,
     /// An update endpoint or download URL uses an insecure (non-HTTPS) transport.
     #[error("insecure transport: `{0}` is not an HTTPS URL. Use HTTPS, or explicitly allow insecure transport via `Config::dangerous_insecure_transport_protocol` (http is also allowed in debug builds)")]
     InsecureTransport(url::Url),

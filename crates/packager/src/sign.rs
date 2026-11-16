@@ -62,6 +62,24 @@ pub fn decode_private_key(
     password: Option<&str>,
 ) -> crate::Result<minisign::SecretKey> {
     let decoded_secret = decode_base64(private_key)?;
+
+    // Empty password: bypass into_secret_key() which corrupts unencrypted keys.
+    // Only needed for keys generated on minisign >=0.7.4,<=0.8.0 which is exactly
+    // what cargo-packager used since the addition of the updater.
+    if matches!(password, Some(p) if p.is_empty()) {
+        let mut lines = decoded_secret.lines();
+        lines.next(); // skip comment line
+        if let Some(encoded_key) = lines.next() {
+            if let Ok(key_bytes) = STANDARD.decode(encoded_key.trim()) {
+                if let Ok(sk) = minisign::SecretKey::from_bytes(&key_bytes) {
+                    if !sk.is_encrypted() {
+                        return Ok(sk);
+                    }
+                }
+            }
+        }
+    }
+
     let sk_box = minisign::SecretKeyBox::from_string(&decoded_secret)?;
     let sk = sk_box.into_secret_key(password.map(Into::into))?;
     Ok(sk)
@@ -145,8 +163,23 @@ pub fn sign_file<P: AsRef<Path> + Debug>(
     config: &SigningConfig,
     path: P,
 ) -> crate::Result<PathBuf> {
+    sign_file_with_version(config, path, None)
+}
+
+/// Signs a specified file using the specified signing configuration, embedding an authenticated
+/// `version` into the signature's trusted comment.
+///
+/// The version is cryptographically bound to the artifact (minisign signs the trusted comment), so
+/// the updater can reject manifests that advertise a version which does not match the signed one,
+/// defeating downgrade attacks. Passing `None` produces a signature compatible with older releases.
+#[tracing::instrument(level = "trace")]
+pub fn sign_file_with_version<P: AsRef<Path> + Debug>(
+    config: &SigningConfig,
+    path: P,
+    version: Option<&str>,
+) -> crate::Result<PathBuf> {
     let secret_key = decode_private_key(&config.private_key, config.password.as_deref())?;
-    sign_file_with_secret_key(&secret_key, path)
+    sign_file_with_secret_key_and_version(&secret_key, path, version)
 }
 
 /// Signs a specified file using an already decoded secret key.
@@ -155,20 +188,46 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     secret_key: &minisign::SecretKey,
     path: P,
 ) -> crate::Result<PathBuf> {
+    sign_file_with_secret_key_and_version(secret_key, path, None)
+}
+
+/// Signs a specified file using an already decoded secret key, embedding an authenticated `version`
+/// into the signature's trusted comment. See [`sign_file_with_version`].
+#[tracing::instrument(level = "trace")]
+pub fn sign_file_with_secret_key_and_version<P: AsRef<Path> + Debug>(
+    secret_key: &minisign::SecretKey,
+    path: P,
+    version: Option<&str>,
+) -> crate::Result<PathBuf> {
     let path = path.as_ref();
+
+    // The trusted comment is a single line of tab separated fields, so a version carrying either
+    // separator would inject fields or produce a signature the updater cannot parse back.
+    let version = version.map(str::trim).filter(|v| !v.is_empty());
+    if let Some(version) = version {
+        if version.contains(['\t', '\r', '\n']) {
+            return Err(Error::InvalidSigningVersion(version.to_string()));
+        }
+    }
+
     let signature_path = path.with_additional_extension("sig");
     let signature_path = dunce::simplified(&signature_path);
 
     let mut signature_box_writer = util::create_file(signature_path)?;
     let start = SystemTime::now();
     let since_epoch = start.duration_since(UNIX_EPOCH)?.as_secs();
-    let trusted_comment = format!(
+    let mut trusted_comment = format!(
         "timestamp:{}\tfile:{}",
         since_epoch,
         path.file_name()
             .ok_or_else(|| crate::Error::FailedToExtractFilename(path.to_path_buf()))?
             .to_string_lossy()
     );
+    // Bind the release version into the (authenticated) trusted comment when known. Tabs separate
+    // fields and the version is the last one so the format stays forwards/backwards compatible.
+    if let Some(version) = version {
+        trusted_comment.push_str(&format!("\tversion:{version}"));
+    }
 
     let file = OpenOptions::new()
         .read(true)
@@ -189,4 +248,134 @@ pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     signature_box_writer.flush()?;
 
     dunce::canonicalize(signature_path).map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn trusted_comment(signature_path: &Path) -> String {
+        let encoded = fs::read_to_string(signature_path).unwrap();
+        let decoded = String::from_utf8(STANDARD.decode(encoded).unwrap()).unwrap();
+        minisign::SignatureBox::from_string(&decoded)
+            .unwrap()
+            .trusted_comment()
+            .unwrap()
+    }
+
+    #[test]
+    fn embeds_version_in_trusted_comment() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("app.tar.gz");
+        fs::write(&path, b"app").unwrap();
+        let secret_key = minisign::KeyPair::generate_unencrypted_keypair()
+            .unwrap()
+            .sk;
+
+        let signature_path =
+            sign_file_with_secret_key_and_version(&secret_key, &path, Some(" 1.2.3\n")).unwrap();
+        let comment = trusted_comment(&signature_path);
+        assert!(comment.starts_with("timestamp:"));
+        assert!(comment.ends_with("\tfile:app.tar.gz\tversion:1.2.3"));
+
+        let signature_path = sign_file_with_secret_key(&secret_key, &path).unwrap();
+        assert!(!trusted_comment(&signature_path).contains("version:"));
+    }
+
+    #[test]
+    fn rejects_version_that_breaks_the_trusted_comment() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("app.tar.gz");
+        fs::write(&path, b"app").unwrap();
+        let secret_key = minisign::KeyPair::generate_unencrypted_keypair()
+            .unwrap()
+            .sk;
+
+        for version in ["1.0.0\ttimestamp:0", "1.0.0\nmalicious", "1.0.0\rmalicious"] {
+            let err = sign_file_with_secret_key_and_version(&secret_key, &path, Some(version))
+                .unwrap_err();
+            assert!(matches!(err, Error::InvalidSigningVersion(_)));
+        }
+        assert!(!path.with_additional_extension("sig").exists());
+    }
+
+    // Key generated with minisign >=0.7.4,<=0.8.0 + empty password (kdf_alg = "Sc", plaintext data)
+    const LEGACY_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5VU1qSHBMT0E4R0JCVGZzbUMzb3ZXeGpGY1NSdm9OaUxaVTFuajd0T2ZKZ0FBQkFBQUFBQUFBQUFBQUlBQUFBQWlhRnNPUmxKWjBiWnJ6M29Cd0RwOUpqTW1yOFFQK3JTOGdKSi9CajlHZktHajI2ZnprbEM0VUl2MHhGdFdkZWpHc1BpTlJWK2hOTWo0UVZDemMvaFlYVUM4U2twRW9WV1JHenNzUkRKT2RXQ1FCeXlkYUwxelhacmtxOGZJOG1Nb1R6b0VEcWFLVUk9Cg==";
+    const LEGACY_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2Njc0OTE5Mzk2Q0ExODkKUldTSm9XdzVHVWxuUmtJdjB4RnRXZGVqR3NQaU5SVitoTk1qNFFWQ3pjL2hZWFVDOFNrcEVvVlcK";
+
+    // Key generated with minisign 0.9 + empty password (kdf_alg = KDF_NONE)
+    const CURRENT_SK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5ektRMXdrc1FaZm91QWxPK1UrY2M1MDZ1Q2dNbXVDZHZDOWVvUDFyWkt1QUFBQkFBQUFBQUFBQUFBQUlBQUFBQVNxNzlzZks2MmRDVjFETkJrNjBVK0pweVZYalFvdXhXWVFTWGVKc0FLL0tPMys3UVBqZDRDcUhMTktHTG94VENOc3E3MFhXTU5KbW5sclpWc01tTExGS2NCNkxZdjJQSy9sdGFEOWxWRDBySmtDSndnS1V6R2FTSWhNaFFRblJENHA0eVQvaGNKQm89Cg==";
+    const CURRENT_PK: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFFMjJCNDBENjc4QkE2OTcKUldTWHBvdG5EYlFpcm5QOVZsWTVkZkNwOWlhK0IraFhybGFsM3VidjhlOHlRLzFEc2N6RkFwakwK";
+
+    #[test]
+    fn sign_verify_legacy_key() {
+        let sk = decode_private_key(LEGACY_SK, Some("")).unwrap();
+        assert!(!sk.is_encrypted());
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test.txt");
+        fs::write(&path, b"test content").unwrap();
+        let sig_path = sign_file_with_secret_key(&sk, &path).unwrap();
+
+        let pk_str = str::from_utf8(&STANDARD.decode(LEGACY_PK).unwrap())
+            .unwrap()
+            .to_owned();
+        let pk = minisign::PublicKeyBox::from_string(&pk_str)
+            .unwrap()
+            .into_public_key()
+            .unwrap();
+        let sig_str = str::from_utf8(
+            &STANDARD
+                .decode(fs::read_to_string(&sig_path).unwrap())
+                .unwrap(),
+        )
+        .unwrap()
+        .to_owned();
+        let sig_box = minisign::SignatureBox::from_string(&sig_str).unwrap();
+        minisign::verify(
+            &pk,
+            &sig_box,
+            fs::File::open(&path).unwrap(),
+            true,
+            false,
+            false,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn sign_verify_current_key() {
+        let sk = decode_private_key(CURRENT_SK, Some("")).unwrap();
+        assert!(!sk.is_encrypted());
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test.txt");
+        fs::write(&path, b"test content").unwrap();
+        let sig_path = sign_file_with_secret_key(&sk, &path).unwrap();
+
+        let pk_str = str::from_utf8(&STANDARD.decode(CURRENT_PK).unwrap())
+            .unwrap()
+            .to_owned();
+        let pk = minisign::PublicKeyBox::from_string(&pk_str)
+            .unwrap()
+            .into_public_key()
+            .unwrap();
+        let sig_str = str::from_utf8(
+            &STANDARD
+                .decode(fs::read_to_string(&sig_path).unwrap())
+                .unwrap(),
+        )
+        .unwrap()
+        .to_owned();
+        let sig_box = minisign::SignatureBox::from_string(&sig_str).unwrap();
+        minisign::verify(
+            &pk,
+            &sig_box,
+            fs::File::open(&path).unwrap(),
+            true,
+            false,
+            false,
+        )
+        .unwrap();
+    }
 }
