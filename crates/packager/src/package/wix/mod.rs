@@ -746,10 +746,7 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
         let msi_output_path = intermediates_path.join("output.msi");
         let msi_path = config.out_dir().join(format!(
             "{}_{}_{}_{}.msi",
-            config.product_name(),
-            config.version,
-            arch,
-            language
+            config.product_name, config.version, arch, language
         ));
         let msi_path_parent = msi_path
             .parent()

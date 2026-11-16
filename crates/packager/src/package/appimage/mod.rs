@@ -116,8 +116,6 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     }
     let icons: Vec<deb::DebIcon> = icons.into_iter().collect();
 
-    let main_binary_name = config.main_binary_name()?;
-    let upcase_app_name = main_binary_name.to_uppercase();
     let app_dir_path = intermediates_path.join(format!("{}.AppDir", config.product_name));
     let appimage_filename = format!(
         "{}_{}_{}.AppImage",
