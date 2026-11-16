@@ -889,6 +889,99 @@ impl Default for WixLanguage {
     }
 }
 
+/// The QNAP QPKG format configuration.
+///
+/// Produces a `.qpkg`, a self-extracting `/bin/sh` installer that QTS App Center
+/// can install. The payload is extracted into
+/// `<install volume>/.qpkg/<name>` on the NAS.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct QpkgConfig {
+    /// Package name (`QPKG_NAME`). At most 20 characters, no whitespace.
+    /// Defaults to the main binary name.
+    pub name: Option<String>,
+    /// Display name shown in App Center (`QPKG_DISPLAY_NAME`).
+    /// Defaults to [`Config::product_name`].
+    pub display_name: Option<String>,
+    /// Package version (`QPKG_VER`). At most 10 characters.
+    /// Defaults to [`Config::version`].
+    pub version: Option<String>,
+    /// Package author (`QPKG_AUTHOR`). Defaults to [`Config::authors`] joined by `, `.
+    pub author: Option<String>,
+    /// One-line summary (`QPKG_SUMMARY`). Defaults to [`Config::description`].
+    pub summary: Option<String>,
+    /// License identifier (`QPKG_LICENSE`).
+    pub license: Option<String>,
+    /// Minimum QTS version (`QTS_MINI_VERSION`), e.g. `4.4.1`. Defaults to `4.4.1`.
+    #[serde(alias = "qts-min-version", alias = "qts_min_version")]
+    pub qts_min_version: Option<String>,
+    /// QNAP architecture string: `x86_64`, `x86`, `arm_64`, `arm-x41`, `arm-x31`
+    /// or `arm-x19`. Defaults to the mapping of [`Config::target_arch`].
+    pub arch: Option<String>,
+    /// Volume selection behavior (`QPKG_VOLUME_SELECT`). Defaults to `0`.
+    #[serde(alias = "volume-select", alias = "volume_select")]
+    pub volume_select: Option<u8>,
+    /// Path, relative to the installed package directory, of a start/stop script.
+    /// Registered as `QPKG_SERVICE_PROGRAM`, so App Center shows start/stop actions.
+    #[serde(alias = "service-program", alias = "service_program")]
+    pub service_program: Option<String>,
+    /// Custom `package_routines` script (install/remove hooks).
+    #[serde(alias = "package-routines", alias = "package_routines")]
+    pub package_routines: Option<PathBuf>,
+    /// Directory holding App Center icons: `<name>.gif`, `<name>_gray.gif` and
+    /// `<name>_80.gif` (64x64, 64x64 and 80x80).
+    #[serde(alias = "icons-dir", alias = "icons_dir")]
+    pub icons_dir: Option<PathBuf>,
+    /// Additional payload files, mapping a source path to a destination path
+    /// relative to the installed package directory.
+    pub files: Option<HashMap<String, String>>,
+}
+
+impl QpkgConfig {
+    /// Creates a new [`QpkgConfig`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the package name (`QPKG_NAME`).
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Sets the display name shown in App Center.
+    pub fn display_name(mut self, display_name: impl Into<String>) -> Self {
+        self.display_name = Some(display_name.into());
+        self
+    }
+
+    /// Sets the package version (`QPKG_VER`).
+    pub fn version(mut self, version: impl Into<String>) -> Self {
+        self.version = Some(version.into());
+        self
+    }
+
+    /// Sets the package author (`QPKG_AUTHOR`).
+    pub fn author(mut self, author: impl Into<String>) -> Self {
+        self.author = Some(author.into());
+        self
+    }
+
+    /// Sets the QNAP architecture string.
+    pub fn arch(mut self, arch: impl Into<String>) -> Self {
+        self.arch = Some(arch.into());
+        self
+    }
+
+    /// Sets the start/stop script path, relative to the installed package directory.
+    pub fn service_program(mut self, service_program: impl Into<String>) -> Self {
+        self.service_program = Some(service_program.into());
+        self
+    }
+}
+
 /// The wix format configuration
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1741,6 +1834,8 @@ pub struct Config {
     pub appimage: Option<AppImageConfig>,
     /// Pacman configuration.
     pub pacman: Option<PacmanConfig>,
+    /// QNAP QPKG configuration.
+    pub qpkg: Option<QpkgConfig>,
     /// WiX configuration.
     pub wix: Option<WixConfig>,
     /// Nsis configuration.
@@ -1793,6 +1888,11 @@ impl Config {
     /// Returns the [pacman](Config::pacman) specific configuration.
     pub fn pacman(&self) -> Option<&PacmanConfig> {
         self.pacman.as_ref()
+    }
+
+    /// Returns the [qpkg](Config::qpkg) specific configuration.
+    pub fn qpkg(&self) -> Option<&QpkgConfig> {
+        self.qpkg.as_ref()
     }
 
     /// Returns the [dmg](Config::dmg) specific configuration.

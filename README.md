@@ -14,6 +14,7 @@ It also has a compatible updater through [cargo-packager-updater](./crates/updat
   - Debian package (.deb)
   - AppImage (.AppImage)
   - Pacman (.tar.gz and PKGBUILD)
+  - QNAP QPKG (.qpkg)
 - Windows
   - NSIS (.exe)
   - MSI using WiX Toolset (.msi)

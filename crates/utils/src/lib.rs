@@ -45,6 +45,12 @@ pub enum PackageFormat {
     AppImage,
     /// The Linux Pacman package (.tar.gz and PKGBUILD)
     Pacman,
+    /// The QNAP QPKG package (.qpkg).
+    ///
+    /// This is a self-extracting `/bin/sh` installer for QNAP QTS; it is opt-in
+    /// (not part of [`PackageFormat::platform_all`]) because it targets a
+    /// different OS than the host.
+    Qpkg,
 }
 
 impl Display for PackageFormat {
@@ -55,7 +61,7 @@ impl Display for PackageFormat {
 
 impl PackageFormat {
     /// Maps a short name to a [PackageFormat].
-    /// Possible values are "deb", "pacman", "appimage", "dmg", "app", "wix", "nsis".
+    /// Possible values are "deb", "pacman", "appimage", "dmg", "app", "wix", "nsis", "qpkg".
     pub fn from_short_name(name: &str) -> Option<PackageFormat> {
         // Other types we may eventually want to support: apk.
         match name {
@@ -65,6 +71,8 @@ impl PackageFormat {
             "nsis" => Some(PackageFormat::Nsis),
             "deb" => Some(PackageFormat::Deb),
             "appimage" => Some(PackageFormat::AppImage),
+            "pacman" => Some(PackageFormat::Pacman),
+            "qpkg" => Some(PackageFormat::Qpkg),
             _ => None,
         }
     }
@@ -83,6 +91,7 @@ impl PackageFormat {
             PackageFormat::Deb => "deb",
             PackageFormat::AppImage => "appimage",
             PackageFormat::Pacman => "pacman",
+            PackageFormat::Qpkg => "qpkg",
         }
     }
 
@@ -186,6 +195,7 @@ impl PackageFormat {
             PackageFormat::Deb => 0,
             PackageFormat::AppImage => 0,
             PackageFormat::Pacman => 0,
+            PackageFormat::Qpkg => 0,
             PackageFormat::Dmg => 1,
         }
     }

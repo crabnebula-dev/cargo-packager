@@ -36,6 +36,8 @@ mod nsis;
     target_os = "openbsd"
 ))]
 mod pacman;
+#[cfg(unix)]
+mod qpkg;
 #[cfg(windows)]
 mod wix;
 
@@ -146,6 +148,9 @@ pub fn package(config: &Config) -> crate::Result<Vec<PackageOutput>> {
                 target_os = "openbsd"
             ))]
             PackageFormat::Pacman => pacman::package(&ctx),
+
+            #[cfg(unix)]
+            PackageFormat::Qpkg => qpkg::package(&ctx),
 
             _ => {
                 tracing::warn!("ignoring {}", format.short_name());

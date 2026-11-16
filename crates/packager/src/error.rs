@@ -74,6 +74,9 @@ pub enum Error {
     /// Invalid app version when building [crate::PackageFormat::Wix]
     #[error("Invalid app version: {0}")]
     InvalidAppVersion(String),
+    /// Invalid QPKG configuration.
+    #[error("Invalid QPKG configuration: {0}")]
+    InvalidQpkgConfig(String),
     /// Handlebars render error.
     #[error(transparent)]
     HandleBarsRenderError(#[from] handlebars::RenderError),

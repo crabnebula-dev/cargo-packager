@@ -292,6 +292,17 @@
         }
       ]
     },
+    "qpkg": {
+      "description": "QNAP QPKG configuration.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/QpkgConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "wix": {
       "description": "WiX configuration.",
       "anyOf": [
@@ -453,6 +464,11 @@
           "description": "The Linux Pacman package (.tar.gz and PKGBUILD)",
           "type": "string",
           "const": "pacman"
+        },
+        {
+          "description": "The QNAP QPKG package (.qpkg).\n\nThis is a self-extracting `/bin/sh` installer for QNAP QTS; it is opt-in\n(not part of [`PackageFormat::platform_all`]) because it targets a\ndifferent OS than the host.",
+          "type": "string",
+          "const": "qpkg"
         }
       ]
     },
@@ -968,6 +984,110 @@
             "null"
           ],
           "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "QpkgConfig": {
+      "description": "The QNAP QPKG format configuration.\n\nProduces a `.qpkg`, a self-extracting `/bin/sh` installer that QTS App Center\ncan install. The payload is extracted into\n`<install volume>/.qpkg/<name>` on the NAS.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Package name (`QPKG_NAME`). At most 20 characters, no whitespace.\nDefaults to the main binary name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "displayName": {
+          "description": "Display name shown in App Center (`QPKG_DISPLAY_NAME`).\nDefaults to [`Config::product_name`].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Package version (`QPKG_VER`). At most 10 characters.\nDefaults to [`Config::version`].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "author": {
+          "description": "Package author (`QPKG_AUTHOR`). Defaults to [`Config::authors`] joined by `, `.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "description": "One-line summary (`QPKG_SUMMARY`). Defaults to [`Config::description`].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license": {
+          "description": "License identifier (`QPKG_LICENSE`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "qtsMinVersion": {
+          "description": "Minimum QTS version (`QTS_MINI_VERSION`), e.g. `4.4.1`. Defaults to `4.4.1`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "arch": {
+          "description": "QNAP architecture string: `x86_64`, `x86`, `arm_64`, `arm-x41`, `arm-x31`\nor `arm-x19`. Defaults to the mapping of [`Config::target_arch`].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volumeSelect": {
+          "description": "Volume selection behavior (`QPKG_VOLUME_SELECT`). Defaults to `0`.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "serviceProgram": {
+          "description": "Path, relative to the installed package directory, of a start/stop script.\nRegistered as `QPKG_SERVICE_PROGRAM`, so App Center shows start/stop actions.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "packageRoutines": {
+          "description": "Custom `package_routines` script (install/remove hooks).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "iconsDir": {
+          "description": "Directory holding App Center icons: `<name>.gif`, `<name>_gray.gif` and\n`<name>_80.gif` (64x64, 64x64 and 80x80).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "files": {
+          "description": "Additional payload files, mapping a source path to a destination path\nrelative to the installed package directory.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
             "type": "string"
           }
         }

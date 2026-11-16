@@ -4,7 +4,7 @@ use crate::{Config, PackageFormat};
 
 use super::{
     AppImageConfig, Binary, DebianConfig, FileAssociation, HookCommand, LogLevel, MacOsConfig,
-    NsisConfig, PacmanConfig, Resource, WindowsConfig, WixConfig,
+    NsisConfig, PacmanConfig, QpkgConfig, Resource, WindowsConfig, WixConfig,
 };
 
 /// A builder type for [`Config`].
@@ -210,6 +210,12 @@ impl ConfigBuilder {
     /// Set the [Pacman](Config::pacman) specific configuration.
     pub fn pacman(mut self, pacman: PacmanConfig) -> Self {
         self.0.pacman.replace(pacman);
+        self
+    }
+
+    /// Set the [QPKG](Config::qpkg) specific configuration.
+    pub fn qpkg(mut self, qpkg: QpkgConfig) -> Self {
+        self.0.qpkg.replace(qpkg);
         self
     }
 }
