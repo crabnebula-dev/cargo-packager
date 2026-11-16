@@ -1090,6 +1090,81 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "webui": {
+          "description": "Web interface path (`QPKG_WEBUI`), relative to the QTS web server, e.g.\n`/cgi-bin/qpkg/<name>/index.html`. The special value `QTS_desktop` opens\nthe app inside the QTS desktop framework instead.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "webPort": {
+          "description": "HTTP port for the web interface (`QPKG_WEB_PORT`). `0` = QTS web server,\n`-1` = QTS system httpd port.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        },
+        "webSslPort": {
+          "description": "HTTPS port for the web interface (`QPKG_WEB_SSL_PORT`).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        },
+        "desktopApp": {
+          "description": "`QPKG_DESKTOP_APP`: `0` = new browser tab, `1` = iFrame on the QTS\ndesktop, `2` = desktop-only (QTS 4.4.1+).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "desktopAppWinWidth": {
+          "description": "Default QTS desktop window width (`QPKG_DESKTOP_APP_WIN_WIDTH`, max 1178).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "desktopAppWinHeight": {
+          "description": "Default QTS desktop window height (`QPKG_DESKTOP_APP_WIN_HEIGHT`, max 600).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "visible": {
+          "description": "Main-menu visibility (`QPKG_VISIBLE`): `0` admin only, `1` administrators,\n`2` all users.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "webRoot": {
+          "description": "Directory in the payload exposed at `/cgi-bin/qpkg/<name>` through a\nsymlink, so static files can be served by the QTS web server (defaults to\n`web` when a web interface is configured).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "apacheConf": {
+          "description": "Payload file installed as `/etc/config/apache/extra/apache-<name>.conf`\nand removed again on uninstall. Use it for headers the app needs, e.g.\n`Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` for\nmulti-threaded WebAssembly.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false

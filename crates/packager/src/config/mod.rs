@@ -937,6 +937,41 @@ pub struct QpkgConfig {
     /// Additional payload files, mapping a source path to a destination path
     /// relative to the installed package directory.
     pub files: Option<HashMap<String, String>>,
+    /// Web interface path (`QPKG_WEBUI`), relative to the QTS web server, e.g.
+    /// `/cgi-bin/qpkg/<name>/index.html`. The special value `QTS_desktop` opens
+    /// the app inside the QTS desktop framework instead.
+    pub webui: Option<String>,
+    /// HTTP port for the web interface (`QPKG_WEB_PORT`). `0` = QTS web server,
+    /// `-1` = QTS system httpd port.
+    #[serde(alias = "web-port", alias = "web_port")]
+    pub web_port: Option<i32>,
+    /// HTTPS port for the web interface (`QPKG_WEB_SSL_PORT`).
+    #[serde(alias = "web-ssl-port", alias = "web_ssl_port")]
+    pub web_ssl_port: Option<i32>,
+    /// `QPKG_DESKTOP_APP`: `0` = new browser tab, `1` = iFrame on the QTS
+    /// desktop, `2` = desktop-only (QTS 4.4.1+).
+    #[serde(alias = "desktop-app", alias = "desktop_app")]
+    pub desktop_app: Option<u8>,
+    /// Default QTS desktop window width (`QPKG_DESKTOP_APP_WIN_WIDTH`, max 1178).
+    #[serde(alias = "desktop-app-win-width", alias = "desktop_app_win_width")]
+    pub desktop_app_win_width: Option<u32>,
+    /// Default QTS desktop window height (`QPKG_DESKTOP_APP_WIN_HEIGHT`, max 600).
+    #[serde(alias = "desktop-app-win-height", alias = "desktop_app_win_height")]
+    pub desktop_app_win_height: Option<u32>,
+    /// Main-menu visibility (`QPKG_VISIBLE`): `0` admin only, `1` administrators,
+    /// `2` all users.
+    pub visible: Option<u8>,
+    /// Directory in the payload exposed at `/cgi-bin/qpkg/<name>` through a
+    /// symlink, so static files can be served by the QTS web server (defaults to
+    /// `web` when a web interface is configured).
+    #[serde(alias = "web-root", alias = "web_root")]
+    pub web_root: Option<String>,
+    /// Payload file installed as `/etc/config/apache/extra/apache-<name>.conf`
+    /// and removed again on uninstall. Use it for headers the app needs, e.g.
+    /// `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` for
+    /// multi-threaded WebAssembly.
+    #[serde(alias = "apache-conf", alias = "apache_conf")]
+    pub apache_conf: Option<String>,
 }
 
 impl QpkgConfig {

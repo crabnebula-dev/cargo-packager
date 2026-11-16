@@ -30,6 +30,23 @@ if [ -n "$QPKG_SERVICE_PROGRAM" ]; then
     /bin/chmod 755 "$QPKG_DIR/$QPKG_SERVICE_PROGRAM" 2>/dev/null || true
 fi
 
+# Expose a payload directory through the QTS web server so static files (e.g. a
+# WebAssembly app) are served from the same origin as the QTS desktop.
+if [ -n "$QPKG_WEB_ROOT" ] && [ -d "$QPKG_DIR/$QPKG_WEB_ROOT" ]; then
+    if [ -d /home/httpd/cgi-bin/qpkg ]; then
+        /bin/ln -sfn "$QPKG_DIR/$QPKG_WEB_ROOT" "/home/httpd/cgi-bin/qpkg/$QPKG_NAME"
+    fi
+fi
+
+# Apache drop-in, e.g. Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy
+# headers required by multi-threaded WebAssembly.
+if [ -n "$QPKG_APACHE_CONF" ] && [ -f "$QPKG_DIR/$QPKG_APACHE_CONF" ] && [ -d /etc/config/apache/extra ]; then
+    /bin/cp -f "$QPKG_DIR/$QPKG_APACHE_CONF" "/etc/config/apache/extra/apache-$QPKG_NAME.conf"
+    if [ -x /etc/init.d/Qthttpd.sh ]; then
+        /etc/init.d/Qthttpd.sh restart >/dev/null 2>&1 || true
+    fi
+fi
+
 if [ -f ./package_routines ]; then
     . ./package_routines
     if command -v pkg_post_install >/dev/null 2>&1; then
@@ -58,6 +75,27 @@ if [ -x "$SETCFG" ] && [ -f "$QPKG_CONF" ]; then
     if [ -n "$QPKG_SERVICE_PROGRAM" ]; then
         /bin/ln -sf "$QPKG_DIR/$QPKG_SERVICE_PROGRAM" "/etc/init.d/$QPKG_NAME.sh"
         "$SETCFG" "$QPKG_NAME" Shell "/etc/init.d/$QPKG_NAME.sh" -f "$QPKG_CONF"
+    fi
+    if [ -n "$QPKG_WEBUI" ]; then
+        "$SETCFG" "$QPKG_NAME" WebUI "$QPKG_WEBUI" -f "$QPKG_CONF"
+    fi
+    if [ -n "$QPKG_WEB_PORT" ]; then
+        "$SETCFG" "$QPKG_NAME" Web_Port "$QPKG_WEB_PORT" -f "$QPKG_CONF"
+    fi
+    if [ -n "$QPKG_WEB_SSL_PORT" ]; then
+        "$SETCFG" "$QPKG_NAME" Web_SSL_Port "$QPKG_WEB_SSL_PORT" -f "$QPKG_CONF"
+    fi
+    if [ -n "$QPKG_DESKTOP_APP" ]; then
+        "$SETCFG" "$QPKG_NAME" Desktop "$QPKG_DESKTOP_APP" -f "$QPKG_CONF"
+    fi
+    if [ -n "$QPKG_DESKTOP_APP_WIN_WIDTH" ]; then
+        "$SETCFG" "$QPKG_NAME" Win_Width "$QPKG_DESKTOP_APP_WIN_WIDTH" -f "$QPKG_CONF"
+    fi
+    if [ -n "$QPKG_DESKTOP_APP_WIN_HEIGHT" ]; then
+        "$SETCFG" "$QPKG_NAME" Win_Height "$QPKG_DESKTOP_APP_WIN_HEIGHT" -f "$QPKG_CONF"
+    fi
+    if [ -n "$QPKG_VISIBLE" ]; then
+        "$SETCFG" "$QPKG_NAME" Visible "$QPKG_VISIBLE" -f "$QPKG_CONF"
     fi
 fi
 

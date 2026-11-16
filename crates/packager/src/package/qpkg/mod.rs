@@ -36,6 +36,13 @@ pkg_pre_remove() {
         "/etc/init.d/$QPKG_NAME.sh" stop >/dev/null 2>&1
         /bin/rm -f "/etc/init.d/$QPKG_NAME.sh"
     fi
+    /bin/rm -f "/home/httpd/cgi-bin/qpkg/$QPKG_NAME"
+    if [ -n "$QPKG_APACHE_CONF" ] && [ -f "/etc/config/apache/extra/apache-$QPKG_NAME.conf" ]; then
+        /bin/rm -f "/etc/config/apache/extra/apache-$QPKG_NAME.conf"
+        if [ -x /etc/init.d/Qthttpd.sh ]; then
+            /etc/init.d/Qthttpd.sh restart >/dev/null 2>&1
+        fi
+    fi
 }
 "#;
 
@@ -254,6 +261,36 @@ fn write_control_files(
             "QPKG_SERVICE_PROGRAM={}\n",
             shell_quote(service_program)
         ));
+    }
+
+    if let Some(webui) = qpkg.and_then(|q| q.webui.as_ref()) {
+        cfg.push_str(&format!("QPKG_WEBUI={}\n", shell_quote(webui)));
+    }
+    if let Some(web_port) = qpkg.and_then(|q| q.web_port) {
+        cfg.push_str(&format!("QPKG_WEB_PORT={web_port}\n"));
+    }
+    if let Some(web_ssl_port) = qpkg.and_then(|q| q.web_ssl_port) {
+        cfg.push_str(&format!("QPKG_WEB_SSL_PORT={web_ssl_port}\n"));
+    }
+    if let Some(desktop_app) = qpkg.and_then(|q| q.desktop_app) {
+        cfg.push_str(&format!("QPKG_DESKTOP_APP={desktop_app}\n"));
+    }
+    if let Some(width) = qpkg.and_then(|q| q.desktop_app_win_width) {
+        cfg.push_str(&format!("QPKG_DESKTOP_APP_WIN_WIDTH={width}\n"));
+    }
+    if let Some(height) = qpkg.and_then(|q| q.desktop_app_win_height) {
+        cfg.push_str(&format!("QPKG_DESKTOP_APP_WIN_HEIGHT={height}\n"));
+    }
+    if let Some(visible) = qpkg.and_then(|q| q.visible) {
+        cfg.push_str(&format!("QPKG_VISIBLE={visible}\n"));
+    }
+    if let Some(web_root) = qpkg.and_then(|q| q.web_root.as_ref()) {
+        cfg.push_str(&format!("QPKG_WEB_ROOT={}\n", shell_quote(web_root)));
+    } else if qpkg.and_then(|q| q.webui.as_ref()).is_some() {
+        cfg.push_str("QPKG_WEB_ROOT=\"web\"\n");
+    }
+    if let Some(apache_conf) = qpkg.and_then(|q| q.apache_conf.as_ref()) {
+        cfg.push_str(&format!("QPKG_APACHE_CONF={}\n", shell_quote(apache_conf)));
     }
 
     let cfg_path = control_dir.join("qpkg.cfg");
