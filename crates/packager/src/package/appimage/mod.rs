@@ -131,7 +131,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let mut sh_map = BTreeMap::new();
     sh_map.insert("arch", to_json(arch));
     sh_map.insert("linuxdeploy_arch", to_json(linuxdeploy_arch));
-    sh_map.insert("app_name", to_json(config.product_name));
+    sh_map.insert("app_name", to_json(&config.product_name));
     sh_map.insert("appimage_path", to_json(&appimage_path));
     sh_map.insert(
         "packager_tools_path",
