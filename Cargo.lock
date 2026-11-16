@@ -368,8 +368,6 @@ name = "cargo-packager-resource-resolver"
 version = "0.1.2"
 dependencies = [
  "cargo-packager-utils",
- "heck",
- "log",
  "thiserror",
 ]
 
