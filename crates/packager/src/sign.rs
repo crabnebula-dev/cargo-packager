@@ -162,7 +162,7 @@ impl SigningConfig {
 pub fn sign_file<P: AsRef<Path> + Debug>(
     config: &SigningConfig,
     path: P,
-) -> crate::Result<PathBuf> {
+) -> crate::Result<(PathBuf, String)> {
     sign_file_with_version(config, path, None)
 }
 
@@ -177,7 +177,7 @@ pub fn sign_file_with_version<P: AsRef<Path> + Debug>(
     config: &SigningConfig,
     path: P,
     version: Option<&str>,
-) -> crate::Result<PathBuf> {
+) -> crate::Result<(PathBuf, String)> {
     let secret_key = decode_private_key(&config.private_key, config.password.as_deref())?;
     sign_file_with_secret_key_and_version(&secret_key, path, version)
 }
@@ -187,7 +187,7 @@ pub fn sign_file_with_version<P: AsRef<Path> + Debug>(
 pub fn sign_file_with_secret_key<P: AsRef<Path> + Debug>(
     secret_key: &minisign::SecretKey,
     path: P,
-) -> crate::Result<PathBuf> {
+) -> crate::Result<(PathBuf, String)> {
     sign_file_with_secret_key_and_version(secret_key, path, None)
 }
 
@@ -198,7 +198,7 @@ pub fn sign_file_with_secret_key_and_version<P: AsRef<Path> + Debug>(
     secret_key: &minisign::SecretKey,
     path: P,
     version: Option<&str>,
-) -> crate::Result<PathBuf> {
+) -> crate::Result<(PathBuf, String)> {
     let path = path.as_ref();
 
     // The trusted comment is a single line of tab separated fields, so a version carrying either
@@ -247,7 +247,11 @@ pub fn sign_file_with_secret_key_and_version<P: AsRef<Path> + Debug>(
     signature_box_writer.write_all(encoded_signature.as_bytes())?;
     signature_box_writer.flush()?;
 
-    dunce::canonicalize(signature_path).map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))
+    Ok((
+        dunce::canonicalize(signature_path)
+            .map_err(|e| crate::Error::IoWithPath(path.to_path_buf(), e))?,
+        encoded_signature,
+    ))
 }
 
 #[cfg(test)]
@@ -274,12 +278,12 @@ mod tests {
 
         let signature_path =
             sign_file_with_secret_key_and_version(&secret_key, &path, Some(" 1.2.3\n")).unwrap();
-        let comment = trusted_comment(&signature_path);
+        let comment = trusted_comment(&signature_path.0);
         assert!(comment.starts_with("timestamp:"));
         assert!(comment.ends_with("\tfile:app.tar.gz\tversion:1.2.3"));
 
         let signature_path = sign_file_with_secret_key(&secret_key, &path).unwrap();
-        assert!(!trusted_comment(&signature_path).contains("version:"));
+        assert!(!trusted_comment(&signature_path.0).contains("version:"));
     }
 
     #[test]

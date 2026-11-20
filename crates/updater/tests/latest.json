@@ -1,0 +1,27 @@
+{
+  "version": "5.6.1",
+  "notes": null,
+  "pub_date": "2026-05-01T10:55:06.0489829Z",
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/UniFlyApp/UniFlyV5/releases/download/v5.6.1/unifly_5.6.1_x64-setup.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIGNhcmdvLXBhY2thZ2VyIHNlY3JldCBrZXkKUlVUK2NFaGg4dm1UN0lkSS9WbFJFYVBpcU1Sa05uRnBMTUxvYi9tSkpZRzNQSmk0L2NBN0hPMlZRUFhkSVpWcjFMa1dlVGhhQ0VGVWtGTnBDaXJrRXFLdVlEVGRodzhGNUFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc3NjMyOTA2CWZpbGU6dW5pZmx5XzUuNi4xX3g2NC1zZXR1cC5leGUKb0RvaS8vd3FCeFduR1hDbFRsaCt1Rk5xQlF3YjBqY1NobnNxZ1djeWNoOFl0UUIrMFhWaC9vK2Q0S2FKWkQvajFta1p0SGJpdy9VS3VyOWcyNlFZQmc9PQo=",
+      "format": "nsis"
+    },
+    "macos-aarch64": {
+      "url": "https://github.com/UniFlyApp/UniFlyV5/releases/download/v5.6.1/UniFly.app",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIGNhcmdvLXBhY2thZ2VyIHNlY3JldCBrZXkKUlVUK2NFaGg4dm1UN01KUVV4UGZiN1k2cENyU05nY1VkNkZPaW5QME5XWW5GTWpzVUlWTE9jQjV4M0s3eE1wZW14VGw5ZkJLemoxNXN2YWM2Y3c5MmFieWhydURwSTVFN0F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc3NjMyNDc4CWZpbGU6VW5pRmx5LmFwcC50YXIuZ3oKVktWWmxkQ3RIbW5qbTB5N0xjQzhpQmt3NlBjVXNOS0NvYWYrTm5UQTl4U29naDJzVjBCSC92MXEyTnhKM2xkZTVNaEltbkF1cmxYcDFRN3R6TDBMQWc9PQo=",
+      "format": "app"
+    },
+    "linux-x86_64": {
+      "url": "https://github.com/UniFlyApp/UniFlyV5/releases/download/v/unifly__x86_64.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIGNhcmdvLXBhY2thZ2VyIHNlY3JldCBrZXkKUlVUK2NFaGg4dm1UN0d1VG1zQk9wQW1abnJnTmtRVnpIVGh2elEvMmEyNWNldWhJSm1WcDA0ekxQK09mODJvajlUY2RCcmx4Q0daL2lIbFliSTdVY3dMUXF2L3c3ZS9LSWdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc3NjMyNzUyCWZpbGU6dW5pZmx5X194ODZfNjQudGFyLmd6Cm12UHpLUUtiREI4Q3NIZjlsVWVDbEdNMldlLy90eDExWFRXdXlDU1RUT29LWndxT2liVmpSRUp2dXk2VmhhZ1VRcjRSd2RhK0FOR0VhSXRNZVRPVUN3PT0K",
+      "format": "pacman"
+    },
+    "windows-i686": {
+      "url": "https://github.com/UniFlyApp/UniFlyV5/releases/download/v5.6.1/unifly_5.6.1_x86-setup.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIGNhcmdvLXBhY2thZ2VyIHNlY3JldCBrZXkKUlVUK2NFaGg4dm1UN0pqZFBhSjhPTSsrUzBvRmdHalhmeUtKcHVzeDBJR1Q1RDRMSjlPMXU1b3ZQMzdqdlg0ZjF6bjljZlV3aDFhNDh4cTJVaHc5RU5XMkZBOVMyTVhMTUFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc3NjMzMDc3CWZpbGU6dW5pZmx5XzUuNi4xX3g4Ni1zZXR1cC5leGUKb0FzcVcxRU5lbXpjanJ6LzBFNE85aFVaQ1dmZmtMRWZZL3BVUCtIZkp6Q3FCM2s1V2JQQXoyR3VpaDdJZGNEQjRSaEFyTkhqTmpQZk8xdThrY1U4QVE9PQo=",
+      "format": "nsis"
+    }
+  }
+}
