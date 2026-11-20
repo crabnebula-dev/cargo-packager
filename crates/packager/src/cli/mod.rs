@@ -115,12 +115,10 @@ fn run_cli(cli: Cli) -> Result<()> {
         .out_dir
         .as_ref()
         .map(|p| {
-            if p.exists() {
-                dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e))
-            } else {
+            if !p.exists() {
                 fs::create_dir_all(p).map_err(|e| Error::IoWithPath(p.clone(), e))?;
-                Ok(p.to_owned())
             }
+            dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e))
         })
         .transpose()?;
 
