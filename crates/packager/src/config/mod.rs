@@ -1857,9 +1857,8 @@ impl Config {
             return std::env::current_dir().expect("failed to resolve cwd");
         }
 
-        if !self.out_dir.exists() {
-            fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
-        }
+        fs::create_dir_all(&self.out_dir).expect("failed to create output directory");
+
         dunce::canonicalize(&self.out_dir).unwrap_or_else(|_| self.out_dir.clone())
     }
 
