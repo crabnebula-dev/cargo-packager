@@ -85,7 +85,7 @@ native-tls = { version = "0.2", optional = true }
 cargo-packager-utils = { version = "0.1.1", path = "../utils", features = [
     "serde",
 ] }
-icns = { package = "tauri-icns", version = "0.1" }
+icns = { package = "tauri-icns", version = "0.2" }
 time = { workspace = true, features = ["formatting"] }
 image = { version = "0.25", default-features = false, features = [
     "rayon",
