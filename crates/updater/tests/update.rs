@@ -269,11 +269,12 @@ fn update_app() {
             .unwrap();
 
         // run initial app
-        Command::new(&app)
+        let status = Command::new(&app)
             // This is read by the updater app test
             .env("UPDATER_FORMAT", format.name())
             .status()
             .expect("failed to start initial app");
+        assert!(status.success(), "initial app failed with {status}");
 
         // wait until the update is finished and the new version has been installed
         // before starting another updater test, this is because we use the same starting binary
