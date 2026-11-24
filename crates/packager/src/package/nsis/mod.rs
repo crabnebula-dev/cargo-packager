@@ -567,7 +567,7 @@ fn build_nsis_app_installer(ctx: &Context, nsis_path: &Path) -> crate::Result<Ve
 
     let installer_path = config.out_dir().join(format!(
         "{}_{}_{}-setup.exe",
-        main_binary_name, config.version, arch
+        config.product_name, config.version, arch
     ));
 
     let installer_path_parent = installer_path

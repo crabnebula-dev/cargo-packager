@@ -290,6 +290,13 @@ pub fn copy_custom_files(files: &HashMap<String, String>, data_dir: &Path) -> cr
     Ok(())
 }
 
+fn package_name(config: &Config) -> String {
+    config
+        .deb()
+        .and_then(|deb| deb.package_name.clone())
+        .unwrap_or_else(|| AsKebabCase(&config.product_name).to_string())
+}
+
 /// Generates the debian control file and stores it under the `control_dir`.
 #[tracing::instrument(level = "trace", skip(config))]
 fn generate_control_file(
@@ -303,10 +310,7 @@ fn generate_control_file(
     let dest_path = control_dir.join("control");
     let mut file = util::create_file(&dest_path)?;
 
-    let pkg_name = config
-        .deb()
-        .and_then(|deb| deb.package_name.clone())
-        .unwrap_or_else(|| AsKebabCase(&config.product_name).to_string());
+    let pkg_name = package_name(config);
 
     writeln!(file, "Package: {pkg_name}")?;
     writeln!(file, "Version: {}", config.version)?;
@@ -458,7 +462,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let intermediates_path = intermediates_path.join("deb");
     util::create_clean_dir(&intermediates_path)?;
 
-    let deb_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
+    let deb_base_name = format!("{}_{}_{}", package_name(config), config.version, arch);
     let deb_name = format!("{deb_base_name}.deb");
 
     let deb_dir = intermediates_path.join(&deb_base_name);
