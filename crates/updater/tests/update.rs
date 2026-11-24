@@ -258,8 +258,7 @@ fn update_app() {
         #[cfg(windows)]
         let app = root_dir.join("target/debug/installdir/cargo-packager-updater-app-test.exe");
         #[cfg(target_os = "linux")]
-        let app =
-            root_dir.join("target/debug/CargoPackagerAppUpdaterTest_0.1.0_x86_64.AppImage");
+        let app = root_dir.join("target/debug/CargoPackagerAppUpdaterTest_0.1.0_x86_64.AppImage");
         #[cfg(target_os = "macos")]
         let app = root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app/Contents/MacOS/cargo-packager-updater-app-test");
 
