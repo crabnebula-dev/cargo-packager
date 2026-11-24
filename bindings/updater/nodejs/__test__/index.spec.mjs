@@ -65,7 +65,7 @@ test("it updates correctly", async (t) => {
       ]
     : isMac
       ? [["app", path.join("dist", "ElectronApp.app.tar.gz")]]
-      : [["appimage", path.join("dist", `electron-app_1.0.0_x86_64.AppImage`)]];
+      : [["appimage", path.join("dist", `ElectronApp_1.0.0_x86_64.AppImage`)]];
 
   for (let [format, updatePackagePath] of generatedPackages) {
     const signaturePath = path.format({
@@ -158,7 +158,7 @@ test("it updates correctly", async (t) => {
         ? "installdir/ElectronApp.exe"
         : isMac
           ? "ElectronApp.app/Contents/MacOS/ElectronApp"
-          : `electron-app_0.1.0_x86_64.AppImage`,
+          : `ElectronApp_0.1.0_x86_64.AppImage`,
     );
 
     // save the current creation time
