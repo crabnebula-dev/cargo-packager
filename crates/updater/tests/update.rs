@@ -39,7 +39,7 @@ fn build_app(cwd: &Path, root_dir: &Path, version: &str, target: &[UpdaterFormat
             "--package",
             "cargo-packager",
             "--",
-            "-v",
+            "-vvv",
             "-f",
            &target.iter().map(|t|t.name()).collect::<Vec<_>>().join(","),
             "-c",
@@ -106,7 +106,7 @@ fn update_app() {
     #[cfg(target_os = "linux")]
     let generated_packages = vec![(
         UpdaterFormat::AppImage,
-        root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x86_64.AppImage"),
+        root_dir.join("target/debug/CargoPackagerAppUpdaterTest_1.0.0_x86_64.AppImage"),
     )];
     #[cfg(target_os = "macos")]
     let generated_packages: Vec<_> = vec![(
@@ -117,11 +117,11 @@ fn update_app() {
     let generated_packages: Vec<_> = vec![
         (
             UpdaterFormat::Nsis,
-            root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x64-setup.exe"),
+            root_dir.join("target/debug/CargoPackagerAppUpdaterTest_1.0.0_x64-setup.exe"),
         ),
         (
             UpdaterFormat::Wix,
-            root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x64_en-US.msi"),
+            root_dir.join("target/debug/CargoPackagerAppUpdaterTest_1.0.0_x64_en-US.msi"),
         ),
     ];
 
@@ -208,10 +208,10 @@ fn update_app() {
 
             let installer_path = root_dir.join(match format {
                 UpdaterFormat::Nsis => {
-                    "target/debug/cargo-packager-updater-app-test_0.1.0_x64-setup.exe"
+                    "target/debug/CargoPackagerAppUpdaterTest_0.1.0_x64-setup.exe"
                 }
                 UpdaterFormat::Wix => {
-                    "target/debug/cargo-packager-updater-app-test_0.1.0_x64_en-US.msi"
+                    "target/debug/CargoPackagerAppUpdaterTest_0.1.0_x64_en-US.msi"
                 }
                 _ => unreachable!(),
             });
@@ -259,7 +259,7 @@ fn update_app() {
         let app = root_dir.join("target/debug/installdir/cargo-packager-updater-app-test.exe");
         #[cfg(target_os = "linux")]
         let app =
-            root_dir.join("target/debug/cargo-packager-updater-app-test_0.1.0_x86_64.AppImage");
+            root_dir.join("target/debug/CargoPackagerAppUpdaterTest_0.1.0_x86_64.AppImage");
         #[cfg(target_os = "macos")]
         let app = root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app/Contents/MacOS/cargo-packager-updater-app-test");
 
@@ -348,12 +348,12 @@ fn rejects_metadata_version_mismatch() {
 
     #[cfg(target_os = "linux")]
     let update_package_path =
-        root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x86_64.AppImage");
+        root_dir.join("target/debug/CargoPackagerAppUpdaterTest_1.0.0_x86_64.AppImage");
     #[cfg(target_os = "macos")]
     let update_package_path = root_dir.join("target/debug/CargoPackagerAppUpdaterTest.app.tar.gz");
     #[cfg(windows)]
     let update_package_path =
-        root_dir.join("target/debug/cargo-packager-updater-app-test_1.0.0_x64-setup.exe");
+        root_dir.join("target/debug/CargoPackagerAppUpdaterTest_1.0.0_x64-setup.exe");
 
     let ext = update_package_path.extension().unwrap().to_str().unwrap();
     let signature_path = update_package_path.with_extension(format!("{ext}.sig"));
