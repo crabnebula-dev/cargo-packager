@@ -126,17 +126,11 @@ fn run_cli(cli: Cli) -> Result<()> {
         .binaries_dir
         .as_ref()
         .map(|p| {
-            dunce::canonicalize(p)
-                .or_else(|e| {
-                    if e.kind() == std::io::ErrorKind::NotFound {
-                        // The packaging hook can create this directory. Anchor the path
-                        // to the invocation directory before the CLI changes cwd.
-                        std::path::absolute(p)
-                    } else {
-                        Err(e)
-                    }
-                })
-                .map_err(|e| Error::IoWithPath(p.clone(), e))
+            // create it up front so it can be resolved before `beforePackagingCommand` fills it
+            if !p.exists() {
+                fs::create_dir_all(p).map_err(|e| Error::IoWithPath(p.clone(), e))?;
+            }
+            dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e))
         })
         .transpose()?;
 

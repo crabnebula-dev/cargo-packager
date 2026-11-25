@@ -3,4 +3,4 @@
 "@crabnebula/packager": patch
 ---
 
-Fixed packaging with `--binaries-dir` when the directory does not exist until `beforePackagingCommand` creates it.
+Fixed packaging with `--binaries-dir` when the directory does not exist before `beforePackagingCommand` runs.
