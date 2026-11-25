@@ -125,7 +125,19 @@ fn run_cli(cli: Cli) -> Result<()> {
     let cli_binaries_dir = cli
         .binaries_dir
         .as_ref()
-        .map(|p| dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e)))
+        .map(|p| {
+            dunce::canonicalize(p)
+                .or_else(|e| {
+                    if e.kind() == std::io::ErrorKind::NotFound {
+                        // The packaging hook can create this directory. Anchor the path
+                        // to the invocation directory before the CLI changes cwd.
+                        std::path::absolute(p)
+                    } else {
+                        Err(e)
+                    }
+                })
+                .map_err(|e| Error::IoWithPath(p.clone(), e))
+        })
         .transpose()?;
 
     let private_key = match cli.private_key {
