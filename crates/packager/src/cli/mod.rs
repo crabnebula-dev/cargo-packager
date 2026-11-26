@@ -125,7 +125,13 @@ fn run_cli(cli: Cli) -> Result<()> {
     let cli_binaries_dir = cli
         .binaries_dir
         .as_ref()
-        .map(|p| dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e)))
+        .map(|p| {
+            // create it up front so it can be resolved before `beforePackagingCommand` fills it
+            if !p.exists() {
+                fs::create_dir_all(p).map_err(|e| Error::IoWithPath(p.clone(), e))?;
+            }
+            dunce::canonicalize(p).map_err(|e| Error::IoWithPath(p.clone(), e))
+        })
         .transpose()?;
 
     let private_key = match cli.private_key {
