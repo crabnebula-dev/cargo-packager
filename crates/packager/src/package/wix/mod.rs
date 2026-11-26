@@ -486,6 +486,8 @@ fn build_wix_app_installer(ctx: &Context, wix_path: &Path) -> crate::Result<Vec<
     let manufacturer = config.publisher();
     data.insert("identifier", to_json(identifier));
     data.insert("manufacturer", to_json(manufacturer));
+    // TODO: This should probably use product name (BREAKING CHANGE!)
+    // TODO: Expose this as a config
     let upgrade_code = Uuid::new_v5(
         &Uuid::NAMESPACE_DNS,
         format!("{main_binary_name}.app.x64").as_bytes(),
