@@ -117,8 +117,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let icons: Vec<deb::DebIcon> = icons.into_iter().collect();
 
     let main_binary_name = config.main_binary_name()?;
-    let upcase_app_name = main_binary_name.to_uppercase();
-    let app_dir_path = intermediates_path.join(format!("{}.AppDir", main_binary_name));
+    let app_dir_path = intermediates_path.join(format!("{}.AppDir", config.product_name));
     let appimage_filename = format!(
         "{}_{}_{}.AppImage",
         config.product_name, config.version, arch
@@ -131,8 +130,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let mut sh_map = BTreeMap::new();
     sh_map.insert("arch", to_json(arch));
     sh_map.insert("linuxdeploy_arch", to_json(linuxdeploy_arch));
-    sh_map.insert("app_name", to_json(main_binary_name));
-    sh_map.insert("app_name_uppercase", to_json(upcase_app_name));
+    sh_map.insert("app_name", to_json(&config.product_name));
     sh_map.insert("appimage_path", to_json(&appimage_path));
     sh_map.insert(
         "packager_tools_path",

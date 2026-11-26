@@ -93,7 +93,7 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
 #[tracing::instrument(level = "trace", skip(config))]
 fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> {
     let bin_name = config.main_binary_name()?;
-    let desktop_file_name = format!("{bin_name}.desktop");
+    let desktop_file_name = format!("{}.desktop", config.product_name);
     let desktop_file_path = data_dir
         .join("usr/share/applications")
         .join(desktop_file_name);
