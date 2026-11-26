@@ -93,7 +93,8 @@ fn generate_icon_files(config: &Config, data_dir: &Path) -> crate::Result<BTreeS
 #[tracing::instrument(level = "trace", skip(config))]
 fn generate_desktop_file(config: &Config, data_dir: &Path) -> crate::Result<()> {
     let bin_name = config.main_binary_name()?;
-    let desktop_file_name = format!("{bin_name}.desktop");
+    let product_name = &config.product_name;
+    let desktop_file_name = format!("{product_name}.desktop");
     let desktop_file_path = data_dir
         .join("usr/share/applications")
         .join(desktop_file_name);
@@ -458,7 +459,7 @@ pub(crate) fn package(ctx: &Context) -> crate::Result<Vec<PathBuf>> {
     let intermediates_path = intermediates_path.join("deb");
     util::create_clean_dir(&intermediates_path)?;
 
-    let deb_base_name = format!("{}_{}_{}", config.main_binary_name()?, config.version, arch);
+    let deb_base_name = format!("{}_{}_{}", config.product_name, config.version, arch);
     let deb_name = format!("{deb_base_name}.deb");
 
     let deb_dir = intermediates_path.join(&deb_base_name);
