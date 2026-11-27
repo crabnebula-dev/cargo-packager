@@ -137,6 +137,8 @@ pub struct Update {
     pub date: Option<String>,
     /// Request timeout
     pub timeout: Option<u32>,
+    /// Carried over from [`Options`] to the download, not exposed to JS.
+    pub(crate) dangerous_insecure_transport_protocol: bool,
 }
 
 impl Update {
@@ -145,6 +147,7 @@ impl Update {
             config: cargo_packager_updater::Config {
                 pubkey: self.pubkey.clone(),
                 windows: self.windows.clone().map(Into::into),
+                dangerous_insecure_transport_protocol: self.dangerous_insecure_transport_protocol,
                 ..Default::default()
             },
             body: self.body.clone(),
@@ -376,4 +379,37 @@ pub fn check_update(
         current_version,
         options,
     )?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_keeps_insecure_transport_opt_in() {
+        for allow in [true, false] {
+            let checked = cargo_packager_updater::Update {
+                config: cargo_packager_updater::Config {
+                    dangerous_insecure_transport_protocol: allow,
+                    ..Default::default()
+                },
+                body: None,
+                current_version: "0.1.0".into(),
+                version: "1.0.0".into(),
+                date: None,
+                target: "linux-x86_64".into(),
+                extract_path: "app".into(),
+                download_url: "http://localhost/download".parse().unwrap(),
+                signature: String::new(),
+                timeout: None,
+                headers: Default::default(),
+                format: cargo_packager_updater::UpdateFormat::AppImage,
+            };
+
+            // `checkUpdate` hands this object to JS, and `download`/`install` convert it back.
+            let update = Update::from(checked).create_update().unwrap();
+
+            assert_eq!(update.config.dangerous_insecure_transport_protocol, allow);
+        }
+    }
 }
