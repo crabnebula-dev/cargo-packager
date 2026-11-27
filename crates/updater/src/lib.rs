@@ -651,12 +651,16 @@ impl Updater {
                             return Ok(None);
                         };
 
-                        let update_response: serde_json::Value = res.json()?;
-                        log::debug!("update response: {update_response:?}");
+                        let parsed_release = res
+                            .json::<serde_json::Value>()
+                            .map_err(Error::from)
+                            .and_then(|update_response| {
+                                log::debug!("update response: {update_response:?}");
+                                serde_json::from_value::<RemoteRelease>(update_response)
+                                    .map_err(Into::into)
+                            });
 
-                        match serde_json::from_value::<RemoteRelease>(update_response)
-                            .map_err(Into::into)
-                        {
+                        match parsed_release {
                             Ok(release) => {
                                 log::debug!("parsed release response {release:?}");
                                 last_error = None;
@@ -1550,5 +1554,42 @@ mod tests {
             })
             .unwrap_err();
         assert!(matches!(err, Error::MissingSignedMetadata));
+    }
+
+    #[test]
+    fn check_falls_back_when_endpoint_returns_non_json_body() {
+        fn serve(body: &'static str) -> Url {
+            let server = tiny_http::Server::http("127.0.0.1:0").unwrap();
+            let endpoint = url(&format!("http://{}", server.server_addr()));
+            std::thread::spawn(move || {
+                for request in server.incoming_requests() {
+                    let _ = request.respond(tiny_http::Response::from_string(body));
+                }
+            });
+            endpoint
+        }
+
+        let portal = serve("<html>Sign in to continue</html>");
+        let release = serve(
+            r#"{"version":"1.0.0","url":"https://example.com/app","signature":"sig","format":"appimage"}"#,
+        );
+
+        let update = UpdaterBuilder::new(
+            "0.1.0".parse().unwrap(),
+            Config {
+                endpoints: vec![portal, release],
+                dangerous_insecure_transport_protocol: true,
+                ..Default::default()
+            },
+        )
+        .build()
+        .unwrap()
+        .check()
+        .unwrap();
+
+        assert_eq!(
+            update.expect("update from second endpoint").version,
+            "1.0.0"
+        );
     }
 }
