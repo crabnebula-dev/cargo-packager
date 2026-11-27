@@ -79,6 +79,9 @@ impl From<cargo_packager_updater::Update> for Update {
     fn from(value: cargo_packager_updater::Update) -> Self {
         Self {
             pubkey: value.config.pubkey,
+            dangerous_insecure_transport_protocol: value
+                .config
+                .dangerous_insecure_transport_protocol,
             body: value.body,
             current_version: value.current_version,
             version: value.version,
