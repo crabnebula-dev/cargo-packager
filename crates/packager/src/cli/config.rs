@@ -131,7 +131,12 @@ fn load_configs_from_cargo_workspace(cli: &super::Cli) -> Result<Vec<(Option<Pat
     let profile = if cli.release {
         "release"
     } else if let Some(profile) = &cli.profile {
-        profile.as_str()
+        // cargo's built-in profiles don't all use a directory named after them
+        match profile.as_str() {
+            "dev" | "test" => "debug",
+            "bench" => "release",
+            other => other,
+        }
     } else {
         "debug"
     };
@@ -340,5 +345,41 @@ mod tests {
 
         assert_eq!(configs.len(), 1);
         assert_eq!(configs[0].1.name(), "my-app");
+    }
+
+    #[test]
+    fn cargo_profiles_map_to_their_output_directory() {
+        use clap::Parser;
+
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = dir.path().join("Cargo.toml");
+        fs::write(
+            &manifest,
+            "[package]\nname = \"my-app\"\nversion = \"0.1.0\"\n\n[package.metadata.packager]\n",
+        )
+        .unwrap();
+        fs::create_dir(dir.path().join("src")).unwrap();
+        fs::write(dir.path().join("src/main.rs"), "fn main() {}\n").unwrap();
+
+        for (profile, expected) in [
+            ("dev", "debug"),
+            ("test", "debug"),
+            ("bench", "release"),
+            ("release", "release"),
+            ("dist", "dist"),
+        ] {
+            let cli = crate::cli::Cli::parse_from([
+                "--manifest-path".as_ref(),
+                manifest.as_os_str(),
+                "--profile".as_ref(),
+                std::ffi::OsStr::new(profile),
+            ]);
+
+            let configs = load_configs_from_cargo_workspace(&cli).unwrap();
+
+            let out_dir = &configs[0].1.out_dir;
+            assert!(out_dir.ends_with(expected), "{profile}: {out_dir:?}");
+            assert_eq!(configs[0].1.binaries_dir.as_ref(), Some(out_dir));
+        }
     }
 }
